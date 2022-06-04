@@ -3,6 +3,7 @@
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
 
+mod glyf;
 mod stream;
 
 use std::borrow::Cow;
@@ -229,8 +230,8 @@ pub fn subset(face: &dyn Face, profile: Profile) -> Result<Vec<u8>> {
     ctx.copy(Tag::POST);
 
     if ctx.kind == FontKind::TrueType {
-        ctx.copy(Tag::GLYF);
-        ctx.copy(Tag::LOCA);
+        // Writes glyf and loca table.
+        glyf::subset(&mut ctx)?;
         ctx.copy(Tag::CVT);
         ctx.copy(Tag::FPGM);
         ctx.copy(Tag::PREP);
