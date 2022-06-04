@@ -1,0 +1,7 @@
+[package]
+name = "subsetter"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+ttf-parser = "0.15"
