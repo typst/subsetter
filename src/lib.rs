@@ -44,7 +44,7 @@ pub fn parse(data: &[u8], index: u32) -> Result<impl Face + '_> {
         r = Reader::new(subdata);
         kind = r.read::<FontKind>()?;
         if kind == FontKind::Collection {
-            return Err(Error::NestedCollection);
+            return Err(Error::UnknownKind);
         }
     }
 
@@ -107,7 +107,7 @@ impl Tag {
     const CBDT: Self = Self(*b"CBDT");
     const CBLC: Self = Self(*b"CBLC");
     const SBIX: Self = Self(*b"sbix");
-    const SVG_: Self = Self(*b"SVG ");
+    const SVG: Self = Self(*b"SVG ");
 }
 
 impl Structure for Tag {
@@ -136,39 +136,33 @@ impl Display for Tag {
 
 /// Defines which things to keep in the font.
 ///
-/// #### In the future
-/// - All currently defined profiles drop all layout tables. Profiles that
-///   subset layout tables like GSUB might be added later.
-/// - Profiles might gain support for setting variation coordinates to create a
-///   non-variadic instance of a font.
+/// #### Possible Future Work
+/// - A setter for variation coordinates which would make the subsetter create a
+///   static instance of a variable font.
+/// - A profile which keeps and subsets bitmap, color and SVG tables.
+/// - A profile which takes a char set instead of a glyph set and subsets the
+///   layout tables.
 pub struct Profile<'a> {
     glyphs: &'a [u16],
-    keep_graphic: bool,
 }
 
 impl<'a> Profile<'a> {
-    /// Reduces the font to the subset needed for drawing.
-    ///
-    /// Drops all layout tables. This is the correct profile if text was already
-    /// mapped to glyph indices and the consumer of the subsetted font is only
-    /// interested in rendering those glyphs.
-    pub fn rendering(glyphs: &'a [u16]) -> Self {
-        Self { glyphs, keep_graphic: true }
-    }
-
     /// Reduces the font to the subset needed for PDF embedding.
     ///
-    /// This is based on the rendering profile but removes all non-outline glyph
-    /// descriptions like bitmaps, layered color glyphs and SVGs as these are
-    /// not mentioned in the PDF standard and not supported by PDF readers.
+    /// Keeps only the basic required tables plus either the TrueType-related or
+    /// CFF-related tables.
+    ///
+    /// In particular, this also removes all non-outline glyph descriptions like
+    /// bitmaps, layered color glyphs and SVGs as these are not mentioned in the
+    /// PDF standard and not supported by most PDF readers.
     ///
     /// The subsetted font can be embedded in a PDF as a `FontFile3` with
-    /// Subtype `OpenType`. Alternatively, it can also be embedded as:
-    /// - a `FontFile2` if it contains TrueType outlines
-    /// - you can extract the CFF table and embed it as a `FontFile3` with
-    ///   Subtype `Type1C` if it contains CFF outlines
+    /// Subtype `OpenType`. Alternatively:
+    /// - For TrueType outlines: You can embed it as a a `FontFile2`.
+    /// - For CFF outlines: You can extract the CFF table and embed just the
+    ///   table as a `FontFile3` with Subtype `Type1C`
     pub fn pdf(glyphs: &'a [u16]) -> Self {
-        Self { glyphs, keep_graphic: false }
+        Self { glyphs }
     }
 }
 
@@ -190,11 +184,20 @@ impl<'a> Context<'a> {
         self.face.table(tag).ok_or(Error::MissingTable(tag))
     }
 
-    /// Copy a table.
-    fn copy(&mut self, tag: Tag) {
-        if let Some(data) = self.face.table(tag) {
-            self.push(tag, data);
+    /// Process a table.
+    fn process(&mut self, tag: Tag) -> Result<()> {
+        let data = match self.face.table(tag) {
+            Some(data) => data,
+            None => return Ok(()),
+        };
+
+        match tag {
+            Tag::GLYF => glyf::subset(self)?,
+            Tag::LOCA => panic!("handled by glyf"),
+            _ => self.push(tag, data),
         }
+
+        Ok(())
     }
 
     /// Push a subsetted table.
@@ -220,40 +223,28 @@ pub fn subset(face: &dyn Face, profile: Profile) -> Result<Vec<u8>> {
     };
 
     // Required tables.
-    ctx.copy(Tag::CMAP);
-    ctx.copy(Tag::HEAD);
-    ctx.copy(Tag::HHEA);
-    ctx.copy(Tag::HMTX);
-    ctx.copy(Tag::MAXP);
-    ctx.copy(Tag::NAME);
-    ctx.copy(Tag::OS2);
-    ctx.copy(Tag::POST);
+    ctx.process(Tag::CMAP)?;
+    ctx.process(Tag::HEAD)?;
+    ctx.process(Tag::HHEA)?;
+    ctx.process(Tag::HMTX)?;
+    ctx.process(Tag::MAXP)?;
+    ctx.process(Tag::NAME)?;
+    ctx.process(Tag::OS2)?;
+    ctx.process(Tag::POST)?;
 
     if ctx.kind == FontKind::TrueType {
         // Writes glyf and loca table.
-        glyf::subset(&mut ctx)?;
-        ctx.copy(Tag::CVT);
-        ctx.copy(Tag::FPGM);
-        ctx.copy(Tag::PREP);
-        ctx.copy(Tag::GASP);
+        ctx.process(Tag::GLYF)?;
+        ctx.process(Tag::CVT)?;
+        ctx.process(Tag::FPGM)?;
+        ctx.process(Tag::PREP)?;
+        ctx.process(Tag::GASP)?;
     }
 
     if ctx.kind == FontKind::CFF {
-        ctx.copy(Tag::CFF);
-        ctx.copy(Tag::CFF2);
-        ctx.copy(Tag::VORG)
-    }
-
-    if ctx.profile.keep_graphic {
-        ctx.copy(Tag::EBDT);
-        ctx.copy(Tag::EBLC);
-        ctx.copy(Tag::EBSC);
-        ctx.copy(Tag::CBDT);
-        ctx.copy(Tag::CBLC);
-        ctx.copy(Tag::SBIX);
-        ctx.copy(Tag::COLR);
-        ctx.copy(Tag::CPAL);
-        ctx.copy(Tag::SVG_);
+        ctx.process(Tag::CFF)?;
+        ctx.process(Tag::CFF2)?;
+        ctx.process(Tag::VORG)?;
     }
 
     Ok(construct(ctx))
@@ -419,15 +410,18 @@ type Result<T> = std::result::Result<T, Error>;
 /// Parsing failed because the font face is malformed.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Error {
-    /// The font file starts with an unknown magic number.
+    /// The file contains an unknown kind of font.
     UnknownKind,
-    /// The file contained nested font collections.
-    NestedCollection,
     /// An offset pointed outside of the data.
     InvalidOffset,
     /// Parsing expected more data.
     MissingData,
     /// A table is missing.
+    ///
+    /// Mostly, the subsetter just ignores (i.e. not subsets) tables if they are
+    /// missing (even the required ones). This error only occurs if a table
+    /// depends on another table and that one is missing, e.g., `glyf` is
+    /// present but `loca` is missing.
     MissingTable(Tag),
 }
 
@@ -435,7 +429,6 @@ impl Display for Error {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Self::UnknownKind => f.pad("unknown font kind"),
-            Self::NestedCollection => f.pad("nested font collection"),
             Self::InvalidOffset => f.pad("invalid offset"),
             Self::MissingData => f.pad("missing more data"),
             Self::MissingTable(tag) => write!(f, "missing {tag} table"),
