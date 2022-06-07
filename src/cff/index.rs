@@ -23,11 +23,11 @@ impl<T> Index<T> {
     }
 }
 
-impl<T> Structure for Index<T>
+impl<'a, T> Structure<'a> for Index<T>
 where
-    T: Structure,
+    T: Structure<'a>,
 {
-    fn read(r: &mut Reader) -> Result<Self> {
+    fn read(r: &mut Reader<'a>) -> Result<Self> {
         let data = r.data();
         let count = r.read::<u16>()? as usize;
         if count == 0 {
@@ -116,7 +116,7 @@ impl Offsize {
     }
 }
 
-impl Structure for Offsize {
+impl Structure<'_> for Offsize {
     fn read(r: &mut Reader) -> Result<Self> {
         match r.read::<u8>()? {
             1 => Ok(Self::One),

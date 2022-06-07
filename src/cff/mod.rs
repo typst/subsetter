@@ -10,15 +10,15 @@ use self::index::*;
 use super::*;
 
 /// A CFF table.
-struct Table {
-    name: Index<Opaque>,
-    top_dict: Dict,
-    strings: Index<Opaque>,
-    global_subrs: Index<Opaque>,
-    char_strings: Index<Opaque>,
-    charset: Option<Opaque>,
-    private_dict: Option<Dict>,
-    local_subrs: Option<Index<Opaque>>,
+struct Table<'a> {
+    name: Index<Opaque<'a>>,
+    top_dict: Dict<'a>,
+    strings: Index<Opaque<'a>>,
+    global_subrs: Index<Opaque<'a>>,
+    char_strings: Index<Opaque<'a>>,
+    charset: Option<Opaque<'a>>,
+    private_dict: Option<Dict<'a>>,
+    local_subrs: Option<Index<Opaque<'a>>>,
 }
 
 /// Recorded offsets that will be written into DICTs.
@@ -209,7 +209,7 @@ fn set_offets(table: &mut Table, offsets: &Offsets) {
 /// Subset a Top DICT.
 ///
 /// Keeps only relevant non-offset entries. Offset entries are inserted later.
-fn subset_top(top_dict: &Dict) -> Dict {
+fn subset_top<'a>(top_dict: &Dict<'a>) -> Dict<'a> {
     let mut sub = Dict::new();
     sub.copy(&top_dict, top::ROS);
     sub.copy(&top_dict, top::CID_FONT_VERSION);
@@ -241,7 +241,7 @@ fn subset_top(top_dict: &Dict) -> Dict {
 /// Subset a Private DICT.
 ///
 /// Keeps only relevant non-offset entries. Offset entries are inserted later.
-fn subset_private(private_dict: &Dict) -> Dict {
+fn subset_private<'a>(private_dict: &Dict<'a>) -> Dict<'a> {
     let mut sub = Dict::new();
     sub.copy(&private_dict, private::BLUE_VALUES);
     sub.copy(&private_dict, private::OTHER_BLUES);
@@ -264,7 +264,7 @@ fn subset_private(private_dict: &Dict) -> Dict {
 }
 
 /// Extract the charset bytes.
-fn read_charset(data: &[u8], num_glyphs: u16) -> Result<Opaque> {
+fn read_charset(data: &[u8], num_glyphs: u16) -> Result<Opaque<'_>> {
     let mut r = Reader::new(data);
     let mut len = 1;
 
@@ -294,16 +294,14 @@ fn read_charset(data: &[u8], num_glyphs: u16) -> Result<Opaque> {
         _ => return Err(Error::InvalidData),
     }
 
-    Ok(Opaque(
-        data.get(.. len).ok_or(Error::InvalidOffset)?.to_vec(),
-    ))
+    Ok(Opaque(data.get(.. len).ok_or(Error::InvalidOffset)?))
 }
 
 /// Subset the glyph descriptions.
-fn subset_char_strings(
+fn subset_char_strings<'a>(
     ctx: &Context,
-    mut strings: Index<Opaque>,
-) -> Result<Index<Opaque>> {
+    mut strings: Index<Opaque<'a>>,
+) -> Result<Index<Opaque<'a>>> {
     // The set of all glyphs we will include in the subset.
     let subset: HashSet<u16> = ctx.profile.glyphs.iter().copied().collect();
 
@@ -311,8 +309,7 @@ fn subset_char_strings(
         if !subset.contains(&glyph) {
             // The byte sequence [14] is the minimal valid charstring consisting
             // of just a single `endchar` operator.
-            *strings.get_mut(glyph as usize).ok_or(Error::InvalidOffset)? =
-                Opaque(vec![14]);
+            *strings.get_mut(glyph as usize).ok_or(Error::InvalidOffset)? = Opaque(&[14]);
         }
     }
 
@@ -320,11 +317,11 @@ fn subset_char_strings(
 }
 
 /// An opaque binary data structure.
-struct Opaque(Vec<u8>);
+struct Opaque<'a>(&'a [u8]);
 
-impl Structure for Opaque {
-    fn read(r: &mut Reader) -> Result<Self> {
-        let data = r.data().to_vec();
+impl<'a> Structure<'a> for Opaque<'a> {
+    fn read(r: &mut Reader<'a>) -> Result<Self> {
+        let data = r.data();
         r.skip(data.len())?;
         Ok(Self(data))
     }
@@ -334,7 +331,7 @@ impl Structure for Opaque {
     }
 }
 
-impl Debug for Opaque {
+impl Debug for Opaque<'_> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.pad("Opaque { .. }")
     }

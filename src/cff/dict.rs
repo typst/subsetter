@@ -5,14 +5,14 @@ use crate::{Error, Reader, Result, Structure, Writer};
 
 /// A DICT data structure.
 #[derive(Clone)]
-pub struct Dict(Vec<Pair>);
+pub struct Dict<'a>(Vec<Pair<'a>>);
 
-impl Dict {
+impl<'a> Dict<'a> {
     pub fn new() -> Self {
         Self(vec![])
     }
 
-    pub fn get(&self, op: Op) -> Option<&[Operand]> {
+    pub fn get(&self, op: Op) -> Option<&[Operand<'a>]> {
         self.0
             .iter()
             .find(|pair| pair.op == op)
@@ -43,7 +43,7 @@ impl Dict {
         }
     }
 
-    pub fn set(&mut self, op: Op, operands: Vec<Operand>) {
+    pub fn set(&mut self, op: Op, operands: Vec<Operand<'a>>) {
         if let Some(pair) = self.0.iter_mut().find(|pair| pair.op == op) {
             pair.operands = operands;
         } else {
@@ -63,8 +63,8 @@ impl Dict {
     }
 }
 
-impl Structure for Dict {
-    fn read(r: &mut Reader) -> Result<Self> {
+impl<'a> Structure<'a> for Dict<'a> {
+    fn read(r: &mut Reader<'a>) -> Result<Self> {
         let mut pairs = vec![];
         while !r.eof() {
             pairs.push(r.read::<Pair>()?);
@@ -79,7 +79,7 @@ impl Structure for Dict {
     }
 }
 
-impl Debug for Dict {
+impl Debug for Dict<'_> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.debug_list().entries(self.0.iter()).finish()
     }
@@ -87,13 +87,13 @@ impl Debug for Dict {
 
 /// An operand-operator pair in a DICT.
 #[derive(Clone)]
-struct Pair {
-    operands: Vec<Operand>,
+struct Pair<'a> {
+    operands: Vec<Operand<'a>>,
     op: Op,
 }
 
-impl Structure for Pair {
-    fn read(r: &mut Reader) -> Result<Self> {
+impl<'a> Structure<'a> for Pair<'a> {
+    fn read(r: &mut Reader<'a>) -> Result<Self> {
         let mut operands = vec![];
         loop {
             match r.data().first().ok_or(Error::MissingData)? {
@@ -113,7 +113,7 @@ impl Structure for Pair {
     }
 }
 
-impl Debug for Pair {
+impl Debug for Pair<'_> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{:?}: {:?}", self.op, self.operands)
     }
@@ -123,7 +123,7 @@ impl Debug for Pair {
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Op(u8, u8);
 
-impl Structure for Op {
+impl Structure<'_> for Op {
     fn read(r: &mut Reader) -> Result<Self> {
         let b0 = r.read::<u8>()?;
         match b0 {
@@ -143,14 +143,14 @@ impl Structure for Op {
 
 /// An operand in a DICT.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Operand {
+pub enum Operand<'a> {
     Int(i32),
     Offset(usize),
-    Real(Vec<u8>),
+    Real(&'a [u8]),
 }
 
-impl Structure for Operand {
-    fn read(r: &mut Reader) -> Result<Self> {
+impl<'a> Structure<'a> for Operand<'a> {
+    fn read(r: &mut Reader<'a>) -> Result<Self> {
         let b0 = i32::from(r.read::<u8>()?);
         Ok(match b0 {
             28 => Self::Int(i32::from(r.read::<i16>()?)),
@@ -163,7 +163,7 @@ impl Structure for Operand {
                         break;
                     }
                 }
-                Self::Real(r.take(len)?.to_vec())
+                Self::Real(r.take(len)?)
             }
             32 ..= 246 => Self::Int(b0 - 139),
             247 ..= 250 => {

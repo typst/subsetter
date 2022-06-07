@@ -14,9 +14,9 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     }
 }
 
-fn subset_impl<T>(ctx: &mut Context) -> Result<()>
+fn subset_impl<'a, T>(ctx: &'a mut Context) -> Result<()>
 where
-    T: LocaOffset,
+    T: LocaOffset<'a>,
 {
     let loca = ctx.expect_table(Tag::LOCA)?;
     let glyf = ctx.expect_table(Tag::GLYF)?;
@@ -121,12 +121,12 @@ fn component_glyphs(mut r: Reader) -> impl Iterator<Item = u16> + '_ {
 }
 
 /// A loca offset, either 16-bit or 32-bit.
-trait LocaOffset: Structure {
+trait LocaOffset<'a>: Structure<'a> {
     fn loca_to_usize(self) -> usize;
     fn usize_to_loca(offset: usize) -> Self;
 }
 
-impl LocaOffset for u16 {
+impl LocaOffset<'_> for u16 {
     fn loca_to_usize(self) -> usize {
         2 * usize::from(self)
     }
@@ -138,7 +138,7 @@ impl LocaOffset for u16 {
     }
 }
 
-impl LocaOffset for u32 {
+impl LocaOffset<'_> for u32 {
     fn loca_to_usize(self) -> usize {
         self as usize
     }

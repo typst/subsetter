@@ -111,7 +111,7 @@ impl Tag {
     const SVG: Self = Self(*b"SVG ");
 }
 
-impl Structure for Tag {
+impl Structure<'_> for Tag {
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<[u8; 4]>().map(Self)
     }
@@ -346,7 +346,7 @@ enum FontKind {
     Collection,
 }
 
-impl Structure for FontKind {
+impl Structure<'_> for FontKind {
     fn read(r: &mut Reader) -> Result<Self> {
         match r.read::<u32>()? {
             0x00010000 | 0x74727565 => Ok(FontKind::TrueType),
@@ -368,7 +368,7 @@ impl Structure for FontKind {
 /// A signed 16-bit fixed-point number.
 struct F2Dot14(u16);
 
-impl Structure for F2Dot14 {
+impl Structure<'_> for F2Dot14 {
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<u16>().map(Self)
     }
@@ -387,7 +387,7 @@ struct TableRecord {
     length: u32,
 }
 
-impl Structure for TableRecord {
+impl Structure<'_> for TableRecord {
     fn read(r: &mut Reader) -> Result<Self> {
         Ok(TableRecord {
             tag: r.read::<Tag>()?,

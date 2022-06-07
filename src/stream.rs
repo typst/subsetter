@@ -20,12 +20,12 @@ impl<'a> Reader<'a> {
     }
 
     /// Try to read `T` from the data.
-    pub fn read<T: Structure>(&mut self) -> Result<T> {
+    pub fn read<T: Structure<'a>>(&mut self) -> Result<T> {
         T::read(self)
     }
 
     /// Take the first `n` bytes from the stream.
-    pub fn take(&mut self, n: usize) -> Result<&[u8]> {
+    pub fn take(&mut self, n: usize) -> Result<&'a [u8]> {
         if n <= self.0.len() {
             let head = &self.0[.. n];
             self.0 = &self.0[n ..];
@@ -56,12 +56,12 @@ impl Writer {
     }
 
     /// Write `T` into the data.
-    pub fn write<T: Structure>(&mut self, data: T) {
+    pub fn write<'a, T: Structure<'a>>(&mut self, data: T) {
         data.write(self);
     }
 
     /// Write `T` into the data, passing it by reference.
-    pub fn write_ref<T: Structure>(&mut self, data: &T) {
+    pub fn write_ref<'a, T: Structure<'a>>(&mut self, data: &T) {
         data.write(self);
     }
 
@@ -89,15 +89,15 @@ impl Writer {
 }
 
 /// Decode structures from a stream of binary data.
-pub trait Structure: Sized {
+pub trait Structure<'a>: Sized {
     /// Try to read `Self` from the reader.
-    fn read(r: &mut Reader) -> Result<Self>;
+    fn read(r: &mut Reader<'a>) -> Result<Self>;
 
     /// Write `Self` into the writer.
     fn write(&self, w: &mut Writer);
 
     /// Read self at the given offset in the binary data.
-    fn read_at(data: &[u8], offset: usize) -> Result<Self> {
+    fn read_at(data: &'a [u8], offset: usize) -> Result<Self> {
         if let Some(sub) = data.get(offset ..) {
             Self::read(&mut Reader::new(sub))
         } else {
@@ -106,7 +106,7 @@ pub trait Structure: Sized {
     }
 }
 
-impl<const N: usize> Structure for [u8; N] {
+impl<const N: usize> Structure<'_> for [u8; N] {
     fn read(r: &mut Reader) -> Result<Self> {
         Ok(r.take(N)?.try_into().unwrap_or([0; N]))
     }
@@ -116,7 +116,7 @@ impl<const N: usize> Structure for [u8; N] {
     }
 }
 
-impl Structure for u8 {
+impl Structure<'_> for u8 {
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<[u8; 1]>().map(Self::from_be_bytes)
     }
@@ -126,7 +126,7 @@ impl Structure for u8 {
     }
 }
 
-impl Structure for u16 {
+impl Structure<'_> for u16 {
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
@@ -136,7 +136,7 @@ impl Structure for u16 {
     }
 }
 
-impl Structure for i16 {
+impl Structure<'_> for i16 {
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
@@ -146,7 +146,7 @@ impl Structure for i16 {
     }
 }
 
-impl Structure for u32 {
+impl Structure<'_> for u32 {
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
@@ -156,7 +156,7 @@ impl Structure for u32 {
     }
 }
 
-impl Structure for i32 {
+impl Structure<'_> for i32 {
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
