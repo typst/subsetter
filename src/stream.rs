@@ -9,6 +9,16 @@ impl<'a> Reader<'a> {
         Self(data)
     }
 
+    /// The remaining data.
+    pub fn data(&self) -> &'a [u8] {
+        self.0
+    }
+
+    /// Whether there is no data remaining.
+    pub fn eof(&self) -> bool {
+        self.0.is_empty()
+    }
+
     /// Try to read `T` from the data.
     pub fn read<T: Structure>(&mut self) -> Result<T> {
         T::read(self)
@@ -24,6 +34,16 @@ impl<'a> Reader<'a> {
             Err(Error::MissingData)
         }
     }
+
+    /// Skip the first `n` bytes from the stream.
+    pub fn skip(&mut self, n: usize) -> Result<()> {
+        if n <= self.0.len() {
+            self.0 = &self.0[n ..];
+            Ok(())
+        } else {
+            Err(Error::MissingData)
+        }
+    }
 }
 
 /// A writable stream of binary data.
@@ -35,8 +55,13 @@ impl Writer {
         Self(Vec::with_capacity(1024))
     }
 
-    /// Try to read `T` from the data.
+    /// Write `T` into the data.
     pub fn write<T: Structure>(&mut self, data: T) {
+        data.write(self);
+    }
+
+    /// Write `T` into the data, passing it by reference.
+    pub fn write_ref<T: Structure>(&mut self, data: &T) {
         data.write(self);
     }
 
@@ -65,79 +90,78 @@ impl Writer {
 
 /// Decode structures from a stream of binary data.
 pub trait Structure: Sized {
-    /// The memory size of the structure.
-    const SIZE: usize;
-
     /// Try to read `Self` from the reader.
     fn read(r: &mut Reader) -> Result<Self>;
 
     /// Write `Self` into the writer.
-    fn write(self, w: &mut Writer);
+    fn write(&self, w: &mut Writer);
 
     /// Read self at the given offset in the binary data.
     fn read_at(data: &[u8], offset: usize) -> Result<Self> {
-        let mut r = Reader::new(data);
-        r.take(offset)?;
-        Self::read(&mut r)
+        if let Some(sub) = data.get(offset ..) {
+            Self::read(&mut Reader::new(sub))
+        } else {
+            Err(Error::InvalidOffset)
+        }
     }
 }
 
 impl<const N: usize> Structure for [u8; N] {
-    const SIZE: usize = N;
-
     fn read(r: &mut Reader) -> Result<Self> {
         Ok(r.take(N)?.try_into().unwrap_or([0; N]))
     }
 
-    fn write(self, w: &mut Writer) {
-        w.give(&self)
+    fn write(&self, w: &mut Writer) {
+        w.give(self)
     }
 }
 
 impl Structure for u8 {
-    const SIZE: usize = 1;
-
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<[u8; 1]>().map(Self::from_be_bytes)
     }
 
-    fn write(self, w: &mut Writer) {
+    fn write(&self, w: &mut Writer) {
         w.write::<[u8; 1]>(self.to_be_bytes());
     }
 }
 
 impl Structure for u16 {
-    const SIZE: usize = 2;
-
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
 
-    fn write(self, w: &mut Writer) {
+    fn write(&self, w: &mut Writer) {
         w.write::<[u8; 2]>(self.to_be_bytes());
     }
 }
 
 impl Structure for i16 {
-    const SIZE: usize = 2;
-
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
 
-    fn write(self, w: &mut Writer) {
+    fn write(&self, w: &mut Writer) {
         w.write::<[u8; 2]>(self.to_be_bytes());
     }
 }
 
 impl Structure for u32 {
-    const SIZE: usize = 4;
-
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
 
-    fn write(self, w: &mut Writer) {
+    fn write(&self, w: &mut Writer) {
+        w.write::<[u8; 4]>(self.to_be_bytes());
+    }
+}
+
+impl Structure for i32 {
+    fn read(r: &mut Reader) -> Result<Self> {
+        r.read::<[u8; 4]>().map(Self::from_be_bytes)
+    }
+
+    fn write(&self, w: &mut Writer) {
         w.write::<[u8; 4]>(self.to_be_bytes());
     }
 }

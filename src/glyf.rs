@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::mem::size_of;
 
 use super::*;
 
@@ -19,12 +20,11 @@ where
 {
     let loca = ctx.expect_table(Tag::LOCA)?;
     let glyf = ctx.expect_table(Tag::GLYF)?;
-    let maxp = ctx.expect_table(Tag::MAXP)?;
 
     // Read data for a single glyph.
     let glyph_data = |id: u16| {
-        let from = T::read_at(loca, usize::from(id) * T::SIZE)?;
-        let to = T::read_at(loca, (usize::from(id) + 1) * T::SIZE)?;
+        let from = T::read_at(loca, usize::from(id) * size_of::<T>())?;
+        let to = T::read_at(loca, (usize::from(id) + 1) * size_of::<T>())?;
         glyf.get(from.loca_to_usize() .. to.loca_to_usize())
             .ok_or(Error::InvalidOffset)
     };
@@ -61,8 +61,7 @@ where
     let mut sub_loca = Writer::new();
     let mut sub_glyf = Writer::new();
 
-    let num_glyphs = u16::read_at(maxp, 4)?;
-    for id in 0 .. num_glyphs {
+    for id in 0 .. ctx.num_glyphs {
         // If the glyph shouldn't be contained in the subset, it will
         // still get a loca entry, but the glyf data is simply empty.
         sub_loca.write(T::usize_to_loca(sub_glyf.len()));

@@ -3,6 +3,7 @@
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
 
+mod cff;
 mod glyf;
 mod stream;
 
@@ -39,7 +40,7 @@ pub fn parse(data: &[u8], index: u32) -> Result<impl Face + '_> {
 
     // Parse font collection header if necessary.
     if kind == FontKind::Collection {
-        let offset = u32::read_at(data, 12 + u32::SIZE * (index as usize))?;
+        let offset = u32::read_at(data, 12 + 4 * (index as usize))?;
         let subdata = data.get(offset as usize ..).ok_or(Error::InvalidOffset)?;
         r = Reader::new(subdata);
         kind = r.read::<FontKind>()?;
@@ -111,13 +112,11 @@ impl Tag {
 }
 
 impl Structure for Tag {
-    const SIZE: usize = 4;
-
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<[u8; 4]>().map(Self)
     }
 
-    fn write(self, w: &mut Writer) {
+    fn write(&self, w: &mut Writer) {
         w.write::<[u8; 4]>(self.0)
     }
 }
@@ -158,7 +157,7 @@ impl<'a> Profile<'a> {
     ///
     /// The subsetted font can be embedded in a PDF as a `FontFile3` with
     /// Subtype `OpenType`. Alternatively:
-    /// - For TrueType outlines: You can embed it as a a `FontFile2`.
+    /// - For TrueType outlines: You can embed it as a `FontFile2`.
     /// - For CFF outlines: You can extract the CFF table and embed just the
     ///   table as a `FontFile3` with Subtype `Type1C`
     pub fn pdf(glyphs: &'a [u16]) -> Self {
@@ -166,10 +165,14 @@ impl<'a> Profile<'a> {
     }
 }
 
-/// Susbetting context.
+/// Subsetting context.
 struct Context<'a> {
     /// Original face.
     face: &'a dyn Face,
+    /// The number of glyphs in the original and subsetted face.
+    ///
+    /// Subsetting doesn't actually delete glyphs, just their outlines.
+    num_glyphs: u16,
     /// The subsetting profile.
     profile: Profile<'a>,
     /// The kind of face.
@@ -194,6 +197,7 @@ impl<'a> Context<'a> {
         match tag {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
+            Tag::CFF => cff::subset(self)?,
             _ => self.push(tag, data),
         }
 
@@ -212,8 +216,10 @@ impl<'a> Context<'a> {
 
 /// Subset a font face to include less glyphs and tables.
 pub fn subset(face: &dyn Face, profile: Profile) -> Result<Vec<u8>> {
+    let maxp = face.table(Tag::MAXP).ok_or(Error::MissingTable(Tag::MAXP))?;
     let mut ctx = Context {
         face,
+        num_glyphs: u16::read_at(maxp, 4)?,
         profile,
         kind: match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
             Some(_) => FontKind::CFF,
@@ -274,7 +280,7 @@ fn construct(mut ctx: Context) -> Vec<u8> {
     let mut checksum_adjustment_offset = None;
 
     // Write table records.
-    let mut offset = 12 + ctx.tables.len() * TableRecord::SIZE;
+    let mut offset = 12 + ctx.tables.len() * 16;
     for (tag, data) in &mut ctx.tables {
         if *tag == Tag::HEAD {
             // Zero out checksum field in head table.
@@ -283,6 +289,7 @@ fn construct(mut ctx: Context) -> Vec<u8> {
         }
 
         let len = data.len();
+        println!("{}: {}", tag, len);
         w.write(TableRecord {
             tag: *tag,
             checksum: checksum(data),
@@ -340,8 +347,6 @@ enum FontKind {
 }
 
 impl Structure for FontKind {
-    const SIZE: usize = 4;
-
     fn read(r: &mut Reader) -> Result<Self> {
         match r.read::<u32>()? {
             0x00010000 | 0x74727565 => Ok(FontKind::TrueType),
@@ -351,7 +356,7 @@ impl Structure for FontKind {
         }
     }
 
-    fn write(self, w: &mut Writer) {
+    fn write(&self, w: &mut Writer) {
         w.write::<u32>(match self {
             FontKind::TrueType => 0x00010000,
             FontKind::CFF => 0x4F54544F,
@@ -364,13 +369,11 @@ impl Structure for FontKind {
 struct F2Dot14(u16);
 
 impl Structure for F2Dot14 {
-    const SIZE: usize = 2;
-
     fn read(r: &mut Reader) -> Result<Self> {
         r.read::<u16>().map(Self)
     }
 
-    fn write(self, w: &mut Writer) {
+    fn write(&self, w: &mut Writer) {
         w.write::<u16>(self.0)
     }
 }
@@ -385,8 +388,6 @@ struct TableRecord {
 }
 
 impl Structure for TableRecord {
-    const SIZE: usize = 16;
-
     fn read(r: &mut Reader) -> Result<Self> {
         Ok(TableRecord {
             tag: r.read::<Tag>()?,
@@ -396,7 +397,7 @@ impl Structure for TableRecord {
         })
     }
 
-    fn write(self, w: &mut Writer) {
+    fn write(&self, w: &mut Writer) {
         w.write::<Tag>(self.tag);
         w.write::<u32>(self.checksum);
         w.write::<u32>(self.offset);
@@ -416,6 +417,9 @@ pub enum Error {
     InvalidOffset,
     /// Parsing expected more data.
     MissingData,
+    /// Parsed data was invalid.
+    InvalidData,
+    /// The read data does not conform.
     /// A table is missing.
     ///
     /// Mostly, the subsetter just ignores (i.e. not subsets) tables if they are
@@ -431,9 +435,78 @@ impl Display for Error {
             Self::UnknownKind => f.pad("unknown font kind"),
             Self::InvalidOffset => f.pad("invalid offset"),
             Self::MissingData => f.pad("missing more data"),
+            Self::InvalidData => f.pad("invalid data"),
             Self::MissingTable(tag) => write!(f, "missing {tag} table"),
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::{parse, subset, Profile};
+
+    #[test]
+    fn test_subset_truetype() {
+        test("NotoSans-Regular.ttf", "Hello<>.!πﬁ");
+    }
+
+    #[test]
+    fn test_subset_cff() {
+        test("NewCMMath-Regular.otf", "1+2=π?");
+        test("NotoSansCJKsc-Regular.otf", "你好");
+    }
+
+    fn test(path: &str, text: &str) {
+        eprintln!("==============================================");
+        eprintln!("Testing {path}");
+
+        let data = std::fs::read(Path::new("fonts").join(path)).unwrap();
+        let ttf = ttf_parser::Face::from_slice(&data, 0).unwrap();
+        let glyphs: Vec<_> =
+            text.chars().filter_map(|c| Some(ttf.glyph_index(c)?.0)).collect();
+
+        let face = parse(&data, 0).unwrap();
+        let profile = Profile::pdf(&glyphs);
+        let subs = subset(&face, profile).unwrap();
+        let stem = Path::new(path).file_stem().unwrap().to_str().unwrap();
+        let out = Path::new("target").join(Path::new(stem)).with_extension("ttf");
+        std::fs::write(out, &subs).unwrap();
+
+
+        let ttfs = ttf_parser::Face::from_slice(&subs, 0).unwrap();
+        let cff = ttfs.tables().cff;
+        for c in text.chars() {
+            let id = ttf.glyph_index(c).unwrap();
+            if let Some(cff) = &cff {
+                cff.outline(id, &mut Sink).unwrap();
+            }
+
+            macro_rules! same {
+                ($method:ident, $($args:tt)*) => {
+                    assert_eq!(
+                        ttf.$method($($args)*),
+                        ttfs.$method($($args)*),
+                    );
+                };
+            }
+
+            same!(glyph_index, c);
+            same!(glyph_hor_advance, id);
+            same!(glyph_hor_side_bearing, id);
+            same!(glyph_bounding_box, id);
+        }
+    }
+
+    struct Sink;
+    impl ttf_parser::OutlineBuilder for Sink {
+        fn move_to(&mut self, _: f32, _: f32) {}
+        fn line_to(&mut self, _: f32, _: f32) {}
+        fn quad_to(&mut self, _: f32, _: f32, _: f32, _: f32) {}
+        fn curve_to(&mut self, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32) {}
+        fn close(&mut self) {}
+    }
+}
