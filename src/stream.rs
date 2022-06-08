@@ -47,12 +47,16 @@ impl<'a> Reader<'a> {
 }
 
 /// A writable stream of binary data.
-pub struct Writer(Vec<u8>);
+pub struct Writer(Vec<u8>, #[cfg(test)] usize);
 
 impl Writer {
     /// Create a new writable stream of binary data.
     pub fn new() -> Self {
-        Self(Vec::with_capacity(1024))
+        Self(
+            Vec::with_capacity(1024),
+            #[cfg(test)]
+            0,
+        )
     }
 
     /// Write `T` into the data.
@@ -85,6 +89,15 @@ impl Writer {
     /// Return the written bytes.
     pub fn finish(self) -> Vec<u8> {
         self.0
+    }
+
+    /// Print how many bytes were written since the last inspect call.
+    pub fn inspect(&mut self, _name: &str) {
+        #[cfg(test)]
+        {
+            eprintln!("{_name} took {} bytes", self.len() - self.1);
+            self.1 = self.len();
+        }
     }
 }
 

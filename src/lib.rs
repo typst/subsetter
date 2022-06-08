@@ -476,7 +476,6 @@ mod tests {
         let out = Path::new("target").join(Path::new(stem)).with_extension("ttf");
         std::fs::write(out, &subs).unwrap();
 
-
         let ttfs = ttf_parser::Face::from_slice(&subs, 0).unwrap();
         let cff = ttfs.tables().cff;
         for c in text.chars() {
