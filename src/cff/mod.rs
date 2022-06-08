@@ -118,11 +118,8 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
 /// Subset the glyph descriptions.
 fn subset_char_strings<'a>(ctx: &Context, strings: &mut Index<Opaque<'a>>) -> Result<()> {
-    // The set of all glyphs we will include in the subset.
-    let kept_glyphs: HashSet<u16> = ctx.profile.glyphs.iter().copied().collect();
-
     for glyph in 0 .. ctx.num_glyphs {
-        if !kept_glyphs.contains(&glyph) {
+        if !ctx.kept_glyphs.contains(&glyph) {
             // The byte sequence [14] is the minimal valid charstring consisting
             // of just a single `endchar` operator.
             *strings.get_mut(glyph as usize).ok_or(Error::InvalidOffset)? = Opaque(&[14]);

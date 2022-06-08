@@ -30,8 +30,8 @@ Notably, this crate does not really remove glyphs, just their outlines. This
 means that you don't have to worry about changed glyphs IDs. However, it also
 means that the resulting font won't always be as small as possible.
 
-In this example, the original font was 375 KB while the resulting font is 78 KB.
-There is still some possiblity for improvement through better subsetting.
+In this example, the original font was 375 KB while the resulting font is 44 KB.
+There is still some room for improvement through better subsetting.
 */
 
 #![deny(unsafe_code)]
@@ -39,9 +39,11 @@ There is still some possiblity for improvement through better subsetting.
 
 mod cff;
 mod glyf;
+mod post;
 mod stream;
 
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::fmt::{self, Debug, Display, Formatter};
 
 use crate::stream::{Reader, Structure, Writer};
@@ -96,6 +98,7 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
     let mut ctx = Context {
         face,
         num_glyphs,
+        kept_glyphs: profile.glyphs.iter().copied().collect(),
         profile,
         kind,
         tables: vec![],
@@ -201,7 +204,7 @@ fn construct(mut ctx: Context) -> Vec<u8> {
         });
 
         #[cfg(test)]
-        println!("{}: {}", tag, len);
+        eprintln!("{}: {}", tag, len);
 
         // Increase offset, plus padding zeros to align to 4 bytes.
         offset += len;
@@ -249,6 +252,8 @@ struct Context<'a> {
     ///
     /// Subsetting doesn't actually delete glyphs, just their outlines.
     num_glyphs: u16,
+    /// The kept glyphs.
+    kept_glyphs: HashSet<u16>,
     /// The subsetting profile.
     profile: Profile<'a>,
     /// The kind of face.
@@ -274,6 +279,7 @@ impl<'a> Context<'a> {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
             Tag::CFF => cff::subset(self)?,
+            Tag::POST => post::subset(self)?,
             _ => self.push(tag, data),
         }
 
@@ -546,6 +552,7 @@ mod tests {
             ttfs.outline_glyph(id, &mut sink2);
             assert_eq!(sink1, sink2);
             assert_eq!(ttf.glyph_hor_advance(id), ttfs.glyph_hor_advance(id));
+            assert_eq!(ttf.glyph_name(id), ttfs.glyph_name(id));
             assert_eq!(
                 ttf.glyph_hor_side_bearing(id),
                 ttfs.glyph_hor_side_bearing(id)
