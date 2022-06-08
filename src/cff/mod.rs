@@ -21,8 +21,14 @@ struct Table<'a> {
     cid: Option<CidData<'a>>,
 }
 
-/// An opaque charset.
+/// A charset.
 struct Charset<'a>(Opaque<'a>);
+
+/// Data specific to Private DICTs.
+struct PrivateData<'a> {
+    dict: Dict<'a>,
+    subrs: Option<Index<Opaque<'a>>>,
+}
 
 /// Data specific to CID-keyed fonts.
 struct CidData<'a> {
@@ -34,12 +40,6 @@ struct CidData<'a> {
 /// An FD Select dat structure.
 struct FdSelect<'a>(Cow<'a, [u8]>);
 
-/// Data specific to Private DICTs.
-struct PrivateData<'a> {
-    dict: Dict<'a>,
-    subrs: Option<Index<Opaque<'a>>>,
-}
-
 /// Recorded offsets that will be written into DICTs.
 struct Offsets {
     char_strings: usize,
@@ -48,17 +48,17 @@ struct Offsets {
     cid: Option<CidOffsets>,
 }
 
+/// Offsets specific to Private DICTs.
+struct PrivateOffsets {
+    dict: Range<usize>,
+    subrs: Option<usize>,
+}
+
 /// Offsets specific to CID-keyed fonts.
 struct CidOffsets {
     array: usize,
     select: usize,
     private: Vec<PrivateOffsets>,
-}
-
-/// Offsets specific to Private DICTs.
-struct PrivateOffsets {
-    dict: Range<usize>,
-    subrs: Option<usize>,
 }
 
 /// Subset the CFF table by removing glyph data for unused glyphs.
@@ -74,15 +74,15 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     }
 
     // Parse CFF table.
-    let mut table = read_table(ctx, cff)?;
+    let mut table = read_cff_table(ctx, cff)?;
 
     // Subset the char strings.
     subset_char_strings(ctx, &mut table.char_strings)?;
 
     // Subset Top and Private DICT.
-    table.top.keep(top::KEEP);
+    table.top.retain(top::KEEP);
     if let Some(private) = &mut table.private {
-        private.dict.keep(private::KEEP);
+        private.dict.retain(private::KEEP);
     }
 
     // Subset data specific to CID-keyed fonts.
@@ -90,11 +90,11 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         subset_font_dicts(ctx, cid)?;
 
         for dict in cid.array.iter_mut() {
-            dict.keep(top::KEEP);
+            dict.retain(top::KEEP);
         }
 
         for private in &mut cid.private {
-            private.dict.keep(private::KEEP);
+            private.dict.retain(private::KEEP);
         }
     }
 
@@ -107,7 +107,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     for _ in 0 .. 2 {
         let mut w = Writer::new();
         insert_offsets(&mut table, &offsets);
-        write_table(&mut w, &table, &mut offsets);
+        write_cff_table(&mut w, &table, &mut offsets);
         sub_cff = w.finish();
     }
 
@@ -152,7 +152,7 @@ fn subset_font_dicts(ctx: &Context, cid: &mut CidData) -> Result<()> {
 }
 
 /// Parse a CFF table.
-fn read_table<'a>(ctx: &Context, cff: &'a [u8]) -> Result<Table<'a>> {
+fn read_cff_table<'a>(ctx: &Context, cff: &'a [u8]) -> Result<Table<'a>> {
     // Skip header.
     let mut r = Reader::new(cff);
     r.read::<u8>()?;
@@ -207,7 +207,7 @@ fn read_table<'a>(ctx: &Context, cff: &'a [u8]) -> Result<Table<'a>> {
 }
 
 /// Write the a new CFF table.
-fn write_table(w: &mut Writer, table: &Table, offsets: &mut Offsets) {
+fn write_cff_table(w: &mut Writer, table: &Table, offsets: &mut Offsets) {
     // Write header.
     w.write::<u8>(1);
     w.write::<u8>(0);

@@ -33,7 +33,7 @@ impl<'a> Dict<'a> {
         }
     }
 
-    pub fn keep(&mut self, ops: &[Op]) {
+    pub fn retain(&mut self, ops: &[Op]) {
         self.0.retain(|pair| ops.contains(&pair.op));
     }
 
@@ -175,7 +175,7 @@ impl<'a> Structure<'a> for Operand<'a> {
     fn write(&self, w: &mut Writer) {
         match self {
             Self::Int(int) => {
-                // TODO: More compact.
+                // TODO: Select most compact encoding.
                 w.write::<u8>(29);
                 w.write::<i32>(*int);
             }
@@ -192,7 +192,6 @@ impl<'a> Structure<'a> for Operand<'a> {
 }
 
 /// Top DICT operators.
-#[allow(unused)]
 pub mod top {
     use super::Op;
 
@@ -237,7 +236,6 @@ pub mod top {
     pub const FONT_BBOX: Op = Op(5, 0);
     pub const STROKE_WIDTH: Op = Op(12, 8);
     pub const CHARSET: Op = Op(15, 0);
-    pub const ENCODING: Op = Op(16, 0);
     pub const CHAR_STRINGS: Op = Op(17, 0);
     pub const PRIVATE: Op = Op(18, 0);
     pub const POST_SCRIPT: Op = Op(12, 21);
