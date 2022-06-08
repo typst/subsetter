@@ -461,6 +461,23 @@ mod tests {
     }
 
     fn test(path: &str, text: &str) {
+        test_impl(path, &text, true);
+        test_full(path);
+    }
+
+    fn test_full(path: &str) {
+        let data = std::fs::read(Path::new("fonts").join(path)).unwrap();
+        let ttf = ttf_parser::Face::from_slice(&data, 0).unwrap();
+        let mut text = String::new();
+        for subtable in ttf.tables().cmap.unwrap().subtables {
+            if subtable.is_unicode() {
+                subtable.codepoints(|c| text.push(char::try_from(c).unwrap()));
+            }
+        }
+        test_impl(path, &text, false);
+    }
+
+    fn test_impl(path: &str, text: &str, write: bool) {
         eprintln!("==============================================");
         eprintln!("Testing {path}");
 
@@ -474,38 +491,67 @@ mod tests {
         let subs = subset(&face, profile).unwrap();
         let stem = Path::new(path).file_stem().unwrap().to_str().unwrap();
         let out = Path::new("target").join(Path::new(stem)).with_extension("ttf");
-        std::fs::write(out, &subs).unwrap();
+
+        if write {
+            std::fs::write(out, &subs).unwrap();
+        }
 
         let ttfs = ttf_parser::Face::from_slice(&subs, 0).unwrap();
         let cff = ttfs.tables().cff;
         for c in text.chars() {
             let id = ttf.glyph_index(c).unwrap();
+            let bbox = ttf.glyph_bounding_box(id);
+
             if let Some(cff) = &cff {
-                cff.outline(id, &mut Sink).unwrap();
+                if bbox.is_some() {
+                    cff.outline(id, &mut Sink::default()).unwrap();
+                }
             }
 
-            macro_rules! same {
-                ($method:ident, $($args:tt)*) => {
-                    assert_eq!(
-                        ttf.$method($($args)*),
-                        ttfs.$method($($args)*),
-                    );
-                };
-            }
-
-            same!(glyph_index, c);
-            same!(glyph_hor_advance, id);
-            same!(glyph_hor_side_bearing, id);
-            same!(glyph_bounding_box, id);
+            let mut sink1 = Sink::default();
+            let mut sink2 = Sink::default();
+            ttf.outline_glyph(id, &mut sink1);
+            ttfs.outline_glyph(id, &mut sink2);
+            assert_eq!(sink1, sink2);
+            assert_eq!(ttf.glyph_hor_advance(id), ttfs.glyph_hor_advance(id));
+            assert_eq!(
+                ttf.glyph_hor_side_bearing(id),
+                ttfs.glyph_hor_side_bearing(id)
+            );
         }
     }
 
-    struct Sink;
+    #[derive(Debug, Default, PartialEq)]
+    struct Sink(Vec<Inst>);
+
+    #[derive(Debug, PartialEq)]
+    enum Inst {
+        MoveTo(f32, f32),
+        LineTo(f32, f32),
+        QuadTo(f32, f32, f32, f32),
+        CurveTo(f32, f32, f32, f32, f32, f32),
+        Close,
+    }
+
     impl ttf_parser::OutlineBuilder for Sink {
-        fn move_to(&mut self, _: f32, _: f32) {}
-        fn line_to(&mut self, _: f32, _: f32) {}
-        fn quad_to(&mut self, _: f32, _: f32, _: f32, _: f32) {}
-        fn curve_to(&mut self, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32) {}
-        fn close(&mut self) {}
+        fn move_to(&mut self, x: f32, y: f32) {
+            self.0.push(Inst::MoveTo(x, y));
+        }
+
+        fn line_to(&mut self, x: f32, y: f32) {
+            self.0.push(Inst::LineTo(x, y));
+        }
+
+        fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
+            self.0.push(Inst::QuadTo(x1, y1, x, y));
+        }
+
+        fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
+            self.0.push(Inst::CurveTo(x1, y1, x2, y2, x, y));
+        }
+
+        fn close(&mut self) {
+            self.0.push(Inst::Close);
+        }
     }
 }

@@ -34,7 +34,7 @@ struct CidData<'a> {
 /// An FD Select dat structure.
 struct FdSelect<'a>(Cow<'a, [u8]>);
 
-/// Data specific to PRivate DICTs.
+/// Data specific to Private DICTs.
 struct PrivateData<'a> {
     dict: Dict<'a>,
     subrs: Option<Index<Opaque<'a>>>,
@@ -92,6 +92,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         for dict in cid.array.iter_mut() {
             dict.keep(top::KEEP);
         }
+
         for private in &mut cid.private {
             private.dict.keep(private::KEEP);
         }
@@ -101,9 +102,11 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let mut sub_cff = vec![];
     let mut offsets = create_offsets(&table);
 
+    // Write twice because we first need to find out the offsets of various data
+    // structures.
     for _ in 0 .. 2 {
-        insert_offsets(&mut table, &offsets);
         let mut w = Writer::new();
+        insert_offsets(&mut table, &offsets);
         write_table(&mut w, &table, &mut offsets);
         sub_cff = w.finish();
     }
@@ -116,10 +119,10 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 /// Subset the glyph descriptions.
 fn subset_char_strings<'a>(ctx: &Context, strings: &mut Index<Opaque<'a>>) -> Result<()> {
     // The set of all glyphs we will include in the subset.
-    let subset: HashSet<u16> = ctx.profile.glyphs.iter().copied().collect();
+    let kept_glyphs: HashSet<u16> = ctx.profile.glyphs.iter().copied().collect();
 
     for glyph in 0 .. ctx.num_glyphs {
-        if !subset.contains(&glyph) {
+        if !kept_glyphs.contains(&glyph) {
             // The byte sequence [14] is the minimal valid charstring consisting
             // of just a single `endchar` operator.
             *strings.get_mut(glyph as usize).ok_or(Error::InvalidOffset)? = Opaque(&[14]);
@@ -131,79 +134,21 @@ fn subset_char_strings<'a>(ctx: &Context, strings: &mut Index<Opaque<'a>>) -> Re
 
 /// Subset CID-related data.
 fn subset_font_dicts(ctx: &Context, cid: &mut CidData) -> Result<()> {
-    // Determine which font dicts to keep.
-    let mut sub_fds = HashSet::new();
+    // Determine which subroutine indices to keep.
+    let mut kept_subrs = HashSet::new();
     for &glyph in ctx.profile.glyphs {
-        sub_fds.insert(*cid.select.0.get(usize::from(glyph)).ok_or(Error::MissingData)?);
+        kept_subrs
+            .insert(*cid.select.0.get(usize::from(glyph)).ok_or(Error::MissingData)?);
     }
 
     // Remove subroutines for unused Private DICTs.
     for (i, dict) in cid.private.iter_mut().enumerate() {
-        if !sub_fds.contains(&(i as u8)) {
+        if !kept_subrs.contains(&(i as u8)) {
             dict.subrs = None;
         }
     }
 
     Ok(())
-}
-
-/// Create initial zero offsets for all data structures.
-fn create_offsets(table: &Table) -> Offsets {
-    Offsets {
-        char_strings: 0,
-        charset: table.charset.as_ref().map(|_| 0),
-        private: table.private.as_ref().map(create_private_offsets),
-        cid: table.cid.as_ref().map(create_cid_offsets),
-    }
-}
-
-/// Create initial zero offsets for all CID-related data structures.
-fn create_cid_offsets(cid: &CidData) -> CidOffsets {
-    CidOffsets {
-        array: 0,
-        select: 0,
-        private: cid.private.iter().map(create_private_offsets).collect(),
-    }
-}
-
-/// Create initial zero offsets for a Private DICT.
-fn create_private_offsets(private: &PrivateData) -> PrivateOffsets {
-    PrivateOffsets {
-        dict: 0 .. 0,
-        subrs: private.subrs.as_ref().map(|_| 0),
-    }
-}
-
-/// Insert the offsets of various parts of the font into the relevant DICTs.
-fn insert_offsets(table: &mut Table, offsets: &Offsets) {
-    if let Some(offset) = offsets.charset {
-        table.top.set_offset(top::CHARSET, offset);
-    }
-
-    table.top.set_offset(top::CHAR_STRINGS, offsets.char_strings);
-
-    if let (Some(private), Some(offsets)) = (&mut table.private, &offsets.private) {
-        table.top.set_range(top::PRIVATE, &offsets.dict);
-
-        if let Some(offset) = offsets.subrs {
-            private.dict.set_offset(private::SUBRS, offset);
-        }
-    }
-
-    if let (Some(cid), Some(offsets)) = (&mut table.cid, &offsets.cid) {
-        table.top.set_offset(top::FD_ARRAY, offsets.array);
-        table.top.set_offset(top::FD_SELECT, offsets.select);
-
-        for (dict, offsets) in cid.array.iter_mut().zip(&offsets.private) {
-            dict.set_range(top::PRIVATE, &offsets.dict);
-        }
-
-        for (private, offsets) in cid.private.iter_mut().zip(&offsets.private) {
-            if let Some(offset) = offsets.subrs {
-                private.dict.set_offset(private::SUBRS, offset);
-            }
-        }
-    }
 }
 
 /// Parse a CFF table.
@@ -312,7 +257,7 @@ fn read_cid_data<'a>(
     cff: &'a [u8],
     top: &Dict<'a>,
 ) -> Result<CidData<'a>> {
-    // Read FD ARRAY.
+    // Read FD Array.
     let array = {
         let offset = top.get_offset(top::FD_ARRAY).ok_or(Error::MissingData)?;
         Index::<Dict<'a>>::read_at(cff, offset)?
@@ -325,7 +270,7 @@ fn read_cid_data<'a>(
         read_fd_select(sub, ctx.num_glyphs)?
     };
 
-    // Read CID private dicts.
+    // Read Private DICTs.
     let mut private = vec![];
     for dict in array.iter() {
         let range = dict.get_range(top::PRIVATE).ok_or(Error::MissingData)?;
@@ -347,7 +292,7 @@ fn write_cid_data(w: &mut Writer, cid: &CidData, offsets: &mut CidOffsets) {
     write_fd_select(w, &cid.select);
     w.inspect("FD Select");
 
-    // Write Private DICTS.
+    // Write Private DICTs.
     for (private, offsets) in cid.private.iter().zip(&mut offsets.private) {
         write_private_data(w, private, offsets);
     }
@@ -427,7 +372,7 @@ fn write_charset(w: &mut Writer, charset: &Charset) {
     w.write_ref(&charset.0);
 }
 
-/// Returns the font dict index for each glyph.
+/// Read the FD Select data structure.
 fn read_fd_select(data: &[u8], num_glyphs: u16) -> Result<FdSelect<'_>> {
     let mut r = Reader::new(data);
     let format = r.read::<u8>()?;
@@ -455,6 +400,65 @@ fn read_fd_select(data: &[u8], num_glyphs: u16) -> Result<FdSelect<'_>> {
 fn write_fd_select(w: &mut Writer, select: &FdSelect) {
     w.write::<u8>(0);
     w.give(&select.0);
+}
+
+/// Create initial zero offsets for all data structures.
+fn create_offsets(table: &Table) -> Offsets {
+    Offsets {
+        char_strings: 0,
+        charset: table.charset.as_ref().map(|_| 0),
+        private: table.private.as_ref().map(create_private_offsets),
+        cid: table.cid.as_ref().map(create_cid_offsets),
+    }
+}
+
+/// Create initial zero offsets for all CID-related data structures.
+fn create_cid_offsets(cid: &CidData) -> CidOffsets {
+    CidOffsets {
+        array: 0,
+        select: 0,
+        private: cid.private.iter().map(create_private_offsets).collect(),
+    }
+}
+
+/// Create initial zero offsets for a Private DICT.
+fn create_private_offsets(private: &PrivateData) -> PrivateOffsets {
+    PrivateOffsets {
+        dict: 0 .. 0,
+        subrs: private.subrs.as_ref().map(|_| 0),
+    }
+}
+
+/// Insert the offsets of various parts of the font into the relevant DICTs.
+fn insert_offsets(table: &mut Table, offsets: &Offsets) {
+    if let Some(offset) = offsets.charset {
+        table.top.set_offset(top::CHARSET, offset);
+    }
+
+    table.top.set_offset(top::CHAR_STRINGS, offsets.char_strings);
+
+    if let (Some(private), Some(offsets)) = (&mut table.private, &offsets.private) {
+        table.top.set_range(top::PRIVATE, &offsets.dict);
+
+        if let Some(offset) = offsets.subrs {
+            private.dict.set_offset(private::SUBRS, offset);
+        }
+    }
+
+    if let (Some(cid), Some(offsets)) = (&mut table.cid, &offsets.cid) {
+        table.top.set_offset(top::FD_ARRAY, offsets.array);
+        table.top.set_offset(top::FD_SELECT, offsets.select);
+
+        for (dict, offsets) in cid.array.iter_mut().zip(&offsets.private) {
+            dict.set_range(top::PRIVATE, &offsets.dict);
+        }
+
+        for (private, offsets) in cid.private.iter_mut().zip(&offsets.private) {
+            if let Some(offset) = offsets.subrs {
+                private.dict.set_offset(private::SUBRS, offset);
+            }
+        }
+    }
 }
 
 /// An opaque binary data structure.
