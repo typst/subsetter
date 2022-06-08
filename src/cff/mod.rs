@@ -19,6 +19,15 @@ struct Table<'a> {
     charset: Option<Opaque<'a>>,
     private_dict: Option<Dict<'a>>,
     local_subrs: Option<Index<Opaque<'a>>>,
+    cid: Option<CidData<'a>>,
+}
+
+/// Data specific to CID-keyed fonts.
+struct CidData<'a> {
+    array: Index<Dict<'a>>,
+    select: Cow<'a, [u8]>,
+    private_dicts: Vec<Dict<'a>>,
+    local_subrs: Vec<Option<Index<Opaque<'a>>>>,
 }
 
 /// Recorded offsets that will be written into DICTs.
@@ -27,6 +36,15 @@ struct Offsets {
     charset: Option<usize>,
     private_dict: Option<Range<usize>>,
     local_subrs: Option<usize>,
+    cid: Option<CidOffsets>,
+}
+
+/// Offsets specific to CID-keyed fonts.
+struct CidOffsets {
+    array: usize,
+    select: usize,
+    private_dicts: Vec<Range<usize>>,
+    local_subrs: Vec<Option<usize>>,
 }
 
 /// Subset the CFF table by removing glyph data for unused glyphs.
@@ -51,23 +69,10 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let global_subrs = r.read::<Index<Opaque>>()?;
 
     // Extract only Top DICT.
-    let top_dict = top_dicts.into_one().ok_or(Error::MissingData)?;
-
-    // Bail out for CID fonts.
-    if top_dict.get(top::ROS).is_some() {
-        ctx.push(Tag::CFF, cff);
-        return Ok(());
-    }
-
-    // CFF Encoding shouldn't really happen in OpenType fonts since there's
-    // cmap, but if it does, we bail out.
-    if let Some(1 ..) = top_dict.get_offset(top::ENCODING) {
-        ctx.push(Tag::CFF, cff);
-        return Ok(());
-    }
+    let mut top_dict = top_dicts.into_one().ok_or(Error::MissingData)?;
 
     // These are the glyph descriptions.
-    let char_strings = {
+    let mut char_strings = {
         let offset = top_dict.get_offset(top::CHAR_STRINGS).ok_or(Error::MissingData)?;
         Index::read_at(cff, offset)?
     };
@@ -94,16 +99,40 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         private_dict = Some(dict);
     }
 
+    // Read data specific to CID-keyed fonts.
+    let mut cid = None;
+    if top_dict.get(top::ROS).is_some() {
+        cid = Some(read_cid_data(ctx, cff, &top_dict)?);
+    }
+
+    // Subset things.
+    subset_top(&mut top_dict);
+    subset_char_strings(ctx, &mut char_strings)?;
+
+    if let Some(dict) = &mut private_dict {
+        subset_private(dict);
+    }
+
+    if let Some(cid) = &mut cid {
+        for dict in cid.array.iter_mut() {
+            subset_top(dict)
+        }
+        for dict in &mut cid.private_dicts {
+            subset_private(dict);
+        }
+    }
+
     // Construct a new CFF table.
     let sub_cff = construct(Table {
         name,
-        top_dict: subset_top(&top_dict),
+        top_dict,
         strings,
         global_subrs,
         charset,
-        char_strings: subset_char_strings(ctx, char_strings)?,
-        private_dict: private_dict.as_ref().map(subset_private),
+        char_strings,
+        private_dict,
         local_subrs,
+        cid,
     });
 
     ctx.push(Tag::CFF, sub_cff);
@@ -111,15 +140,56 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     Ok(())
 }
 
+/// Read data specific to CID-keyed fonts.
+fn read_cid_data<'a>(
+    ctx: &Context,
+    cff: &'a [u8],
+    top_dict: &Dict<'a>,
+) -> Result<CidData<'a>> {
+    // Read FD ARRAY.
+    let array = {
+        let offset = top_dict.get_offset(top::FD_ARRAY).ok_or(Error::MissingData)?;
+        Index::<Dict<'a>>::read_at(cff, offset)?
+    };
+
+    // Read FD Select data structure.
+    let select = {
+        let offset = top_dict.get_offset(top::FD_SELECT).ok_or(Error::MissingData)?;
+        let sub = cff.get(offset ..).ok_or(Error::InvalidOffset)?;
+        parse_fd_select(sub, ctx.num_glyphs)?
+    };
+
+    let mut private_dicts = vec![];
+    let mut local_subrs = vec![];
+
+    // Read CID private dicts.
+    for dict in array.iter() {
+        let range = dict.get_range(top::PRIVATE).ok_or(Error::MissingData)?;
+        let start = range.start;
+        let sub = cff.get(range).ok_or(Error::InvalidOffset)?;
+        let dict = Dict::read_at(sub, 0)?;
+
+        let mut local_subr = None;
+        if let Some(offset) = dict.get_offset(private::SUBRS) {
+            local_subr = Some(Index::read_at(cff, start + offset)?);
+        }
+
+        private_dicts.push(dict);
+        local_subrs.push(local_subr);
+    }
+
+    Ok(CidData {
+        array,
+        select,
+        private_dicts,
+        local_subrs,
+    })
+}
+
 /// Construct a new CFF table.
 fn construct(mut table: Table) -> Vec<u8> {
     let mut data = vec![];
-    let mut offsets = Offsets {
-        char_strings: 0,
-        charset: table.charset.is_some().then(|| 0),
-        private_dict: table.private_dict.is_some().then(|| 0 .. 0),
-        local_subrs: table.local_subrs.is_some().then(|| 0),
-    };
+    let mut offsets = setup_offsets(&table);
 
     for run in 0 .. 2 {
         let mut last = 0;
@@ -167,19 +237,53 @@ fn construct(mut table: Table) -> Vec<u8> {
         inspect(&w, "Charstring INDEX");
 
         // Write private dict.
-        let private_start = w.len();
-        if let Some(private_dict) = &table.private_dict {
+        if let (Some(private_dict), Some(range)) =
+            (&table.private_dict, &mut offsets.private_dict)
+        {
+            range.start = w.len();
             w.write_ref(private_dict);
-            let end = w.len();
-            offsets.private_dict = Some(private_start .. end);
+            range.end = w.len();
             inspect(&w, "Private DICT");
         }
 
         // Write local subroutines.
         if let Some(local_subrs) = &table.local_subrs {
-            offsets.local_subrs = Some(w.len() - private_start);
+            let base = offsets.private_dict.as_ref().unwrap().start;
+            offsets.local_subrs = Some(w.len() - base);
             w.write_ref(local_subrs);
             inspect(&w, "Local Subroutine INDEX");
+        }
+
+        // Write data specific to CID-keyed fonts.
+        if let (Some(data), Some(offsets)) = (&table.cid, &mut offsets.cid) {
+            // Write FD Array.
+            offsets.array = w.len();
+            w.write_ref(&data.array);
+            inspect(&w, "FD Array");
+
+            // Write FD Select.
+            offsets.select = w.len();
+            write_fd_select(&mut w, &data.select);
+            inspect(&w, "FD Select");
+
+            // Write Private DICTS.
+            for (dict, range) in data.private_dicts.iter().zip(&mut offsets.private_dicts)
+            {
+                range.start = w.len();
+                w.write_ref(dict);
+                range.end = w.len();
+                inspect(&w, "Private DICT");
+            }
+
+            // Write local subroutines.
+            for (i, subrs) in data.local_subrs.iter().enumerate() {
+                if let Some(subrs) = subrs {
+                    let base = offsets.private_dicts[i].start;
+                    offsets.local_subrs[i] = Some(w.len() - base);
+                    w.write_ref(subrs);
+                    inspect(&w, "Local Subroutine INDEX");
+                }
+            }
         }
 
         data = w.finish();
@@ -188,7 +292,28 @@ fn construct(mut table: Table) -> Vec<u8> {
     data
 }
 
-/// Insert the offsets of various parts of the font into the relevant dictionaries.
+/// Create initial zero offsets for all data structures.
+fn setup_offsets(table: &Table) -> Offsets {
+    Offsets {
+        char_strings: 0,
+        charset: table.charset.as_ref().map(|_| 0),
+        private_dict: table.private_dict.as_ref().map(|_| 0 .. 0),
+        local_subrs: table.local_subrs.as_ref().map(|_| 0),
+        cid: table.cid.as_ref().map(|cid| CidOffsets {
+            array: 0,
+            select: 0,
+            private_dicts: vec![0 .. 0; cid.array.len()],
+            local_subrs: cid
+                .local_subrs
+                .iter()
+                .map(|subr| subr.as_ref().map(|_| 0))
+                .collect(),
+        }),
+    }
+}
+
+/// Insert the offsets of various parts of the font into the relevant
+/// dictionaries.
 fn set_offets(table: &mut Table, offsets: &Offsets) {
     if let Some(offset) = offsets.charset {
         table.top_dict.set_offset(top::CHARSET, offset);
@@ -204,63 +329,51 @@ fn set_offets(table: &mut Table, offsets: &Offsets) {
     {
         private.set_offset(private::SUBRS, offset);
     }
+
+    if let (Some(data), Some(offsets)) = (&mut table.cid, &offsets.cid) {
+        table.top_dict.set_offset(top::FD_ARRAY, offsets.array);
+        table.top_dict.set_offset(top::FD_SELECT, offsets.select);
+
+        for (dict, range) in data.array.iter_mut().zip(&offsets.private_dicts) {
+            dict.set_range(top::PRIVATE, range);
+        }
+
+        for (private, offset) in data.private_dicts.iter_mut().zip(&offsets.local_subrs) {
+            if let &Some(offset) = offset {
+                private.set_offset(private::SUBRS, offset);
+            }
+        }
+    }
 }
 
 /// Subset a Top DICT.
 ///
 /// Keeps only relevant non-offset entries. Offset entries are inserted later.
-fn subset_top<'a>(top_dict: &Dict<'a>) -> Dict<'a> {
-    let mut sub = Dict::new();
-    sub.copy(&top_dict, top::ROS);
-    sub.copy(&top_dict, top::CID_FONT_VERSION);
-    sub.copy(&top_dict, top::CID_FONT_REVISION);
-    sub.copy(&top_dict, top::CID_FONT_TYPE);
-    sub.copy(&top_dict, top::CID_COUNT);
-    sub.copy(&top_dict, top::FD_ARRAY);
-    sub.copy(&top_dict, top::FD_SELECT);
-    sub.copy(&top_dict, top::FONT_NAME);
-    sub.copy(&top_dict, top::VERSION);
-    sub.copy(&top_dict, top::NOTICE);
-    sub.copy(&top_dict, top::COPYRIGHT);
-    sub.copy(&top_dict, top::FULL_NAME);
-    sub.copy(&top_dict, top::FAMILY_NAME);
-    sub.copy(&top_dict, top::WEIGHT);
-    sub.copy(&top_dict, top::IS_FIXED_PITCH);
-    sub.copy(&top_dict, top::ITALIC_ANGLE);
-    sub.copy(&top_dict, top::UNDERLINE_POSITION);
-    sub.copy(&top_dict, top::UNDERLINE_THICKNESS);
-    sub.copy(&top_dict, top::PAINT_TYPE);
-    sub.copy(&top_dict, top::CHARSTRING_TYPE);
-    sub.copy(&top_dict, top::FONT_MATRIX);
-    sub.copy(&top_dict, top::FONT_BBOX);
-    sub.copy(&top_dict, top::STROKE_WIDTH);
-    sub.copy(&top_dict, top::POST_SCRIPT);
-    sub
+fn subset_top<'a>(top_dict: &mut Dict<'a>) {
+    top_dict.keep(top::KEEP);
 }
 
 /// Subset a Private DICT.
 ///
 /// Keeps only relevant non-offset entries. Offset entries are inserted later.
-fn subset_private<'a>(private_dict: &Dict<'a>) -> Dict<'a> {
-    let mut sub = Dict::new();
-    sub.copy(&private_dict, private::BLUE_VALUES);
-    sub.copy(&private_dict, private::OTHER_BLUES);
-    sub.copy(&private_dict, private::FAMILY_BLUES);
-    sub.copy(&private_dict, private::FAMILY_OTHER_BLUES);
-    sub.copy(&private_dict, private::BLUE_SCALE);
-    sub.copy(&private_dict, private::BLUE_SHIFT);
-    sub.copy(&private_dict, private::BLUE_FUZZ);
-    sub.copy(&private_dict, private::STD_HW);
-    sub.copy(&private_dict, private::STD_VW);
-    sub.copy(&private_dict, private::STEM_SNAP_H);
-    sub.copy(&private_dict, private::STEM_SNAP_V);
-    sub.copy(&private_dict, private::FORCE_BOLD);
-    sub.copy(&private_dict, private::LANGUAGE_GROUP);
-    sub.copy(&private_dict, private::EXPANSION_FACTOR);
-    sub.copy(&private_dict, private::INITIAL_RANDOM_SEED);
-    sub.copy(&private_dict, private::DEFAULT_WIDTH_X);
-    sub.copy(&private_dict, private::NOMINAL_WIDTH_X);
-    sub
+fn subset_private<'a>(private_dict: &mut Dict<'a>) {
+    private_dict.keep(private::KEEP);
+}
+
+/// Subset the glyph descriptions.
+fn subset_char_strings<'a>(ctx: &Context, strings: &mut Index<Opaque<'a>>) -> Result<()> {
+    // The set of all glyphs we will include in the subset.
+    let subset: HashSet<u16> = ctx.profile.glyphs.iter().copied().collect();
+
+    for glyph in 0 .. ctx.num_glyphs {
+        if !subset.contains(&glyph) {
+            // The byte sequence [14] is the minimal valid charstring consisting
+            // of just a single `endchar` operator.
+            *strings.get_mut(glyph as usize).ok_or(Error::InvalidOffset)? = Opaque(&[14]);
+        }
+    }
+
+    Ok(())
 }
 
 /// Extract the charset bytes.
@@ -297,23 +410,34 @@ fn read_charset(data: &[u8], num_glyphs: u16) -> Result<Opaque<'_>> {
     Ok(Opaque(data.get(.. len).ok_or(Error::InvalidOffset)?))
 }
 
-/// Subset the glyph descriptions.
-fn subset_char_strings<'a>(
-    ctx: &Context,
-    mut strings: Index<Opaque<'a>>,
-) -> Result<Index<Opaque<'a>>> {
-    // The set of all glyphs we will include in the subset.
-    let subset: HashSet<u16> = ctx.profile.glyphs.iter().copied().collect();
-
-    for glyph in 0 .. ctx.num_glyphs {
-        if !subset.contains(&glyph) {
-            // The byte sequence [14] is the minimal valid charstring consisting
-            // of just a single `endchar` operator.
-            *strings.get_mut(glyph as usize).ok_or(Error::InvalidOffset)? = Opaque(&[14]);
+/// Returns the font dict index for each glyph.
+fn parse_fd_select(data: &[u8], num_glyphs: u16) -> Result<Cow<'_, [u8]>> {
+    let mut r = Reader::new(data);
+    let format = r.read::<u8>()?;
+    Ok(match format {
+        0 => Cow::Borrowed(r.take(num_glyphs as usize)?),
+        3 => {
+            let count = r.read::<u16>()?;
+            let mut fds = vec![];
+            let mut first = r.read::<u16>()?;
+            for _ in 0 .. count {
+                let fd = r.read::<u8>()?;
+                let end = r.read::<u16>()?;
+                for _ in first .. end {
+                    fds.push(fd);
+                }
+                first = end;
+            }
+            Cow::Owned(fds)
         }
-    }
+        _ => return Err(Error::InvalidData),
+    })
+}
 
-    Ok(strings)
+/// Write an FD Select data structure.
+fn write_fd_select(w: &mut Writer, fd: &[u8]) {
+    w.write::<u8>(0);
+    w.give(fd);
 }
 
 /// An opaque binary data structure.

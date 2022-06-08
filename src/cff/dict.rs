@@ -8,10 +8,6 @@ use crate::{Error, Reader, Result, Structure, Writer};
 pub struct Dict<'a>(Vec<Pair<'a>>);
 
 impl<'a> Dict<'a> {
-    pub fn new() -> Self {
-        Self(vec![])
-    }
-
     pub fn get(&self, op: Op) -> Option<&[Operand<'a>]> {
         self.0
             .iter()
@@ -37,10 +33,8 @@ impl<'a> Dict<'a> {
         }
     }
 
-    pub fn copy(&mut self, src: &Self, op: Op) {
-        if let Some(operands) = src.get(op) {
-            self.set(op, operands.to_vec());
-        }
+    pub fn keep(&mut self, ops: &[Op]) {
+        self.0.retain(|pair| ops.contains(&pair.op));
     }
 
     pub fn set(&mut self, op: Op, operands: Vec<Operand<'a>>) {
@@ -202,6 +196,31 @@ impl<'a> Structure<'a> for Operand<'a> {
 pub mod top {
     use super::Op;
 
+    pub const KEEP: &[Op] = &[
+        ROS,
+        CID_FONT_VERSION,
+        CID_FONT_REVISION,
+        CID_FONT_TYPE,
+        CID_COUNT,
+        FONT_NAME,
+        VERSION,
+        NOTICE,
+        COPYRIGHT,
+        FULL_NAME,
+        FAMILY_NAME,
+        WEIGHT,
+        IS_FIXED_PITCH,
+        ITALIC_ANGLE,
+        UNDERLINE_POSITION,
+        UNDERLINE_THICKNESS,
+        PAINT_TYPE,
+        CHARSTRING_TYPE,
+        FONT_MATRIX,
+        FONT_BBOX,
+        STROKE_WIDTH,
+        POST_SCRIPT,
+    ];
+
     pub const VERSION: Op = Op(0, 0);
     pub const NOTICE: Op = Op(1, 0);
     pub const COPYRIGHT: Op = Op(12, 0);
@@ -237,6 +256,27 @@ pub mod top {
 /// Private DICT operators.
 pub mod private {
     use super::Op;
+
+    pub const KEEP: &[Op] = &[
+        BLUE_VALUES,
+        OTHER_BLUES,
+        FAMILY_BLUES,
+        FAMILY_OTHER_BLUES,
+        BLUE_SCALE,
+        BLUE_SHIFT,
+        BLUE_FUZZ,
+        STD_HW,
+        STD_VW,
+        STEM_SNAP_H,
+        STEM_SNAP_V,
+        FORCE_BOLD,
+        LANGUAGE_GROUP,
+        EXPANSION_FACTOR,
+        INITIAL_RANDOM_SEED,
+        DEFAULT_WIDTH_X,
+        NOMINAL_WIDTH_X,
+    ];
+
     pub const BLUE_VALUES: Op = Op(6, 0);
     pub const OTHER_BLUES: Op = Op(7, 0);
     pub const FAMILY_BLUES: Op = Op(8, 0);

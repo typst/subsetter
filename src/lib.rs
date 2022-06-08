@@ -457,7 +457,7 @@ mod tests {
     #[test]
     fn test_subset_cff() {
         test("NewCMMath-Regular.otf", "1+2=π?");
-        test("NotoSansCJKsc-Regular.otf", "你好");
+        test("NotoSansCJKsc-Regular.otf", "ABC你好");
     }
 
     fn test(path: &str, text: &str) {

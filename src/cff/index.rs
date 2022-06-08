@@ -1,10 +1,11 @@
 use std::fmt::{self, Debug, Formatter};
+use std::ops::{Deref, DerefMut};
 
 use crate::{Error, Reader, Result, Structure, Writer};
 
 /// An INDEX data structure.
 #[derive(Clone)]
-pub struct Index<T>(Vec<T>);
+pub struct Index<T>(pub Vec<T>);
 
 impl<T> Index<T> {
     /// Create a new index with a single entry.
@@ -15,11 +16,6 @@ impl<T> Index<T> {
     /// Extract the index's first entry.
     pub fn into_one(self) -> Option<T> {
         self.0.into_iter().next()
-    }
-
-    /// Access an item mutably.
-    pub fn get_mut(&mut self, idx: usize) -> Option<&mut T> {
-        self.0.get_mut(idx)
     }
 }
 
@@ -89,6 +85,20 @@ where
 impl<T: Debug> Debug for Index<T> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.debug_list().entries(&self.0).finish()
+    }
+}
+
+impl<T> Deref for Index<T> {
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Index<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
