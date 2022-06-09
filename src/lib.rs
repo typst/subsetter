@@ -1,5 +1,5 @@
 /*!
-Reduce the size and coverage of OpenType fonts.
+Reduces the size and coverage of OpenType fonts.
 
 Supports both TrueType and CFF outlines.
 
@@ -30,8 +30,8 @@ Notably, this subsetter does not really remove glyphs, just their outlines. This
 means that you don't have to worry about changed glyphs IDs. However, it also
 means that the resulting font won't always be as small as possible. To somewhat
 remedy this, this crate sometimes at least zeroes out unused data that it cannot
-fully remove. This helps if the font is compressed (which it can be when
-embedded into a PDF).
+fully remove. This helps if the font gets compressed, for example when embedding
+it in a PDF file.
 
 In the above example, the original font was 375 KB (188 KB zipped) while the
 resulting font is 36 KB (5 KB zipped).
@@ -71,9 +71,11 @@ impl<'a> Profile<'a> {
     /// Keeps only the basic required tables plus either the TrueType-related or
     /// CFF-related tables.
     ///
-    /// In particular, this also removes all non-outline glyph descriptions like
-    /// bitmaps, layered color glyphs and SVGs as these are not mentioned in the
-    /// PDF standard and not supported by most PDF readers.
+    /// In particular, this removes:
+    /// - all text-layout related tables like GSUB and GPOS as it is expected
+    ///   that text was already mapped to glyphs.
+    /// - all non-outline glyph descriptions like bitmaps, layered color glyphs
+    ///   and SVGs.
     ///
     /// The subsetted font can be embedded in a PDF as a `FontFile3` with
     /// Subtype `OpenType`. Alternatively:
@@ -110,15 +112,8 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
         long_loca: true,
     };
 
-    // Find out which glyphs are used.
-    match ctx.kind {
-        FontKind::TrueType => glyf::discover(&mut ctx)?,
-        FontKind::CFF => cff::discover(&mut ctx),
-        _ => {}
-    }
-
     if ctx.kind == FontKind::TrueType {
-        // Writes glyf and loca table.
+        glyf::discover(&mut ctx)?;
         ctx.process(Tag::GLYF)?;
         ctx.process(Tag::CVT)?;
         ctx.process(Tag::FPGM)?;
@@ -127,6 +122,7 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
     }
 
     if ctx.kind == FontKind::CFF {
+        cff::discover(&mut ctx);
         ctx.process(Tag::CFF)?;
         ctx.process(Tag::CFF2)?;
         ctx.process(Tag::VORG)?;
@@ -294,9 +290,9 @@ impl<'a> Context<'a> {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
             Tag::CFF => cff::subset(self)?,
+            Tag::HEAD => head::subset(self)?,
             Tag::HMTX => hmtx::subset(self)?,
             Tag::POST => post::subset(self)?,
-            Tag::HEAD => head::subset(self)?,
             _ => self.push(tag, data),
         }
 

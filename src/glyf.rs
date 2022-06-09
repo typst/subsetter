@@ -1,5 +1,6 @@
 use super::*;
 
+/// A glyf + loca table.
 struct Table<'a> {
     loca: &'a [u8],
     glyf: &'a [u8],
@@ -136,8 +137,8 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         if ctx.subset.contains(&id) {
             let data = table.glyph_data(id)?;
             sub_glyf.give(data);
-            if data.len() % 2 != 0 {
-                sub_glyf.write::<u8>(0);
+            if !ctx.long_loca {
+                sub_glyf.align(2);
             }
         }
     }

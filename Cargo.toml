@@ -1,7 +1,14 @@
 [package]
 name = "subsetter"
 version = "0.1.0"
+authors = ["Laurenz <laurmaedje@gmail.com>"]
 edition = "2021"
+description = "Reduces the size and coverage of OpenType fonts."
+repository = "https://github.com/typst/subsetter"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+categories = ["compression", "encoding"]
+keywords = ["subsetting", "OpenType", "PDF"]
 
 [dev-dependencies]
 ttf-parser = "0.15"
