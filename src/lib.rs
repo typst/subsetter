@@ -26,12 +26,15 @@ std::fs::write("target/Noto-Small.ttf", sub)?;
 # }
 ```
 
-Notably, this crate does not really remove glyphs, just their outlines. This
+Notably, this subsetter does not really remove glyphs, just their outlines. This
 means that you don't have to worry about changed glyphs IDs. However, it also
-means that the resulting font won't always be as small as possible.
+means that the resulting font won't always be as small as possible. To somewhat
+remedy this, this crate sometimes at least zeroes out unused data that it cannot
+fully remove. This helps if the font is compressed (which it can be when
+embedded into a PDF).
 
-In this example, the original font was 375 KB while the resulting font is 44 KB.
-There is still some room for improvement through better subsetting.
+In the above example, the original font was 375 KB (188 KB zipped) while the
+resulting font is 36 KB (5 KB zipped).
 */
 
 #![deny(unsafe_code)]
@@ -39,6 +42,8 @@ There is still some room for improvement through better subsetting.
 
 mod cff;
 mod glyf;
+mod head;
+mod hmtx;
 mod post;
 mod stream;
 
@@ -98,21 +103,19 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
     let mut ctx = Context {
         face,
         num_glyphs,
-        kept_glyphs: profile.glyphs.iter().copied().collect(),
+        subset: HashSet::new(),
         profile,
         kind,
         tables: vec![],
+        long_loca: true,
     };
 
-    // Required tables.
-    ctx.process(Tag::CMAP)?;
-    ctx.process(Tag::HEAD)?;
-    ctx.process(Tag::HHEA)?;
-    ctx.process(Tag::HMTX)?;
-    ctx.process(Tag::MAXP)?;
-    ctx.process(Tag::NAME)?;
-    ctx.process(Tag::OS2)?;
-    ctx.process(Tag::POST)?;
+    // Find out which glyphs are used.
+    match ctx.kind {
+        FontKind::TrueType => glyf::discover(&mut ctx)?,
+        FontKind::CFF => cff::discover(&mut ctx),
+        _ => {}
+    }
 
     if ctx.kind == FontKind::TrueType {
         // Writes glyf and loca table.
@@ -128,6 +131,16 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
         ctx.process(Tag::CFF2)?;
         ctx.process(Tag::VORG)?;
     }
+
+    // Required tables.
+    ctx.process(Tag::CMAP)?;
+    ctx.process(Tag::HEAD)?;
+    ctx.process(Tag::HHEA)?;
+    ctx.process(Tag::HMTX)?;
+    ctx.process(Tag::MAXP)?;
+    ctx.process(Tag::NAME)?;
+    ctx.process(Tag::OS2)?;
+    ctx.process(Tag::POST)?;
 
     Ok(construct(ctx))
 }
@@ -253,13 +266,15 @@ struct Context<'a> {
     /// Subsetting doesn't actually delete glyphs, just their outlines.
     num_glyphs: u16,
     /// The kept glyphs.
-    kept_glyphs: HashSet<u16>,
+    subset: HashSet<u16>,
     /// The subsetting profile.
     profile: Profile<'a>,
     /// The kind of face.
     kind: FontKind,
     /// Subsetted tables.
     tables: Vec<(Tag, Cow<'a, [u8]>)>,
+    /// Whether the long loca format was chosen.
+    long_loca: bool,
 }
 
 impl<'a> Context<'a> {
@@ -279,7 +294,9 @@ impl<'a> Context<'a> {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
             Tag::CFF => cff::subset(self)?,
+            Tag::HMTX => hmtx::subset(self)?,
             Tag::POST => post::subset(self)?,
+            Tag::HEAD => head::subset(self)?,
             _ => self.push(tag, data),
         }
 

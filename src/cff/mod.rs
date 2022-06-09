@@ -61,6 +61,14 @@ struct CidOffsets {
     private: Vec<PrivateOffsets>,
 }
 
+/// Find all glyphs referenced through components.
+/// CFF doesn't used component glyphs, so it's just the profile's set.
+///
+/// TODO: What about seac?
+pub(crate) fn discover(ctx: &mut Context) {
+    ctx.subset = ctx.profile.glyphs.iter().copied().collect();
+}
+
 /// Subset the CFF table by removing glyph data for unused glyphs.
 pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let cff = ctx.expect_table(Tag::CFF)?;
@@ -119,7 +127,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 /// Subset the glyph descriptions.
 fn subset_char_strings<'a>(ctx: &Context, strings: &mut Index<Opaque<'a>>) -> Result<()> {
     for glyph in 0 .. ctx.num_glyphs {
-        if !ctx.kept_glyphs.contains(&glyph) {
+        if !ctx.subset.contains(&glyph) {
             // The byte sequence [14] is the minimal valid charstring consisting
             // of just a single `endchar` operator.
             *strings.get_mut(glyph as usize).ok_or(Error::InvalidOffset)? = Opaque(&[14]);

@@ -1,36 +1,38 @@
-use std::collections::HashSet;
-use std::mem::size_of;
-
 use super::*;
 
-/// Subset the glyf and loca tables by removing glyph data for unused glyphs.
-pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
-    let head = ctx.expect_table(Tag::HEAD)?;
-    let short = i16::read_at(head, 50)? == 0;
-    if short {
-        subset_impl::<u16>(ctx)
-    } else {
-        subset_impl::<u32>(ctx)
+struct Table<'a> {
+    loca: &'a [u8],
+    glyf: &'a [u8],
+    long: bool,
+}
+
+impl<'a> Table<'a> {
+    fn new(ctx: &Context<'a>) -> Result<Self> {
+        let loca = ctx.expect_table(Tag::LOCA)?;
+        let glyf = ctx.expect_table(Tag::GLYF)?;
+        let head = ctx.expect_table(Tag::HEAD)?;
+        let long = i16::read_at(head, 50)? != 0;
+        Ok(Self { loca, glyf, long })
+    }
+
+    fn glyph_data(&self, id: u16) -> Result<&'a [u8]> {
+        let read_offset = |n| {
+            Ok(if self.long {
+                u32::read_at(self.loca, 4 * n)? as usize
+            } else {
+                u16::read_at(self.loca, 2 * n)? as usize * 2
+            })
+        };
+
+        let from = read_offset(id as usize)?;
+        let to = read_offset(id as usize + 1)?;
+        self.glyf.get(from .. to).ok_or(Error::InvalidOffset)
     }
 }
 
-fn subset_impl<'a, T>(ctx: &'a mut Context) -> Result<()>
-where
-    T: LocaOffset<'a>,
-{
-    let loca = ctx.expect_table(Tag::LOCA)?;
-    let glyf = ctx.expect_table(Tag::GLYF)?;
-
-    // Read data for a single glyph.
-    let glyph_data = |id: u16| {
-        let from = T::read_at(loca, usize::from(id) * size_of::<T>())?;
-        let to = T::read_at(loca, (usize::from(id) + 1) * size_of::<T>())?;
-        glyf.get(from.loca_to_usize() .. to.loca_to_usize())
-            .ok_or(Error::InvalidOffset)
-    };
-
-    // The set of all glyphs we will include in the subset.
-    let mut subset = HashSet::new();
+/// Find all glyphs referenced through components.
+pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
+    let table = Table::new(ctx)?;
 
     // Because glyphs may depend on other glyphs as components (also with
     // multiple layers of nesting), we have to process all glyphs to find
@@ -40,8 +42,8 @@ where
 
     // Find composite glyph descriptions.
     while let Some(id) = work.pop().or_else(|| iter.next()) {
-        if subset.insert(id) {
-            let mut r = Reader::new(glyph_data(id)?);
+        if ctx.subset.insert(id) {
+            let mut r = Reader::new(table.glyph_data(id)?);
             if let Ok(num_contours) = r.read::<i16>() {
                 // Negative means this is a composite glyph.
                 if num_contours < 0 {
@@ -58,22 +60,15 @@ where
         }
     }
 
-    let mut sub_loca = Writer::new();
-    let mut sub_glyf = Writer::new();
-
-    for id in 0 .. ctx.num_glyphs {
-        // If the glyph shouldn't be contained in the subset, it will
-        // still get a loca entry, but the glyf data is simply empty.
-        sub_loca.write(T::usize_to_loca(sub_glyf.len()));
-        if subset.contains(&id) {
-            sub_glyf.give(glyph_data(id)?);
-        }
+    // Compute combined size of all glyphs to select loca format.
+    let mut size = 0;
+    for &id in &ctx.subset {
+        let mut len = table.glyph_data(id)?.len();
+        len += (len % 2 != 0) as usize;
+        size += len;
     }
 
-    sub_loca.write(T::usize_to_loca(sub_glyf.len()));
-
-    ctx.push(Tag::LOCA, sub_loca.finish());
-    ctx.push(Tag::GLYF, sub_glyf.finish());
+    ctx.long_loca = size > 2 * (u16::MAX as usize);
 
     Ok(())
 }
@@ -120,30 +115,37 @@ fn component_glyphs(mut r: Reader) -> impl Iterator<Item = u16> + '_ {
     })
 }
 
-/// A loca offset, either 16-bit or 32-bit.
-trait LocaOffset<'a>: Structure<'a> {
-    fn loca_to_usize(self) -> usize;
-    fn usize_to_loca(offset: usize) -> Self;
-}
+/// Subset the glyf and loca tables by removing glyph data for unused glyphs.
+pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
+    let table = Table::new(ctx)?;
 
-impl LocaOffset<'_> for u16 {
-    fn loca_to_usize(self) -> usize {
-        2 * usize::from(self)
+    let mut sub_glyf = Writer::new();
+    let mut sub_loca = Writer::new();
+    let mut write_offset = |offset: usize| {
+        if ctx.long_loca {
+            sub_loca.write::<u32>(offset as u32);
+        } else {
+            sub_loca.write::<u16>((offset / 2) as u16);
+        }
+    };
+
+    for id in 0 .. ctx.num_glyphs {
+        // If the glyph shouldn't be contained in the subset, it will
+        // still get a loca entry, but the glyf data is simply empty.
+        write_offset(sub_glyf.len());
+        if ctx.subset.contains(&id) {
+            let data = table.glyph_data(id)?;
+            sub_glyf.give(data);
+            if data.len() % 2 != 0 {
+                sub_glyf.write::<u8>(0);
+            }
+        }
     }
 
-    fn usize_to_loca(offset: usize) -> Self {
-        // Shouldn't overflow since all offsets were u16 before and
-        // we are only shortening the table.
-        (offset / 2) as u16
-    }
-}
+    write_offset(sub_glyf.len());
 
-impl LocaOffset<'_> for u32 {
-    fn loca_to_usize(self) -> usize {
-        self as usize
-    }
+    ctx.push(Tag::LOCA, sub_loca.finish());
+    ctx.push(Tag::GLYF, sub_glyf.finish());
 
-    fn usize_to_loca(offset: usize) -> Self {
-        offset as u32
-    }
+    Ok(())
 }
