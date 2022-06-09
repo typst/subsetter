@@ -505,20 +505,31 @@ mod tests {
 
     use super::{subset, Profile};
 
+    const FEW: &str = "Hällo<.!ﬁ12";
+
     #[test]
     fn test_subset_truetype() {
-        test("NotoSans-Regular.ttf", "Hello<>.!πﬁ");
+        test("NotoSans-Regular.ttf", FEW);
+        test("ClickerScript-Regular.ttf", FEW);
     }
 
     #[test]
     fn test_subset_cff() {
-        test("NewCMMath-Regular.otf", "1+2=π?");
+        test("LatinModernRoman-Regular.otf", FEW);
+        test("NewCMMath-Regular.otf", "1+2=3;π∫∑");
         test("NotoSansCJKsc-Regular.otf", "ABC你好");
+    }
+
+    #[test]
+    fn test_subset_full() {
+        test_full("NotoSans-Regular.ttf");
+        test_full("ClickerScript-Regular.ttf");
+        test_full("NewCMMath-Regular.otf");
+        test_full("NotoSansCJKsc-Regular.otf");
     }
 
     fn test(path: &str, text: &str) {
         test_impl(path, &text, true);
-        test_full(path);
     }
 
     fn test_full(path: &str) {

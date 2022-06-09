@@ -7,6 +7,10 @@ The SIL Open Font License Version 1.1 applies to:
   Copyright 2018 The Noto Project Authors
   (github.com/googlei18n/noto-fonts)
 
+* Clicker Script fonts in fonts/ClickerScript*.ttf
+  Copyright (c) 2012 by Brian J. Bonislawsky and Jim Lyles DBA Astigmatic
+  (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Mouse Memoirs"
+
 -----------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
 -----------------------------------------------------------
@@ -97,6 +101,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ================================================================================
 The GUST Font License Version 1.0 applies to:
+
+* Latin Modern fonts in fonts/LatinModern*.otf
+  (http://www.gust.org.pl/projects/e-foundry/lm-math)
 
 * NewComputerModern fonts in fonts/NewCM*.otf
 
