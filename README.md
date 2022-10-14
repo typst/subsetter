@@ -1,7 +1,13 @@
 # subsetter
-Reduces the size and coverage of OpenType fonts.
+[![Crates.io](https://img.shields.io/crates/v/subsetter.svg)](https://crates.io/crates/subsetter)
+[![Documentation](https://docs.rs/subsetter/badge.svg)](https://docs.rs/subsetter)
 
-Supports both TrueType and CFF outlines.
+Reduces the size and coverage of OpenType fonts with TrueType or CFF outlines.
+
+```toml
+[dependencies]
+subsetter = "0.1"
+```
 
 ## Example
 In the example below, we remove all glyphs except the ones with IDs 68, 69, 70.

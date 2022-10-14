@@ -1,7 +1,5 @@
 /*!
-Reduces the size and coverage of OpenType fonts.
-
-Supports both TrueType and CFF outlines.
+Reduces the size and coverage of OpenType fonts with TrueType or CFF outlines.
 
 # Example
 In the example below, we remove all glyphs except the ones with IDs 68, 69, 70.
