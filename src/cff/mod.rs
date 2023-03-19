@@ -15,14 +15,12 @@ struct Table<'a> {
     top: Dict<'a>,
     strings: Index<Opaque<'a>>,
     global_subrs: Index<Opaque<'a>>,
+    encoding: Option<Opaque<'a>>,
+    charset: Option<Opaque<'a>>,
     char_strings: Index<Opaque<'a>>,
-    charset: Option<Charset<'a>>,
     private: Option<PrivateData<'a>>,
     cid: Option<CidData<'a>>,
 }
-
-/// A charset.
-struct Charset<'a>(Opaque<'a>);
 
 /// Data specific to Private DICTs.
 struct PrivateData<'a> {
@@ -43,6 +41,7 @@ struct FdSelect<'a>(Cow<'a, [u8]>);
 /// Recorded offsets that will be written into DICTs.
 struct Offsets {
     char_strings: usize,
+    encoding: Option<usize>,
     charset: Option<usize>,
     private: Option<PrivateOffsets>,
     cid: Option<CidOffsets>,
@@ -174,6 +173,13 @@ fn read_cff_table<'a>(ctx: &Context, cff: &'a [u8]) -> Result<Table<'a>> {
     // Extract only Top DICT.
     let top = tops.into_one().ok_or(Error::MissingData)?;
 
+    // Read encoding if it exists.
+    let mut encoding = None;
+    if let Some(offset) = top.get_offset(top::ENCODING) {
+        let data = cff.get(offset..).ok_or(Error::InvalidOffset)?;
+        encoding = Some(read_encoding(data)?);
+    }
+
     // Read the glyph descriptions.
     let char_strings = {
         let offset = top.get_offset(top::CHAR_STRINGS).ok_or(Error::MissingData)?;
@@ -204,6 +210,7 @@ fn read_cff_table<'a>(ctx: &Context, cff: &'a [u8]) -> Result<Table<'a>> {
         top,
         strings,
         global_subrs,
+        encoding,
         charset,
         char_strings,
         private,
@@ -232,6 +239,13 @@ fn write_cff_table(w: &mut Writer, table: &Table, offsets: &mut Offsets) {
 
     w.write_ref(&table.global_subrs);
     w.inspect("Global Subroutine INDEX");
+
+    // Write encoding.
+    if let Some(encoding) = &table.encoding {
+        offsets.encoding = Some(w.len());
+        write_encoding(w, encoding);
+        w.inspect("Encoding");
+    }
 
     // Write charset.
     if let Some(charset) = &table.charset {
@@ -336,8 +350,34 @@ fn write_private_data(
     }
 }
 
+/// Read an encoding.
+fn read_encoding(data: &[u8]) -> Result<Opaque<'_>> {
+    let mut r = Reader::new(data);
+    let mut len = 1;
+
+    let format = r.read::<u8>()?;
+    match format {
+        0 => {
+            let n_codes = r.read::<u8>()? as usize;
+            len += 1 + n_codes;
+        }
+        1 => {
+            let n_ranges = r.read::<u8>()? as usize;
+            len += 1 + 2 * n_ranges;
+        }
+        _ => return Err(Error::InvalidData),
+    }
+
+    Ok(Opaque(data.get(..len).ok_or(Error::InvalidOffset)?))
+}
+
+/// Write an encoding.
+fn write_encoding(w: &mut Writer, encoding: &Opaque<'_>) {
+    w.write_ref(encoding);
+}
+
 /// Read a charset.
-fn read_charset(data: &[u8], num_glyphs: u16) -> Result<Charset<'_>> {
+fn read_charset(data: &[u8], num_glyphs: u16) -> Result<Opaque<'_>> {
     let mut r = Reader::new(data);
     let mut len = 1;
 
@@ -367,14 +407,12 @@ fn read_charset(data: &[u8], num_glyphs: u16) -> Result<Charset<'_>> {
         _ => return Err(Error::InvalidData),
     }
 
-    Ok(Charset(Opaque(
-        data.get(.. len).ok_or(Error::InvalidOffset)?,
-    )))
+    Ok(Opaque(data.get(..len).ok_or(Error::InvalidOffset)?))
 }
 
 /// Write a charset.
-fn write_charset(w: &mut Writer, charset: &Charset) {
-    w.write_ref(&charset.0);
+fn write_charset(w: &mut Writer, charset: &Opaque<'_>) {
+    w.write_ref(charset);
 }
 
 /// Read the FD Select data structure.
@@ -412,6 +450,7 @@ fn create_offsets(table: &Table) -> Offsets {
     Offsets {
         char_strings: 0,
         charset: table.charset.as_ref().map(|_| 0),
+        encoding: table.encoding.as_ref().map(|_| 0),
         private: table.private.as_ref().map(create_private_offsets),
         cid: table.cid.as_ref().map(create_cid_offsets),
     }
@@ -436,6 +475,10 @@ fn create_private_offsets(private: &PrivateData) -> PrivateOffsets {
 
 /// Insert the offsets of various parts of the font into the relevant DICTs.
 fn insert_offsets(table: &mut Table, offsets: &Offsets) {
+    if let Some(offset) = offsets.encoding {
+        table.top.set_offset(top::ENCODING, offset);
+    }
+
     if let Some(offset) = offsets.charset {
         table.top.set_offset(top::CHARSET, offset);
     }

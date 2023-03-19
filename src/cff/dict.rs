@@ -236,6 +236,7 @@ pub mod top {
     pub const FONT_BBOX: Op = Op(5, 0);
     pub const STROKE_WIDTH: Op = Op(12, 8);
     pub const CHARSET: Op = Op(15, 0);
+    pub const ENCODING: Op = Op(16, 0);
     pub const CHAR_STRINGS: Op = Op(17, 0);
     pub const PRIVATE: Op = Op(18, 0);
     pub const POST_SCRIPT: Op = Op(12, 21);
