@@ -34,16 +34,16 @@ where
         let base = 3 + offsize * (count + 1) - 1;
         let mut read_offset = || {
             let mut bytes: [u8; 4] = [0; 4];
-            bytes[4 - offsize .. 4].copy_from_slice(r.take(offsize)?);
+            bytes[4 - offsize..4].copy_from_slice(r.take(offsize)?);
             Ok(base + u32::from_be_bytes(bytes) as usize)
         };
 
         let mut objects = Vec::with_capacity(count);
         let mut last = read_offset()?;
         let mut skip = 0;
-        for _ in 0 .. count {
+        for _ in 0..count {
             let offset = read_offset()?;
-            let slice = data.get(last .. offset).ok_or(Error::InvalidOffset)?;
+            let slice = data.get(last..offset).ok_or(Error::InvalidOffset)?;
             objects.push(T::read_at(slice, 0)?);
             skip += slice.len();
             last = offset;
@@ -75,7 +75,7 @@ where
         let offsize = offsize as usize;
         for offset in offsets {
             let bytes = u32::to_be_bytes(offset);
-            w.give(&bytes[4 - offsize .. 4]);
+            w.give(&bytes[4 - offsize..4]);
         }
 
         w.give(&buffer.finish());

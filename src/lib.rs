@@ -147,7 +147,7 @@ fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
     // Parse font collection header if necessary.
     if kind == FontKind::Collection {
         let offset = u32::read_at(data, 12 + 4 * (index as usize))?;
-        let subdata = data.get(offset as usize ..).ok_or(Error::InvalidOffset)?;
+        let subdata = data.get(offset as usize..).ok_or(Error::InvalidOffset)?;
         r = Reader::new(subdata);
         kind = r.read::<FontKind>()?;
         if kind == FontKind::Collection {
@@ -163,7 +163,7 @@ fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
 
     // Read table records.
     let mut records = vec![];
-    for _ in 0 .. count {
+    for _ in 0..count {
         records.push(r.read::<TableRecord>()?);
     }
 
@@ -198,7 +198,7 @@ fn construct(mut ctx: Context) -> Vec<u8> {
     for (tag, data) in &mut ctx.tables {
         if *tag == Tag::HEAD {
             // Zero out checksum field in head table.
-            data.to_mut()[8 .. 12].fill(0);
+            data.to_mut()[8..12].fill(0);
             checksum_adjustment_offset = Some(offset + 8);
         }
 
@@ -232,7 +232,7 @@ fn construct(mut ctx: Context) -> Vec<u8> {
     if let Some(i) = checksum_adjustment_offset {
         let sum = checksum(&data);
         let val = 0xB1B0AFBA_u32.wrapping_sub(sum);
-        data[i .. i + 4].copy_from_slice(&val.to_be_bytes());
+        data[i..i + 4].copy_from_slice(&val.to_be_bytes());
     }
 
     data
@@ -245,7 +245,7 @@ fn checksum(data: &[u8]) -> u32 {
     let mut sum = 0u32;
     for chunk in data.chunks(4) {
         let mut bytes = [0; 4];
-        bytes[.. chunk.len()].copy_from_slice(chunk);
+        bytes[..chunk.len()].copy_from_slice(chunk);
         sum = sum.wrapping_add(u32::from_be_bytes(bytes));
     }
     sum
@@ -319,7 +319,7 @@ impl<'a> Face<'a> {
         let record = self.records.get(i)?;
         let start = record.offset as usize;
         let end = start + (record.length as usize);
-        self.data.get(start .. end)
+        self.data.get(start..end)
     }
 }
 
@@ -575,10 +575,7 @@ mod tests {
             assert_eq!(sink1, sink2);
             assert_eq!(ttf.glyph_hor_advance(id), ttfs.glyph_hor_advance(id));
             assert_eq!(ttf.glyph_name(id), ttfs.glyph_name(id));
-            assert_eq!(
-                ttf.glyph_hor_side_bearing(id),
-                ttfs.glyph_hor_side_bearing(id)
-            );
+            assert_eq!(ttf.glyph_hor_side_bearing(id), ttfs.glyph_hor_side_bearing(id));
         }
     }
 

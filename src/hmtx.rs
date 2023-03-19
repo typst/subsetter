@@ -15,16 +15,16 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let mut hmtx = ctx.expect_table(Tag::HMTX)?.to_vec();
 
     let mut offset = 0;
-    for i in 0 .. num_h_metrics {
+    for i in 0..num_h_metrics {
         if !ctx.subset.contains(&i) {
-            hmtx.get_mut(offset .. offset + 4).ok_or(Error::MissingData)?.fill(0);
+            hmtx.get_mut(offset..offset + 4).ok_or(Error::MissingData)?.fill(0);
         }
         offset += 4;
     }
 
-    for i in num_h_metrics .. ctx.num_glyphs {
+    for i in num_h_metrics..ctx.num_glyphs {
         if !ctx.subset.contains(&i) {
-            hmtx.get_mut(offset .. offset + 2).ok_or(Error::MissingData)?.fill(0);
+            hmtx.get_mut(offset..offset + 2).ok_or(Error::MissingData)?.fill(0);
         }
         offset += 2;
     }

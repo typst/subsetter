@@ -27,7 +27,7 @@ impl<'a> Table<'a> {
 
         let from = read_offset(id as usize)?;
         let to = read_offset(id as usize + 1)?;
-        self.glyf.get(from .. to).ok_or(Error::InvalidOffset)
+        self.glyf.get(from..to).ok_or(Error::InvalidOffset)
     }
 }
 
@@ -130,7 +130,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         }
     };
 
-    for id in 0 .. ctx.num_glyphs {
+    for id in 0..ctx.num_glyphs {
         // If the glyph shouldn't be contained in the subset, it will
         // still get a loca entry, but the glyf data is simply empty.
         write_offset(sub_glyf.len());

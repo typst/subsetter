@@ -27,8 +27,8 @@ impl<'a> Reader<'a> {
     /// Take the first `n` bytes from the stream.
     pub fn take(&mut self, n: usize) -> Result<&'a [u8]> {
         if n <= self.0.len() {
-            let head = &self.0[.. n];
-            self.0 = &self.0[n ..];
+            let head = &self.0[..n];
+            self.0 = &self.0[n..];
             Ok(head)
         } else {
             Err(Error::MissingData)
@@ -38,7 +38,7 @@ impl<'a> Reader<'a> {
     /// Skip the first `n` bytes from the stream.
     pub fn skip(&mut self, n: usize) -> Result<()> {
         if n <= self.0.len() {
-            self.0 = &self.0[n ..];
+            self.0 = &self.0[n..];
             Ok(())
         } else {
             Err(Error::MissingData)
@@ -111,7 +111,7 @@ pub trait Structure<'a>: Sized {
 
     /// Read self at the given offset in the binary data.
     fn read_at(data: &'a [u8], offset: usize) -> Result<Self> {
-        if let Some(sub) = data.get(offset ..) {
+        if let Some(sub) = data.get(offset..) {
             Self::read(&mut Reader::new(sub))
         } else {
             Err(Error::InvalidOffset)

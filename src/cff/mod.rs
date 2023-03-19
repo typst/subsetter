@@ -111,7 +111,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
     // Write twice because we first need to find out the offsets of various data
     // structures.
-    for _ in 0 .. 2 {
+    for _ in 0..2 {
         let mut w = Writer::new();
         insert_offsets(&mut table, &offsets);
         write_cff_table(&mut w, &table, &mut offsets);
@@ -125,7 +125,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
 /// Subset the glyph descriptions.
 fn subset_char_strings<'a>(ctx: &Context, strings: &mut Index<Opaque<'a>>) -> Result<()> {
-    for glyph in 0 .. ctx.num_glyphs {
+    for glyph in 0..ctx.num_glyphs {
         if !ctx.subset.contains(&glyph) {
             // The byte sequence [14] is the minimal valid charstring consisting
             // of just a single `endchar` operator.
@@ -162,7 +162,7 @@ fn read_cff_table<'a>(ctx: &Context, cff: &'a [u8]) -> Result<Table<'a>> {
     r.read::<u8>()?;
     r.read::<u8>()?;
     let header_size = r.read::<u8>()? as usize;
-    r = Reader::new(cff.get(header_size ..).ok_or(Error::InvalidOffset)?);
+    r = Reader::new(cff.get(header_size..).ok_or(Error::InvalidOffset)?);
 
     // Read four indices at fixed positions.
     let name = r.read::<Index<Opaque>>()?;
@@ -188,8 +188,8 @@ fn read_cff_table<'a>(ctx: &Context, cff: &'a [u8]) -> Result<Table<'a>> {
 
     // Read the charset.
     let mut charset = None;
-    if let Some(offset @ 1 ..) = top.get_offset(top::CHARSET) {
-        let sub = cff.get(offset ..).ok_or(Error::InvalidOffset)?;
+    if let Some(offset @ 1..) = top.get_offset(top::CHARSET) {
+        let sub = cff.get(offset..).ok_or(Error::InvalidOffset)?;
         charset = Some(read_charset(sub, ctx.num_glyphs)?);
     }
 
@@ -285,7 +285,7 @@ fn read_cid_data<'a>(
     // Read FD Select data structure.
     let select = {
         let offset = top.get_offset(top::FD_SELECT).ok_or(Error::MissingData)?;
-        let sub = cff.get(offset ..).ok_or(Error::InvalidOffset)?;
+        let sub = cff.get(offset..).ok_or(Error::InvalidOffset)?;
         read_fd_select(sub, ctx.num_glyphs)?
     };
 
@@ -425,10 +425,10 @@ fn read_fd_select(data: &[u8], num_glyphs: u16) -> Result<FdSelect<'_>> {
             let count = r.read::<u16>()?;
             let mut fds = vec![];
             let mut first = r.read::<u16>()?;
-            for _ in 0 .. count {
+            for _ in 0..count {
                 let fd = r.read::<u8>()?;
                 let end = r.read::<u16>()?;
-                for _ in first .. end {
+                for _ in first..end {
                     fds.push(fd);
                 }
                 first = end;
@@ -468,7 +468,7 @@ fn create_cid_offsets(cid: &CidData) -> CidOffsets {
 /// Create initial zero offsets for a Private DICT.
 fn create_private_offsets(private: &PrivateData) -> PrivateOffsets {
     PrivateOffsets {
-        dict: 0 .. 0,
+        dict: 0..0,
         subrs: private.subrs.as_ref().map(|_| 0),
     }
 }

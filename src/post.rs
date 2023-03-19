@@ -18,7 +18,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     // Read glyph name table.
     let num_glyphs = r.read::<u16>()?;
     let mut indices = vec![];
-    for _ in 0 .. num_glyphs {
+    for _ in 0..num_glyphs {
         indices.push(r.read::<u16>()?);
     }
 

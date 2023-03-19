@@ -27,7 +27,7 @@ impl<'a> Dict<'a> {
             &[Operand::Int(len), Operand::Int(offset)] if offset > 0 => {
                 let offset = usize::try_from(offset).ok()?;
                 let len = usize::try_from(len).ok()?;
-                Some(offset .. offset + len)
+                Some(offset..offset + len)
             }
             _ => None,
         }
@@ -50,10 +50,10 @@ impl<'a> Dict<'a> {
     }
 
     pub fn set_range(&mut self, op: Op, range: &Range<usize>) {
-        self.set(op, vec![
-            Operand::Offset(range.end - range.start),
-            Operand::Offset(range.start),
-        ]);
+        self.set(
+            op,
+            vec![Operand::Offset(range.end - range.start), Operand::Offset(range.start)],
+        );
     }
 }
 
@@ -91,8 +91,8 @@ impl<'a> Structure<'a> for Pair<'a> {
         let mut operands = vec![];
         loop {
             match r.data().first().ok_or(Error::MissingData)? {
-                0 ..= 21 => break,
-                28 ..= 30 | 32 ..= 254 => operands.push(r.read::<Operand>()?),
+                0..=21 => break,
+                28..=30 | 32..=254 => operands.push(r.read::<Operand>()?),
                 _ => r.skip(1)?,
             }
         }
@@ -122,7 +122,7 @@ impl Structure<'_> for Op {
         let b0 = r.read::<u8>()?;
         match b0 {
             12 => Ok(Self(b0, r.read::<u8>()?)),
-            0 ..= 21 => Ok(Self(b0, 0)),
+            0..=21 => Ok(Self(b0, 0)),
             _ => panic!("cannot read operator here"),
         }
     }
@@ -159,12 +159,12 @@ impl<'a> Structure<'a> for Operand<'a> {
                 }
                 Self::Real(r.take(len)?)
             }
-            32 ..= 246 => Self::Int(b0 - 139),
-            247 ..= 250 => {
+            32..=246 => Self::Int(b0 - 139),
+            247..=250 => {
                 let b1 = i32::from(r.read::<u8>()?);
                 Self::Int((b0 - 247) * 256 + b1 + 108)
             }
-            251 ..= 254 => {
+            251..=254 => {
                 let b1 = i32::from(r.read::<u8>()?);
                 Self::Int(-(b0 - 251) * 256 - b1 - 108)
             }
