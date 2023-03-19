@@ -360,7 +360,7 @@ fn read_charset(data: &[u8], num_glyphs: u16) -> Result<Charset<'_>> {
             while seen < num_glyphs {
                 r.read::<u16>()?;
                 seen = seen.saturating_add(1);
-                seen = seen.saturating_add(1 + r.read::<u16>()?);
+                seen = seen.saturating_add(r.read::<u16>()?);
                 len += 4;
             }
         }
