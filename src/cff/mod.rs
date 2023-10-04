@@ -124,7 +124,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 }
 
 /// Subset the glyph descriptions.
-fn subset_char_strings<'a>(ctx: &Context, strings: &mut Index<Opaque<'a>>) -> Result<()> {
+fn subset_char_strings(ctx: &Context, strings: &mut Index<Opaque>) -> Result<()> {
     for glyph in 0..ctx.num_glyphs {
         if !ctx.subset.contains(&glyph) {
             // The byte sequence [14] is the minimal valid charstring consisting
@@ -318,7 +318,7 @@ fn write_cid_data(w: &mut Writer, cid: &CidData, offsets: &mut CidOffsets) {
 }
 
 /// Read a Private DICT and optionally local subroutines.
-fn read_private_dict<'a>(cff: &'a [u8], range: Range<usize>) -> Result<PrivateData<'a>> {
+fn read_private_dict(cff: &[u8], range: Range<usize>) -> Result<PrivateData<'_>> {
     let start = range.start;
     let sub = cff.get(range).ok_or(Error::InvalidOffset)?;
     let dict = Dict::read_at(sub, 0)?;
@@ -520,7 +520,7 @@ impl<'a> Structure<'a> for Opaque<'a> {
     }
 
     fn write(&self, w: &mut Writer) {
-        w.give(&self.0);
+        w.give(self.0);
     }
 }
 

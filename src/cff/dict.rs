@@ -185,7 +185,7 @@ impl<'a> Structure<'a> for Operand<'a> {
             }
             Self::Real(real) => {
                 w.write::<u8>(30);
-                w.give(&real);
+                w.give(real);
             }
         }
     }

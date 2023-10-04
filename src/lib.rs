@@ -93,7 +93,7 @@ impl<'a> Profile<'a> {
 pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
     let face = parse(data, index)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
-        Some(_) => FontKind::CFF,
+        Some(_) => FontKind::Cff,
         None => FontKind::TrueType,
     };
 
@@ -119,7 +119,7 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
         ctx.process(Tag::GASP)?;
     }
 
-    if ctx.kind == FontKind::CFF {
+    if ctx.kind == FontKind::Cff {
         cff::discover(&mut ctx);
         ctx.process(Tag::CFF)?;
         ctx.process(Tag::CFF2)?;
@@ -329,7 +329,7 @@ enum FontKind {
     /// TrueType outlines.
     TrueType,
     /// CFF outlines
-    CFF,
+    Cff,
     /// A font collection.
     Collection,
 }
@@ -338,7 +338,7 @@ impl Structure<'_> for FontKind {
     fn read(r: &mut Reader) -> Result<Self> {
         match r.read::<u32>()? {
             0x00010000 | 0x74727565 => Ok(FontKind::TrueType),
-            0x4F54544F => Ok(FontKind::CFF),
+            0x4F54544F => Ok(FontKind::Cff),
             0x74746366 => Ok(FontKind::Collection),
             _ => Err(Error::UnknownKind),
         }
@@ -347,7 +347,7 @@ impl Structure<'_> for FontKind {
     fn write(&self, w: &mut Writer) {
         w.write::<u32>(match self {
             FontKind::TrueType => 0x00010000,
-            FontKind::CFF => 0x4F54544F,
+            FontKind::Cff => 0x4F54544F,
             FontKind::Collection => 0x74746366,
         })
     }
@@ -523,7 +523,7 @@ mod tests {
     }
 
     fn test(path: &str, text: &str) {
-        test_impl(path, &text, true);
+        test_impl(path, text, true);
     }
 
     fn test_full(path: &str) {
