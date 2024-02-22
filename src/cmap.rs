@@ -189,6 +189,8 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
             Ok(4) => subset_subtable4(ctx, subtable_data)?,
             _ => {}
         }
+
+        return Ok(())
     }
 
     Ok(())
@@ -196,6 +198,9 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
 fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<()> {
     let subtable = Subtable4::read_at(data, 0)?;
+    println!("{:?}", subtable.start_codes.iter().zip(subtable.end_codes.iter()).collect::<Vec<_>>());
+    println!("{:?}", subtable.id_deltas);
+    println!("{:?}", subtable.id_range_offsets);
     let mut all_codepoints = vec![];
     subtable.codepoints(|c| all_codepoints.push(c));
 
@@ -214,7 +219,7 @@ fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<()> {
         })
         .collect::<Vec<_>>();
 
-    println!("{:?}", new_mappings);
+
 
     Ok(())
 }
