@@ -132,16 +132,12 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         }
     };
 
-    for id in 0..ctx.num_glyphs {
-        // If the glyph shouldn't be contained in the subset, it will
-        // still get a loca entry, but the glyf data is simply empty.
-        write_offset(sub_glyf.len());
-        if ctx.subset.contains(&id) {
-            let data = table.glyph_data(id)?;
-            sub_glyf.give(data);
-            if !ctx.long_loca {
-                sub_glyf.align(2);
-            }
+    for old_gid in &ctx.reverse_gid_map {
+        let data = table.glyph_data(*old_gid)?;
+        // TODO: Deal with composite glyphs
+        sub_glyf.give(data);
+        if !ctx.long_loca {
+            sub_glyf.align(2);
         }
     }
 

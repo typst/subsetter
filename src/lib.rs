@@ -46,7 +46,7 @@ mod post;
 mod stream;
 
 use std::borrow::Cow;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Debug, Display, Formatter};
 
 use crate::stream::{Reader, Structure, Writer};
@@ -104,6 +104,8 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
         face,
         num_glyphs,
         subset: HashSet::new(),
+        gid_map: HashMap::new(),
+        reverse_gid_map: vec![],
         profile,
         kind,
         tables: vec![],
@@ -114,22 +116,31 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
     // https://learn.microsoft.com/en-us/typography/opentype/spec/otff#required-tables
     // some of those are not strictly needed according to the PDF specification,
     // but it's still better to include them.
+
     if ctx.kind == FontKind::TrueType {
         glyf::discover(&mut ctx)?;
-        ctx.process(Tag::GLYF)?;
-        // LOCA will be handled by GLYF
-        ctx.process(Tag::CVT)?;
-        ctx.process(Tag::FPGM)?;
-        ctx.process(Tag::PREP)?;
-        ctx.process(Tag::GASP)?;
     }
 
-    // if ctx.kind == FontKind::Cff {
-    //     cff::discover(&mut ctx);
-    //     ctx.process(Tag::CFF)?;
-    //     ctx.process(Tag::CFF2)?;
-    //     ctx.process(Tag::VORG)?;
-    // }
+    if ctx.kind == FontKind::Cff {
+        cff::discover(&mut ctx);
+    }
+
+    ctx.initialize_gid_map();
+
+    if ctx.kind == FontKind::TrueType {
+        ctx.process(Tag::GLYF)?;
+        // LOCA will be handled by GLYF
+        ctx.process(Tag::CVT)?; // won't be subsetted.
+        ctx.process(Tag::FPGM)?; // won't be subsetted.
+        ctx.process(Tag::PREP)?; // won't be subsetted.
+        ctx.process(Tag::GASP)?; // won't be subsetted.
+    }
+
+    if ctx.kind == FontKind::Cff {
+        ctx.process(Tag::CFF)?;
+        ctx.process(Tag::CFF2)?;
+        ctx.process(Tag::VORG)?;
+    }
 
     // Required tables.
     ctx.process(Tag::CMAP)?;
@@ -264,8 +275,11 @@ struct Context<'a> {
     num_glyphs: u16,
     /// The kept glyphs.
     subset: HashSet<u16>,
-    // A map from
-    // gid_to_gid_map: HashMap<u16, u16>,
+    // A map from old gids to new gids
+    gid_map: HashMap<u16, u16>,
+    // A map from new gids to old gids. The index represents the
+    // new gid, and the value at that index the old gid.
+    reverse_gid_map: Vec<u16>,
     /// The subsetting profile.
     profile: Profile<'a>,
     /// The kind of face.
@@ -300,6 +314,18 @@ impl<'a> Context<'a> {
         }
 
         Ok(())
+    }
+
+    fn initialize_gid_map(&mut self) {
+        let mut original_gids = self.subset.iter().collect::<Vec<_>>();
+        original_gids.sort();
+
+        let mut counter = 0;
+        for gid in original_gids {
+            self.gid_map.insert(*gid, counter);
+            self.reverse_gid_map.push(*gid);
+            counter += 1;
+        }
     }
 
     /// Push a subsetted table.
