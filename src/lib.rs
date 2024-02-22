@@ -110,21 +110,26 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
         long_loca: true,
     };
 
+    // See here for the required tables:
+    // https://learn.microsoft.com/en-us/typography/opentype/spec/otff#required-tables
+    // some of those are not strictly needed according to the PDF specification,
+    // but it's still better to include them.
     if ctx.kind == FontKind::TrueType {
         glyf::discover(&mut ctx)?;
         ctx.process(Tag::GLYF)?;
+        // LOCA will be handled by GLYF
         ctx.process(Tag::CVT)?;
         ctx.process(Tag::FPGM)?;
         ctx.process(Tag::PREP)?;
         ctx.process(Tag::GASP)?;
     }
 
-    if ctx.kind == FontKind::Cff {
-        cff::discover(&mut ctx);
-        ctx.process(Tag::CFF)?;
-        ctx.process(Tag::CFF2)?;
-        ctx.process(Tag::VORG)?;
-    }
+    // if ctx.kind == FontKind::Cff {
+    //     cff::discover(&mut ctx);
+    //     ctx.process(Tag::CFF)?;
+    //     ctx.process(Tag::CFF2)?;
+    //     ctx.process(Tag::VORG)?;
+    // }
 
     // Required tables.
     ctx.process(Tag::CMAP)?;
@@ -253,14 +258,14 @@ fn checksum(data: &[u8]) -> u32 {
 
 /// Subsetting context.
 struct Context<'a> {
-    /// Original fa'ce.
+    /// Original face.
     face: Face<'a>,
-    /// The number of glyphs in the original and subsetted face.
-    ///
-    /// Subsetting doesn't actually delete glyphs, just their outlines.
+    /// The number of glyphs in the original face.
     num_glyphs: u16,
     /// The kept glyphs.
     subset: HashSet<u16>,
+    /// A map from
+    gid_to_gid_map: HashMap<u16, u16>,
     /// The subsetting profile.
     profile: Profile<'a>,
     /// The kind of face.
