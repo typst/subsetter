@@ -38,9 +38,8 @@ struct Subtable4<'a> {
     end_codes: Vec<u16>,
     start_codes: Vec<u16>,
     id_deltas: Vec<i16>,
-    id_range_offset_pos: u16,
     id_range_offsets: Vec<u16>,
-    data: &'a [u8],
+    glyph_id_array: &'a [u8],
 }
 
 impl Subtable4<'_> {
@@ -75,13 +74,12 @@ impl Subtable4<'_> {
                     let delta = (u32::from(code_point) - u32::from(start_value)) * 2;
                     let delta = u16::try_from(delta).ok()?;
 
-                    let id_range_offset_pos =
-                        (self.id_range_offset_pos as usize + index * 2) as u16;
+                    let id_range_offset_pos = (index * 2) as u16;
                     let pos = id_range_offset_pos.wrapping_add(delta);
                     let pos = pos.wrapping_add(id_range_offset);
 
                     let glyph_array_value: u16 =
-                        u16::read_at(self.data, usize::from(pos)).ok()?;
+                        u16::read_at(self.glyph_id_array, usize::from(pos)).ok()?;
 
                     // 0 indicates missing glyph.
                     if glyph_array_value == 0 {
@@ -149,8 +147,7 @@ impl<'a> Structure<'a> for Subtable4<'a> {
             id_deltas.push(r.read::<i16>()?);
         }
 
-        let id_range_offset_pos =
-            4 + 2 + 2 + 6 + seg_count * 2 + 2 + seg_count * 2 + seg_count * 2;
+        let glyph_id_array = r.data();
         let mut id_range_offsets = vec![];
 
         for _ in 0..seg_count {
@@ -163,9 +160,8 @@ impl<'a> Structure<'a> for Subtable4<'a> {
             end_codes,
             start_codes,
             id_deltas,
-            id_range_offset_pos,
             id_range_offsets,
-            data,
+            glyph_id_array,
         })
     }
 
@@ -190,7 +186,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
             _ => {}
         }
 
-        return Ok(())
+        return Ok(());
     }
 
     Ok(())
@@ -198,7 +194,14 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
 fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<()> {
     let subtable = Subtable4::read_at(data, 0)?;
-    println!("{:?}", subtable.start_codes.iter().zip(subtable.end_codes.iter()).collect::<Vec<_>>());
+    println!(
+        "{:?}",
+        subtable
+            .start_codes
+            .iter()
+            .zip(subtable.end_codes.iter())
+            .collect::<Vec<_>>()
+    );
     println!("{:?}", subtable.id_deltas);
     println!("{:?}", subtable.id_range_offsets);
     let mut all_codepoints = vec![];
@@ -218,8 +221,6 @@ fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<()> {
             return None;
         })
         .collect::<Vec<_>>();
-
-
 
     Ok(())
 }
