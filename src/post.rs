@@ -39,7 +39,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let mut count = 0;
     for (i, mut index) in indices.into_iter().enumerate() {
         // Rewrite unused glyphs to .notdef.
-        if !ctx.subset.contains(&(i as u16)) {
+        if !ctx.subset_extended.contains(&(i as u16)) {
             index = 0;
         }
 

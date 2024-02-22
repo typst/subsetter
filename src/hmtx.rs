@@ -16,14 +16,14 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
     let mut offset = 0;
     for i in 0..num_h_metrics {
-        if !ctx.subset.contains(&i) {
+        if !ctx.subset_extended.contains(&i) {
             hmtx.get_mut(offset..offset + 4).ok_or(Error::MissingData)?.fill(0);
         }
         offset += 4;
     }
 
     for i in num_h_metrics..ctx.num_glyphs {
-        if !ctx.subset.contains(&i) {
+        if !ctx.subset_extended.contains(&i) {
             hmtx.get_mut(offset..offset + 2).ok_or(Error::MissingData)?.fill(0);
         }
         offset += 2;

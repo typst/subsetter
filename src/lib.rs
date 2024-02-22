@@ -39,12 +39,14 @@ resulting font is 36 KB (5 KB zipped).
 #![deny(missing_docs)]
 
 mod cff;
+mod cmap;
 mod glyf;
 mod head;
 mod hmtx;
 mod post;
 mod stream;
 
+use crate::Error::InvalidData;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Debug, Display, Formatter};
@@ -92,6 +94,7 @@ impl<'a> Profile<'a> {
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
 pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
     let face = parse(data, index)?;
+    let ttf_face = ttf_parser::Face::from_slice(data, index).map_err(|_| InvalidData)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
         Some(_) => FontKind::Cff,
         None => FontKind::TrueType,
@@ -102,8 +105,10 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
 
     let mut ctx = Context {
         face,
+        ttf_face,
         num_glyphs,
         subset: HashSet::new(),
+        subset_extended: HashSet::new(),
         gid_map: HashMap::new(),
         reverse_gid_map: vec![],
         profile,
@@ -271,10 +276,12 @@ fn checksum(data: &[u8]) -> u32 {
 struct Context<'a> {
     /// Original face.
     face: Face<'a>,
+    ttf_face: ttf_parser::Face<'a>,
     /// The number of glyphs in the original face.
     num_glyphs: u16,
-    /// The kept glyphs.
     subset: HashSet<u16>,
+    /// The kept glyphs.
+    subset_extended: HashSet<u16>,
     // A map from old gids to new gids
     gid_map: HashMap<u16, u16>,
     // A map from new gids to old gids. The index represents the
@@ -310,6 +317,7 @@ impl<'a> Context<'a> {
             Tag::HEAD => head::subset(self)?,
             Tag::HMTX => hmtx::subset(self)?,
             Tag::POST => post::subset(self)?,
+            Tag::CMAP => cmap::subset(self)?,
             _ => self.push(tag, data),
         }
 
@@ -317,8 +325,10 @@ impl<'a> Context<'a> {
     }
 
     fn initialize_gid_map(&mut self) {
-        let mut original_gids = self.subset.iter().collect::<Vec<_>>();
+        let mut original_gids = self.subset_extended.iter().collect::<Vec<_>>();
         original_gids.sort();
+
+        println!("{:?}", original_gids);
 
         let mut counter = 0;
         for gid in original_gids {
