@@ -1,82 +1,83 @@
 use super::*;
 use crate::Error::MissingTable;
-use ttf_parser::cmap::{Format, Subtable, Subtable4};
-use ttf_parser::PlatformId;
 
-trait SubtableExt {
-    fn is_unicode(&self) -> bool;
-    fn is_symbol(&self) -> bool;
+#[derive(Debug)]
+struct EncodingRecord {
+    platform_id: u16,
+    encoding_id: u16,
+    subtable_offset: u32
 }
 
-impl SubtableExt for ttf_parser::cmap::Subtable<'_> {
+impl EncodingRecord {
     fn is_unicode(&self) -> bool {
-        self.platform_id == PlatformId::Unicode
-            || (self.platform_id == PlatformId::Windows
+        self.platform_id == 0
+            || (self.platform_id == 3
                 && [0, 1, 10].contains(&self.encoding_id))
     }
+}
 
-    fn is_symbol(&self) -> bool {
-        self.platform_id == PlatformId::Unicode && self.encoding_id == 0
+impl Structure<'_> for EncodingRecord {
+    fn read(r: &mut Reader) -> Result<Self> {
+        let platform_id = r.read::<u16>()?;
+        let encoding_id = r.read::<u16>()?;
+        let subtable_offset = r.read::<u32>()?;
+
+        Ok(EncodingRecord {
+            platform_id,
+            encoding_id,
+            subtable_offset
+        })
+    }
+
+    fn write(&self, w: &mut Writer) {
+        w.write::<u16>(self.platform_id);
+        w.write::<u16>(self.encoding_id);
+        w.write::<u32>(self.subtable_offset);
     }
 }
 
 // This function is heavily inspired by how fonttools does the subsetting of that
 // table.
 pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
-    let cmap = ctx.ttf_face.tables().cmap.ok_or(MissingTable(Tag::CMAP))?;
-    let mut writer = Writer::new();
+    let cmap = ctx.expect_table(Tag::CMAP)?;
+    let mut reader = Reader::new(cmap);
 
-    for table in cmap.subtables {
-        if !table.is_unicode() {
-            continue;
-        }
+    let version = reader.read::<u16>()?;
+    let num_tables = reader.read::<u16>()?;
 
-        // We don't support unicode variation sequences
-        if matches!(table.format, Format::UnicodeVariationSequences(_)) {
-            continue;
-        }
-
-        match table.format {
-            // Only those 2 formats are actually used in practice for unicode subtables
-            // (verified this locally with 300+ fonts)
-            Format::SegmentMappingToDeltaValues(table) => {
-                subset_subtable4(ctx, &mut writer, &table)?;
-            }
-            Format::SegmentedCoverage(_) => {}
-            _ => {}
-        }
+    for _ in 0..num_tables {
+        let record = reader.read::<EncodingRecord>()?;
+        println!("{:?}", record);
     }
-
-    // println!("{:?}", r);
 
     Ok(())
 }
 
-fn subset_subtable4(
-    ctx: &mut Context,
-    writer: &mut Writer,
-    subtable: &Subtable4,
-) -> Result<Vec<u8>> {
-    let mut writer = Writer::new();
-    let mut all_codepoints = vec![];
-    subtable.codepoints(|c| all_codepoints.push(c));
-
-    let new_mappings = all_codepoints
-        .into_iter()
-        .filter_map(|c| {
-            if let Some(g) = subtable.glyph_index(c) {
-                if ctx.subset.contains(&g.0) {
-                    if let Some(new_g) = ctx.gid_map.get(&g.0) {
-                        return Some((c, new_g));
-                    }
-                }
-            }
-
-            return None;
-        })
-        .collect::<Vec<_>>();
-
-    println!("{:?}", new_mappings);
-
-    Ok(vec![])
-}
+// fn subset_subtable4(
+//     ctx: &mut Context,
+//     writer: &mut Writer,
+//     subtable: &Subtable4,
+// ) -> Result<Vec<u8>> {
+//     let mut writer = Writer::new();
+//     let mut all_codepoints = vec![];
+//     subtable.codepoints(|c| all_codepoints.push(c));
+//
+//     let new_mappings = all_codepoints
+//         .into_iter()
+//         .filter_map(|c| {
+//             if let Some(g) = subtable.glyph_index(c) {
+//                 if ctx.subset.contains(&g.0) {
+//                     if let Some(new_g) = ctx.gid_map.get(&g.0) {
+//                         return Some((c, new_g));
+//                     }
+//                 }
+//             }
+//
+//             return None;
+//         })
+//         .collect::<Vec<_>>();
+//
+//     println!("{:?}", new_mappings);
+//
+//     Ok(vec![])
+// }

@@ -94,7 +94,6 @@ impl<'a> Profile<'a> {
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
 pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
     let face = parse(data, index)?;
-    let ttf_face = ttf_parser::Face::from_slice(data, index).map_err(|_| InvalidData)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
         Some(_) => FontKind::Cff,
         None => FontKind::TrueType,
@@ -105,7 +104,6 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
 
     let mut ctx = Context {
         face,
-        ttf_face,
         num_glyphs,
         subset: HashSet::new(),
         subset_extended: HashSet::new(),
@@ -276,7 +274,6 @@ fn checksum(data: &[u8]) -> u32 {
 struct Context<'a> {
     /// Original face.
     face: Face<'a>,
-    ttf_face: ttf_parser::Face<'a>,
     /// The number of glyphs in the original face.
     num_glyphs: u16,
     subset: HashSet<u16>,

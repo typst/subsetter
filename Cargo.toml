@@ -13,6 +13,3 @@ exclude = ["fonts/*"]
 
 [dev-dependencies]
 ttf-parser = "0.15"
-
-[dependencies]
-ttf-parser = "0.15"
