@@ -154,6 +154,11 @@ impl<'a> Structure<'a> for Subtable4<'a> {
             id_range_offsets.push(r.read::<u16>()?);
         }
 
+        println!("{:?}", start_codes);
+        println!("{:?}", end_codes);
+        println!("{:?}", id_deltas);
+        println!("{:?}", id_range_offsets);
+
         Ok(Subtable4 {
             language,
             seg_count,
@@ -194,26 +199,16 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
 fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<()> {
     let subtable = Subtable4::read_at(data, 0)?;
-    println!(
-        "{:?}",
-        subtable
-            .start_codes
-            .iter()
-            .zip(subtable.end_codes.iter())
-            .collect::<Vec<_>>()
-    );
-    println!("{:?}", subtable.id_deltas);
-    println!("{:?}", subtable.id_range_offsets);
     let mut all_codepoints = vec![];
-    subtable.codepoints(|c| all_codepoints.push(c));
+    subtable.codepoints(|c| all_codepoints.push(c as u16));
 
-    let new_mappings = all_codepoints
+    let mut new_mappings = all_codepoints
         .into_iter()
         .filter_map(|c| {
-            if let Some(g) = subtable.glyph_index(c) {
+            if let Some(g) = subtable.glyph_index(c as u32) {
                 if ctx.subset.contains(&g) {
                     if let Some(new_g) = ctx.gid_map.get(&g) {
-                        return Some((c, new_g));
+                        return Some((c, *new_g));
                     }
                 }
             }
@@ -221,6 +216,37 @@ fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<()> {
             return None;
         })
         .collect::<Vec<_>>();
+
+    new_mappings.sort();
+
+    let mut segments = vec![];
+
+    let delta = |pair: (u16, u16)| {
+        (pair.1 as i32 - pair.0 as i32) as i16
+    };
+
+    let mut map_iter = new_mappings.into_iter();
+    let mut first = map_iter.next().ok_or(InvalidData)?;
+    let mut cur_start = first.0;
+    let mut cur_delta = delta(first);
+    let mut cur_range = 0;
+
+    while let Some(next) = map_iter.next() {
+        if next.0 == cur_start + cur_range + 1 {
+            if delta(next) == cur_delta {
+                cur_range += 1;
+                continue;
+            }
+        }
+
+        segments.push((cur_start, cur_start + cur_range, cur_delta));
+        cur_start = next.0;
+        cur_delta = delta(next);
+        cur_range = 0;
+    }
+
+    segments.push((cur_start, cur_start + cur_range, cur_delta));
+    segments.push((0xFFFF, 0xFFFF, 1));
 
     Ok(())
 }

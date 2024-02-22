@@ -44,8 +44,7 @@ pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
     // Find composite glyph descriptions.
     while let Some(id) = work.pop().or_else(|| iter.next()) {
         if id < ctx.num_glyphs {
-            if ctx.subset_extended.insert(id) {
-                ctx.subset.insert(id);
+            if ctx.subset.insert(id) {
                 let mut r = Reader::new(table.glyph_data(id)?);
                 if let Ok(num_contours) = r.read::<i16>() {
                     // Negative means this is a composite glyph.
@@ -57,7 +56,6 @@ pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
                         r.read::<i16>()?;
 
                         let extended = component_glyphs(r).collect::<Vec<_>>();
-                        ctx.subset_extended.extend(&extended);
                         work.extend(extended);
                     }
                 }
@@ -67,7 +65,7 @@ pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
 
     // Compute combined size of all glyphs to select loca format.
     let mut size = 0;
-    for &id in &ctx.subset_extended {
+    for &id in &ctx.subset {
         let mut len = table.glyph_data(id)?.len();
         len += (len % 2 != 0) as usize;
         size += len;

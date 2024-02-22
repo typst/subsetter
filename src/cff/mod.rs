@@ -65,7 +65,7 @@ struct CidOffsets {
 ///
 /// TODO: What about seac?
 pub(crate) fn discover(ctx: &mut Context) {
-    ctx.subset_extended = ctx.profile.glyphs.iter().copied().collect();
+    ctx.subset = ctx.profile.glyphs.iter().copied().collect();
 }
 
 /// Subset the CFF table by removing glyph data for unused glyphs.
@@ -126,7 +126,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 /// Subset the glyph descriptions.
 fn subset_char_strings(ctx: &Context, strings: &mut Index<Opaque>) -> Result<()> {
     for glyph in 0..ctx.num_glyphs {
-        if !ctx.subset_extended.contains(&glyph) {
+        if !ctx.subset.contains(&glyph) {
             // The byte sequence [14] is the minimal valid charstring consisting
             // of just a single `endchar` operator.
             *strings.get_mut(glyph as usize).ok_or(Error::InvalidOffset)? = Opaque(&[14]);

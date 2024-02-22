@@ -106,7 +106,6 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
         face,
         num_glyphs,
         subset: HashSet::new(),
-        subset_extended: HashSet::new(),
         gid_map: HashMap::new(),
         reverse_gid_map: vec![],
         profile,
@@ -277,8 +276,6 @@ struct Context<'a> {
     /// The number of glyphs in the original face.
     num_glyphs: u16,
     subset: HashSet<u16>,
-    /// The kept glyphs.
-    subset_extended: HashSet<u16>,
     // A map from old gids to new gids
     gid_map: HashMap<u16, u16>,
     // A map from new gids to old gids. The index represents the
@@ -322,7 +319,7 @@ impl<'a> Context<'a> {
     }
 
     fn initialize_gid_map(&mut self) {
-        let mut original_gids = self.subset_extended.iter().collect::<Vec<_>>();
+        let mut original_gids = self.subset.iter().collect::<Vec<_>>();
         original_gids.sort();
 
         println!("{:?}", original_gids);
