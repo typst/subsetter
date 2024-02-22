@@ -264,8 +264,8 @@ struct Context<'a> {
     num_glyphs: u16,
     /// The kept glyphs.
     subset: HashSet<u16>,
-    /// A map from
-    gid_to_gid_map: HashMap<u16, u16>,
+    // A map from
+    // gid_to_gid_map: HashMap<u16, u16>,
     /// The subsetting profile.
     profile: Profile<'a>,
     /// The kind of face.

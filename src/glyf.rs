@@ -43,19 +43,21 @@ pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
 
     // Find composite glyph descriptions.
     while let Some(id) = work.pop().or_else(|| iter.next()) {
-        if ctx.subset.insert(id) {
-            let mut r = Reader::new(table.glyph_data(id)?);
-            if let Ok(num_contours) = r.read::<i16>() {
-                // Negative means this is a composite glyph.
-                if num_contours < 0 {
-                    // Skip min/max metrics.
-                    r.read::<i16>()?;
-                    r.read::<i16>()?;
-                    r.read::<i16>()?;
-                    r.read::<i16>()?;
+        if id < ctx.num_glyphs {
+            if ctx.subset.insert(id) {
+                let mut r = Reader::new(table.glyph_data(id)?);
+                if let Ok(num_contours) = r.read::<i16>() {
+                    // Negative means this is a composite glyph.
+                    if num_contours < 0 {
+                        // Skip min/max metrics.
+                        r.read::<i16>()?;
+                        r.read::<i16>()?;
+                        r.read::<i16>()?;
+                        r.read::<i16>()?;
 
-                    // Read component glyphs.
-                    work.extend(component_glyphs(r));
+                        // Read component glyphs.
+                        work.extend(component_glyphs(r));
+                    }
                 }
             }
         }
