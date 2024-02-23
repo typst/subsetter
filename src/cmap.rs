@@ -1,6 +1,5 @@
 use super::*;
 use crate::Error::InvalidOffset;
-use std::process::id;
 
 #[derive(Debug)]
 struct EncodingRecord {
@@ -166,7 +165,42 @@ impl<'a> Structure<'a> for Subtable4<'a> {
         })
     }
 
-    fn write(&self, w: &mut Writer) {}
+    fn write(&self, w: &mut Writer) {
+        w.write::<u16>(4);
+
+        let length = 2 * 8 + 2 * self.seg_count * 4;
+        w.write::<u16>(length);
+        w.write::<u16>(self.language);
+
+        let seg_count_x2 = 2 * self.seg_count;
+        let floor_log_2 = (u16::BITS - self.seg_count.leading_zeros()) - 1;
+        let search_range = 2 * 2u16.pow(floor_log_2);
+        let entry_selector = floor_log_2 as u16;
+        let range_shift = seg_count_x2 - search_range;
+
+        w.write::<u16>(seg_count_x2);
+        w.write::<u16>(search_range);
+        w.write::<u16>(entry_selector);
+        w.write::<u16>(range_shift);
+
+        for end_code in &self.end_codes {
+            w.write::<u16>(*end_code);
+        }
+
+        w.write::<u16>(0);
+
+        for start_code in &self.start_codes {
+            w.write::<u16>(*start_code);
+        }
+
+        for id_delta in &self.id_deltas {
+            w.write::<i16>(*id_delta);
+        }
+
+        for id_range_offset in &self.id_range_offsets {
+            w.write::<u16>(*id_range_offset);
+        }
+    }
 }
 
 // This function is heavily inspired by how fonttools does the subsetting of that
@@ -181,14 +215,22 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
     for _ in 0..num_tables {
         let record = reader.read::<EncodingRecord>()?;
-        let subtable_data =
-            cmap.get((record.subtable_offset as usize)..).ok_or(InvalidOffset)?;
-        match u16::read_at(subtable_data, 0) {
-            Ok(4) => {
-                subsetted_subtables.push((record, subset_subtable4(ctx, subtable_data)?));
+        if record.is_unicode() {
+            let subtable_data =
+                cmap.get((record.subtable_offset as usize)..).ok_or(InvalidOffset)?;
+            match u16::read_at(subtable_data, 0) {
+                Ok(4) => {
+                    subsetted_subtables
+                        .push((record, subset_subtable4(ctx, subtable_data)?));
+                }
+                _ => {}
             }
-            _ => {}
         }
+    }
+
+    if subsetted_subtables.len() == 0 {
+        // The font only contains non-Unicode subtables.
+        return Err(Error::Unimplemented);
     }
 
     let mut sub_cmap = Writer::new();
@@ -240,7 +282,7 @@ fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<Vec<u8>> {
     let delta = |pair: (u16, u16)| (pair.1 as i32 - pair.0 as i32) as i16;
 
     let mut map_iter = new_mappings.into_iter();
-    let mut first = map_iter.next().ok_or(InvalidData)?;
+    let first = map_iter.next().ok_or(InvalidData)?;
     let mut cur_start = first.0;
     let mut cur_delta = delta(first);
     let mut cur_range = 0;
@@ -285,69 +327,7 @@ fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<Vec<u8>> {
     };
 
     let mut w = Writer::new();
-    w.write::<u16>(4);
-
-    let length = 2 * 8 + 2 * seg_count * 4;
-    w.write::<u16>(length);
-    w.write::<u16>(subtable.language);
-
-    let seg_count_x2 = 2 * seg_count;
-    let floor_log_2 = (u16::BITS - seg_count.leading_zeros()) - 1;
-    let search_range = 2 * 2u16.pow(floor_log_2);
-    let entry_selector = floor_log_2 as u16;
-    let range_shift = seg_count_x2 - search_range;
-
-    w.write::<u16>(seg_count_x2);
-    w.write::<u16>(search_range);
-    w.write::<u16>(entry_selector);
-    w.write::<u16>(range_shift);
-
-    for end_code in new_subtable.end_codes {
-        w.write::<u16>(end_code);
-    }
-
-    w.write::<u16>(0);
-
-    for start_code in new_subtable.start_codes {
-        w.write::<u16>(start_code);
-    }
-
-    for id_delta in new_subtable.id_deltas {
-        w.write::<i16>(id_delta);
-    }
-
-    for id_range_offset in new_subtable.id_range_offsets {
-        w.write::<u16>(id_range_offset);
-    }
+    w.write::<Subtable4>(new_subtable);
 
     Ok(w.finish())
 }
-
-// fn subset_subtable4(
-//     ctx: &mut Context,
-//     writer: &mut Writer,
-//     subtable: &Subtable4,
-// ) -> Result<Vec<u8>> {
-//     let mut writer = Writer::new();
-//     let mut all_codepoints = vec![];
-//     subtable.codepoints(|c| all_codepoints.push(c));
-//
-//     let new_mappings = all_codepoints
-//         .into_iter()
-//         .filter_map(|c| {
-//             if let Some(g) = subtable.glyph_index(c) {
-//                 if ctx.subset.contains(&g.0) {
-//                     if let Some(new_g) = ctx.gid_map.get(&g.0) {
-//                         return Some((c, new_g));
-//                     }
-//                 }
-//             }
-//
-//             return None;
-//         })
-//         .collect::<Vec<_>>();
-//
-//     println!("{:?}", new_mappings);
-//
-//     Ok(vec![])
-// }

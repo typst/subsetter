@@ -12,7 +12,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         r.read::<u16>()?
     };
 
-    let mut hmtx = ctx.expect_table(Tag::HMTX)?;
+    let hmtx = ctx.expect_table(Tag::HMTX)?;
     let mut sub_htmx = Writer::new();
 
     for i in 0..ctx.subset.len() {
