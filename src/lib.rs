@@ -42,6 +42,7 @@ mod cff;
 mod cmap;
 mod glyf;
 mod head;
+mod hhea;
 mod hmtx;
 mod maxp;
 mod post;
@@ -310,6 +311,7 @@ impl<'a> Context<'a> {
             Tag::LOCA => panic!("handled by glyf"),
             Tag::CFF => cff::subset(self)?,
             Tag::HEAD => head::subset(self)?,
+            Tag::HHEA => hhea::subset(self)?,
             Tag::HMTX => hmtx::subset(self)?,
             Tag::POST => post::subset(self)?,
             Tag::CMAP => cmap::subset(self)?,
@@ -514,6 +516,9 @@ pub enum Error {
     /// depends on another table and that one is missing, e.g., `glyf` is
     /// present but `loca` is missing.
     MissingTable(Tag),
+    /// The font relies on some unimplemented feature, and thus we cannot guarantee
+    /// that the subsetted font would be correct.
+    Unimplemented,
 }
 
 impl Display for Error {
@@ -524,6 +529,7 @@ impl Display for Error {
             Self::MissingData => f.pad("missing more data"),
             Self::InvalidData => f.pad("invalid data"),
             Self::MissingTable(tag) => write!(f, "missing {tag} table"),
+            Self::Unimplemented => f.pad("unimplemented feature in font"),
         }
     }
 }

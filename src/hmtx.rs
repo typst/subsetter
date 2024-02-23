@@ -12,24 +12,24 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         r.read::<u16>()?
     };
 
-    let mut hmtx = ctx.expect_table(Tag::HMTX)?.to_vec();
+    let mut hmtx = ctx.expect_table(Tag::HMTX)?;
+    let mut sub_htmx = Writer::new();
 
-    let mut offset = 0;
-    for i in 0..num_h_metrics {
-        if !ctx.subset.contains(&i) {
-            hmtx.get_mut(offset..offset + 4).ok_or(Error::MissingData)?.fill(0);
+    for i in 0..ctx.subset.len() {
+        let original_gid = ctx.reverse_gid_map[i];
+
+        if original_gid < num_h_metrics {
+            let mut r = Reader::new(&hmtx[(original_gid as usize * 4)..]);
+            let advance_width = r.read::<u16>()?;
+            let lsb = r.read::<u16>()?;
+            sub_htmx.write::<u16>(advance_width);
+            sub_htmx.write::<u16>(lsb);
+        } else {
+            return Err(Error::Unimplemented);
         }
-        offset += 4;
     }
 
-    for i in num_h_metrics..ctx.num_glyphs {
-        if !ctx.subset.contains(&i) {
-            hmtx.get_mut(offset..offset + 2).ok_or(Error::MissingData)?.fill(0);
-        }
-        offset += 2;
-    }
-
-    ctx.push(Tag::HMTX, hmtx);
+    ctx.push(Tag::HMTX, sub_htmx.finish());
 
     Ok(())
 }
