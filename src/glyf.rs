@@ -133,6 +133,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     };
 
     for old_gid in &ctx.reverse_gid_map {
+        write_offset(sub_glyf.len());
         let data = table.glyph_data(*old_gid)?;
         // TODO: Deal with composite glyphs
         sub_glyf.give(data);
