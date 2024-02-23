@@ -10,7 +10,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     sub_maxp.write::<u32>(version);
     sub_maxp.write::<u16>(ctx.subset.len() as u16);
 
-    if version == 0x00002000 {
+    if version == 0x00010000 {
         sub_maxp.give(r.data());
     }
 
