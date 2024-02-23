@@ -1,4 +1,5 @@
 use super::*;
+use std::io::Read;
 
 /// A glyf + loca table.
 struct Table<'a> {
@@ -46,6 +47,7 @@ pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
         if id < ctx.num_glyphs {
             if ctx.subset.insert(id) {
                 let mut r = Reader::new(table.glyph_data(id)?);
+                let data = table.glyph_data(id)?;
                 if let Ok(num_contours) = r.read::<i16>() {
                     // Negative means this is a composite glyph.
                     if num_contours < 0 {
@@ -135,8 +137,12 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     for old_gid in &ctx.reverse_gid_map {
         write_offset(sub_glyf.len());
         let data = table.glyph_data(*old_gid)?;
-        // TODO: Deal with composite glyphs
-        sub_glyf.give(data);
+        if i16::read_at(data, 0)? < 0 {
+            sub_glyf.give(&remap_component_glyphs(ctx, data)?);
+        } else {
+            sub_glyf.give(data);
+        }
+
         if !ctx.long_loca {
             sub_glyf.align(2);
         }
@@ -148,4 +154,60 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     ctx.push(Tag::GLYF, sub_glyf.finish());
 
     Ok(())
+}
+
+fn remap_component_glyphs(ctx: &Context, data: &[u8]) -> Result<Vec<u8>> {
+    let mut r = Reader::new(data);
+    let mut w = Writer::new();
+
+    // num_contours
+    w.write(r.read::<i16>()?);
+
+    //x,y min/max
+    w.write(r.read::<i16>()?);
+    w.write(r.read::<i16>()?);
+    w.write(r.read::<i16>()?);
+    w.write(r.read::<i16>()?);
+
+    const ARG_1_AND_2_ARE_WORDS: u16 = 0x0001;
+    const WE_HAVE_A_SCALE: u16 = 0x0008;
+    const MORE_COMPONENTS: u16 = 0x0020;
+    const WE_HAVE_AN_X_AND_Y_SCALE: u16 = 0x0040;
+    const WE_HAVE_A_TWO_BY_TWO: u16 = 0x0080;
+
+    let mut done = false;
+    loop {
+        let flags = r.read::<u16>()?;
+        w.write(flags);
+        let component = r.read::<u16>()?;
+        let new_component = *ctx.gid_map.get(&component).ok_or(Error::InvalidData)?;
+        w.write(new_component);
+
+        if flags & ARG_1_AND_2_ARE_WORDS != 0 {
+            w.write(r.read::<i16>()?);
+            w.write(r.read::<i16>()?);
+        } else {
+            w.write(r.read::<u16>()?);
+        }
+
+        if flags & WE_HAVE_A_SCALE != 0 {
+            w.write(r.read::<F2Dot14>()?);
+        } else if flags & WE_HAVE_AN_X_AND_Y_SCALE != 0 {
+            w.write(r.read::<F2Dot14>()?);
+            w.write(r.read::<F2Dot14>()?);
+        } else if flags & WE_HAVE_A_TWO_BY_TWO != 0 {
+            w.write(r.read::<F2Dot14>()?);
+            w.write(r.read::<F2Dot14>()?);
+            w.write(r.read::<F2Dot14>()?);
+            w.write(r.read::<F2Dot14>()?);
+        }
+
+        done = flags & MORE_COMPONENTS == 0;
+
+        if done {
+            break;
+        }
+    }
+
+    Ok(w.finish())
 }

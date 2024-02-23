@@ -8,7 +8,7 @@ fn main() {
 
     // Keep only three glyphs and the OpenType tables
     // required for embedding the font in a PDF file.
-    let glyphs = &[38, 39, 40];
+    let glyphs = &[131];
     let profile = Profile::pdf(glyphs);
     let sub = subset(&data, 0, profile).unwrap();
 
