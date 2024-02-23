@@ -1,5 +1,6 @@
 use super::*;
-use crate::Error::{InvalidOffset, MissingTable};
+use crate::Error::InvalidOffset;
+use std::process::id;
 
 #[derive(Debug)]
 struct EncodingRecord {
@@ -39,7 +40,7 @@ struct Subtable4<'a> {
     start_codes: Vec<u16>,
     id_deltas: Vec<i16>,
     id_range_offsets: Vec<u16>,
-    glyph_id_array: &'a [u8],
+    glyph_id_array: Cow<'a, [u8]>,
 }
 
 impl Subtable4<'_> {
@@ -79,7 +80,8 @@ impl Subtable4<'_> {
                     let pos = pos.wrapping_add(id_range_offset);
 
                     let glyph_array_value: u16 =
-                        u16::read_at(self.glyph_id_array, usize::from(pos)).ok()?;
+                        u16::read_at(self.glyph_id_array.as_ref(), usize::from(pos))
+                            .ok()?;
 
                     // 0 indicates missing glyph.
                     if glyph_array_value == 0 {
@@ -114,7 +116,6 @@ impl Subtable4<'_> {
 
 impl<'a> Structure<'a> for Subtable4<'a> {
     fn read(r: &mut Reader<'a>) -> Result<Self> {
-        let data = r.data();
         r.skip(4)?; // format + length
         let language = r.read::<u16>()?;
         let seg_count_x2 = r.read::<u16>()?;
@@ -147,17 +148,12 @@ impl<'a> Structure<'a> for Subtable4<'a> {
             id_deltas.push(r.read::<i16>()?);
         }
 
-        let glyph_id_array = r.data();
+        let glyph_id_array = Cow::Borrowed(r.data());
         let mut id_range_offsets = vec![];
 
         for _ in 0..seg_count {
             id_range_offsets.push(r.read::<u16>()?);
         }
-
-        println!("{:?}", start_codes);
-        println!("{:?}", end_codes);
-        println!("{:?}", id_deltas);
-        println!("{:?}", id_range_offsets);
 
         Ok(Subtable4 {
             language,
@@ -179,25 +175,45 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let cmap = ctx.expect_table(Tag::CMAP)?;
     let mut reader = Reader::new(cmap);
 
-    let version = reader.read::<u16>()?;
+    reader.read::<u16>()?; // version
     let num_tables = reader.read::<u16>()?;
+    let mut subsetted_subtables = vec![];
 
     for _ in 0..num_tables {
         let record = reader.read::<EncodingRecord>()?;
         let subtable_data =
             cmap.get((record.subtable_offset as usize)..).ok_or(InvalidOffset)?;
         match u16::read_at(subtable_data, 0) {
-            Ok(4) => subset_subtable4(ctx, subtable_data)?,
+            Ok(4) => {
+                subsetted_subtables.push((record, subset_subtable4(ctx, subtable_data)?));
+            }
             _ => {}
         }
-
-        return Ok(());
     }
 
+    let mut sub_cmap = Writer::new();
+    let mut subtables = Writer::new();
+    let num_tables = subsetted_subtables.len() as u16;
+
+    let mut subtable_offset = (2 * 2 + num_tables * 8) as u32;
+
+    sub_cmap.write::<u16>(0);
+    sub_cmap.write::<u16>(num_tables);
+
+    for (mut record, data) in subsetted_subtables {
+        record.subtable_offset = subtable_offset;
+        sub_cmap.write::<EncodingRecord>(record);
+        subtables.give(&data);
+        subtable_offset += data.len() as u32;
+    }
+
+    sub_cmap.give(&subtables.finish());
+
+    ctx.push(Tag::CMAP, sub_cmap.finish());
     Ok(())
 }
 
-fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<()> {
+fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<Vec<u8>> {
     let subtable = Subtable4::read_at(data, 0)?;
     let mut all_codepoints = vec![];
     subtable.codepoints(|c| all_codepoints.push(c as u16));
@@ -221,9 +237,7 @@ fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<()> {
 
     let mut segments = vec![];
 
-    let delta = |pair: (u16, u16)| {
-        (pair.1 as i32 - pair.0 as i32) as i16
-    };
+    let delta = |pair: (u16, u16)| (pair.1 as i32 - pair.0 as i32) as i16;
 
     let mut map_iter = new_mappings.into_iter();
     let mut first = map_iter.next().ok_or(InvalidData)?;
@@ -248,7 +262,65 @@ fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<()> {
     segments.push((cur_start, cur_start + cur_range, cur_delta));
     segments.push((0xFFFF, 0xFFFF, 1));
 
-    Ok(())
+    let language = subtable.language;
+    let seg_count = segments.len() as u16;
+    let end_codes = segments.iter().map(|e| e.1).collect::<Vec<_>>();
+    let start_codes = segments.iter().map(|e| e.0).collect::<Vec<_>>();
+    let id_deltas = segments.iter().map(|e| e.2).collect::<Vec<_>>();
+    let id_range_offsets = [0u16]
+        .into_iter()
+        .cycle()
+        .take(seg_count as usize)
+        .collect::<Vec<_>>();
+    let glyph_id_array = Cow::Owned(vec![]);
+
+    let new_subtable = Subtable4 {
+        language,
+        seg_count,
+        end_codes,
+        start_codes,
+        id_deltas,
+        id_range_offsets,
+        glyph_id_array,
+    };
+
+    let mut w = Writer::new();
+    w.write::<u16>(4);
+
+    let length = 2 * 8 + 2 * seg_count * 4;
+    w.write::<u16>(length);
+    w.write::<u16>(subtable.language);
+
+    let seg_count_x2 = 2 * seg_count;
+    let floor_log_2 = (u16::BITS - seg_count.leading_zeros()) - 1;
+    let search_range = 2 * 2u16.pow(floor_log_2);
+    let entry_selector = floor_log_2 as u16;
+    let range_shift = seg_count_x2 - search_range;
+
+    w.write::<u16>(seg_count_x2);
+    w.write::<u16>(search_range);
+    w.write::<u16>(entry_selector);
+    w.write::<u16>(range_shift);
+
+    for end_code in new_subtable.end_codes {
+        w.write::<u16>(end_code);
+    }
+
+    w.write::<u16>(0);
+
+    for start_code in new_subtable.start_codes {
+        w.write::<u16>(start_code);
+    }
+
+    for id_delta in new_subtable.id_deltas {
+        w.write::<i16>(id_delta);
+    }
+
+    for id_range_offset in new_subtable.id_range_offsets {
+        w.write::<u16>(id_range_offset);
+    }
+
+    Ok(w.finish())
 }
 
 // fn subset_subtable4(
