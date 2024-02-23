@@ -29,6 +29,8 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         strings.push(r.take(len as usize)?);
     }
 
+    let num_glyphs = ctx.subset.len() as u16;
+
     // Start writing a new subsetted post table.
     let mut sub_post = Writer::new();
     sub_post.write::<u32>(0x00020000);
@@ -37,11 +39,9 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
     let mut sub_strings = Writer::new();
     let mut count = 0;
-    for (i, mut index) in indices.into_iter().enumerate() {
-        // Rewrite unused glyphs to .notdef.
-        if !ctx.subset.contains(&(i as u16)) {
-            index = 0;
-        }
+    for i in 0..num_glyphs {
+        let old_gid = ctx.reverse_gid_map[i as usize];
+        let index = indices[old_gid as usize];
 
         if index <= 257 {
             sub_post.write::<u16>(index);

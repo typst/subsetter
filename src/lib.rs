@@ -43,6 +43,7 @@ mod cmap;
 mod glyf;
 mod head;
 mod hmtx;
+mod maxp;
 mod post;
 mod stream;
 
@@ -312,6 +313,7 @@ impl<'a> Context<'a> {
             Tag::HMTX => hmtx::subset(self)?,
             Tag::POST => post::subset(self)?,
             Tag::CMAP => cmap::subset(self)?,
+            Tag::MAXP => maxp::subset(self)?,
             _ => self.push(tag, data),
         }
 
