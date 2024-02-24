@@ -9,9 +9,9 @@ fn main() {
     // Keep only three glyphs and the OpenType tables
     // required for embedding the font in a PDF file.
     let mut glyphs = vec![];
-    glyphs.extend([5, 6, 9, 10]);
+    glyphs.extend(30..=132);
     let profile = Profile::pdf(&glyphs);
-    let sub = subset(&data, 0, profile).unwrap();
+    let (sub, gid_map) = subset(&data, 0, profile).unwrap();
 
     // Write the resulting file.
     std::fs::write(&args[2], sub).unwrap();

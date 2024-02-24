@@ -46,11 +46,11 @@ pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
         work.pop().or_else(|| iter.next().map(|g| (g, true)))
     {
         if id < ctx.num_glyphs {
-            if ctx.subset.insert(id) {
-                if direct_glyph {
-                    ctx.direct_glyphs.insert(id);
-                }
+            if direct_glyph {
+                ctx.direct_glyphs.insert(id);
+            }
 
+            if ctx.subset.insert(id) {
                 let mut r = Reader::new(table.glyph_data(id)?);
                 if let Ok(num_contours) = r.read::<i16>() {
                     // Negative means this is a composite glyph.

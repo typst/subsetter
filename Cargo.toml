@@ -10,3 +10,6 @@ license = "MIT OR Apache-2.0"
 categories = ["compression", "encoding"]
 keywords = ["subsetting", "OpenType", "PDF"]
 exclude = ["fonts/*"]
+
+[dev-dependencies]
+ttf-parser = "0.20.0"
