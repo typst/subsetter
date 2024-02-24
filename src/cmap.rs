@@ -264,7 +264,7 @@ fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<Vec<u8>> {
         .into_iter()
         .filter_map(|c| {
             if let Some(g) = subtable.glyph_index(c as u32) {
-                if ctx.subset.contains(&g) {
+                if ctx.subset.contains(&g) && ctx.direct_glyphs.contains(&g) {
                     if let Some(new_g) = ctx.gid_map.get(&g) {
                         return Some((c, *new_g));
                     }

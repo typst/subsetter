@@ -1,5 +1,4 @@
 use super::*;
-use std::io::Read;
 
 /// A glyf + loca table.
 struct Table<'a> {
@@ -40,14 +39,19 @@ pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
     // multiple layers of nesting), we have to process all glyphs to find
     // their components.
     let mut iter = ctx.profile.glyphs.iter().copied();
-    let mut work = vec![0];
+    let mut work = vec![(0, true)];
 
     // Find composite glyph descriptions.
-    while let Some(id) = work.pop().or_else(|| iter.next()) {
+    while let Some((id, direct_glyph)) =
+        work.pop().or_else(|| iter.next().map(|g| (g, true)))
+    {
         if id < ctx.num_glyphs {
             if ctx.subset.insert(id) {
+                if direct_glyph {
+                    ctx.direct_glyphs.insert(id);
+                }
+
                 let mut r = Reader::new(table.glyph_data(id)?);
-                let data = table.glyph_data(id)?;
                 if let Ok(num_contours) = r.read::<i16>() {
                     // Negative means this is a composite glyph.
                     if num_contours < 0 {
@@ -57,7 +61,8 @@ pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
                         r.read::<i16>()?;
                         r.read::<i16>()?;
 
-                        let extended = component_glyphs(r).collect::<Vec<_>>();
+                        let extended =
+                            component_glyphs(r).map(|g| (g, false)).collect::<Vec<_>>();
                         work.extend(extended);
                     }
                 }
@@ -181,7 +186,8 @@ fn remap_component_glyphs(ctx: &Context, data: &[u8]) -> Result<Vec<u8>> {
     const WE_HAVE_AN_X_AND_Y_SCALE: u16 = 0x0040;
     const WE_HAVE_A_TWO_BY_TWO: u16 = 0x0080;
 
-    let mut done = false;
+    let mut done;
+
     loop {
         let flags = r.read::<u16>()?;
         w.write(flags);

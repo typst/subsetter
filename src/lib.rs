@@ -108,6 +108,7 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
         face,
         num_glyphs,
         subset: HashSet::new(),
+        direct_glyphs: HashSet::new(),
         gid_map: HashMap::new(),
         reverse_gid_map: vec![],
         profile,
@@ -279,6 +280,7 @@ struct Context<'a> {
     num_glyphs: u16,
     subset: HashSet<u16>,
     // A map from old gids to new gids
+    direct_glyphs: HashSet<u16>,
     gid_map: HashMap<u16, u16>,
     // A map from new gids to old gids. The index represents the
     // new gid, and the value at that index the old gid.
