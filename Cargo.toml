@@ -10,6 +10,3 @@ license = "MIT OR Apache-2.0"
 categories = ["compression", "encoding"]
 keywords = ["subsetting", "OpenType", "PDF"]
 exclude = ["fonts/*"]
-
-[dependencies]
-ttf-parser = {path = "../ttf-parser"}

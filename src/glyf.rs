@@ -137,6 +137,12 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     for old_gid in &ctx.reverse_gid_map {
         write_offset(sub_glyf.len());
         let data = table.glyph_data(*old_gid)?;
+
+        // Not contours
+        if data.len() == 0 {
+            continue;
+        }
+
         if i16::read_at(data, 0)? < 0 {
             sub_glyf.give(&remap_component_glyphs(ctx, data)?);
         } else {
