@@ -228,7 +228,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         }
     }
 
-    if subsetted_subtables.len() == 0 {
+    if subsetted_subtables.len() == 0 && num_tables != 0 {
         // The font only contains non-Unicode subtables.
         return Err(Error::Unimplemented);
     }

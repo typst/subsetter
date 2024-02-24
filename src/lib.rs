@@ -45,6 +45,7 @@ mod head;
 mod hhea;
 mod hmtx;
 mod maxp;
+mod name;
 mod post;
 mod stream;
 
@@ -318,6 +319,7 @@ impl<'a> Context<'a> {
             Tag::POST => post::subset(self)?,
             Tag::CMAP => cmap::subset(self)?,
             Tag::MAXP => maxp::subset(self)?,
+            Tag::NAME => name::subset(self)?,
             _ => self.push(tag, data),
         }
 
@@ -327,8 +329,6 @@ impl<'a> Context<'a> {
     fn initialize_gid_map(&mut self) {
         let mut original_gids = self.subset.iter().collect::<Vec<_>>();
         original_gids.sort();
-
-        println!("{:?}", original_gids);
 
         let mut counter = 0;
         for gid in original_gids {

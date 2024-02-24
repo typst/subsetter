@@ -30,7 +30,6 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     }
 
     let num_glyphs = ctx.subset.len() as u16;
-    println!("{:?}", num_glyphs);
 
     // Start writing a new subsetted post table.
     let mut sub_post = Writer::new();
