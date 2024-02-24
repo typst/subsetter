@@ -9,7 +9,7 @@ fn main() {
     // Keep only three glyphs and the OpenType tables
     // required for embedding the font in a PDF file.
     let mut glyphs = vec![];
-    glyphs.extend(30..=132);
+    glyphs.extend([0]);
     let profile = Profile::pdf(&glyphs);
     let (sub, gid_map) = subset(&data, 0, profile).unwrap();
 

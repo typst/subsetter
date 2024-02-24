@@ -260,25 +260,12 @@ fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<Vec<u8>> {
     let mut all_codepoints = vec![];
     subtable.codepoints(|c| all_codepoints.push(c as u16));
 
-    println!("Zero {:?}", all_codepoints.contains(&305));
-
     let mut new_mappings = all_codepoints
         .into_iter()
         .filter_map(|c| {
-            if c == 305 {
-                println!("First: {:?}", subtable.glyph_index(305));
-            }
-
             if let Some(g) = subtable.glyph_index(c as u32) {
-                if c == 305 {
-                    println!("Second: {:?}", ctx.subset.contains(&g));
-                    println!("Third: {:?}", ctx.direct_glyphs.contains(&g));
-                }
                 if ctx.subset.contains(&g) && ctx.direct_glyphs.contains(&g) {
                     if let Some(new_g) = ctx.gid_map.get(&g) {
-                        if c < 500 {
-                            println!("{:?}", c);
-                        }
                         return Some((c, *new_g));
                     }
                 }
@@ -295,26 +282,29 @@ fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<Vec<u8>> {
     let delta = |pair: (u16, u16)| (pair.1 as i32 - pair.0 as i32) as i16;
 
     let mut map_iter = new_mappings.into_iter();
-    let first = map_iter.next().ok_or(InvalidData)?;
-    let mut cur_start = first.0;
-    let mut cur_delta = delta(first);
-    let mut cur_range = 0;
 
-    while let Some(next) = map_iter.next() {
-        if next.0 == cur_start + cur_range + 1 {
-            if delta(next) == cur_delta {
-                cur_range += 1;
-                continue;
+    if let Some(first) = map_iter.next() {
+        let mut cur_start = first.0;
+        let mut cur_delta = delta(first);
+        let mut cur_range = 0;
+
+        while let Some(next) = map_iter.next() {
+            if next.0 == cur_start + cur_range + 1 {
+                if delta(next) == cur_delta {
+                    cur_range += 1;
+                    continue;
+                }
             }
+
+            segments.push((cur_start, cur_start + cur_range, cur_delta));
+            cur_start = next.0;
+            cur_delta = delta(next);
+            cur_range = 0;
         }
 
         segments.push((cur_start, cur_start + cur_range, cur_delta));
-        cur_start = next.0;
-        cur_delta = delta(next);
-        cur_range = 0;
     }
 
-    segments.push((cur_start, cur_start + cur_range, cur_delta));
     segments.push((0xFFFF, 0xFFFF, 1));
 
     let language = subtable.language;
@@ -328,10 +318,6 @@ fn subset_subtable4(ctx: &Context, data: &[u8]) -> Result<Vec<u8>> {
         .take(seg_count as usize)
         .collect::<Vec<_>>();
     let glyph_id_array = Cow::Owned(vec![]);
-
-    println!("{:?}", start_codes[0..12].iter().collect::<Vec<_>>());
-    println!("{:?}", end_codes[0..12].iter().collect::<Vec<_>>());
-    println!("{:?}", id_deltas[0..12].iter().collect::<Vec<_>>());
 
     let new_subtable = Subtable4 {
         language,
