@@ -4,6 +4,30 @@
 
 use crate::{cmap, face_metrics, glyph_metrics, glyph_outlines};
 
+#[test] fn clicker_script_regular_0_cmap() {cmap("ClickerScript-Regular.ttf", "*")}
+#[test] fn clicker_script_regular_0_face_metrics() {face_metrics("ClickerScript-Regular.ttf", "*")}
+#[test] fn clicker_script_regular_0_glyph_metrics() {glyph_metrics("ClickerScript-Regular.ttf", "*")}
+#[test] fn clicker_script_regular_0_glyph_outlines() {glyph_outlines("ClickerScript-Regular.ttf", "*")}
+#[test] fn clicker_script_regular_1_cmap() {cmap("ClickerScript-Regular.ttf", "0")}
+#[test] fn clicker_script_regular_1_face_metrics() {face_metrics("ClickerScript-Regular.ttf", "0")}
+#[test] fn clicker_script_regular_1_glyph_metrics() {glyph_metrics("ClickerScript-Regular.ttf", "0")}
+#[test] fn clicker_script_regular_1_glyph_outlines() {glyph_outlines("ClickerScript-Regular.ttf", "0")}
+#[test] fn clicker_script_regular_2_cmap() {cmap("ClickerScript-Regular.ttf", "2")}
+#[test] fn clicker_script_regular_2_face_metrics() {face_metrics("ClickerScript-Regular.ttf", "2")}
+#[test] fn clicker_script_regular_2_glyph_metrics() {glyph_metrics("ClickerScript-Regular.ttf", "2")}
+#[test] fn clicker_script_regular_2_glyph_outlines() {glyph_outlines("ClickerScript-Regular.ttf", "2")}
+#[test] fn clicker_script_regular_3_cmap() {cmap("ClickerScript-Regular.ttf", "5,8,10")}
+#[test] fn clicker_script_regular_3_face_metrics() {face_metrics("ClickerScript-Regular.ttf", "5,8,10")}
+#[test] fn clicker_script_regular_3_glyph_metrics() {glyph_metrics("ClickerScript-Regular.ttf", "5,8,10")}
+#[test] fn clicker_script_regular_3_glyph_outlines() {glyph_outlines("ClickerScript-Regular.ttf", "5,8,10")}
+#[test] fn clicker_script_regular_4_cmap() {cmap("ClickerScript-Regular.ttf", "0-20,33,35,36,41-47")}
+#[test] fn clicker_script_regular_4_face_metrics() {face_metrics("ClickerScript-Regular.ttf", "0-20,33,35,36,41-47")}
+#[test] fn clicker_script_regular_4_glyph_metrics() {glyph_metrics("ClickerScript-Regular.ttf", "0-20,33,35,36,41-47")}
+#[test] fn clicker_script_regular_4_glyph_outlines() {glyph_outlines("ClickerScript-Regular.ttf", "0-20,33,35,36,41-47")}
+#[test] fn clicker_script_regular_5_cmap() {cmap("ClickerScript-Regular.ttf", "100-200,202,301,304")}
+#[test] fn clicker_script_regular_5_face_metrics() {face_metrics("ClickerScript-Regular.ttf", "100-200,202,301,304")}
+#[test] fn clicker_script_regular_5_glyph_metrics() {glyph_metrics("ClickerScript-Regular.ttf", "100-200,202,301,304")}
+#[test] fn clicker_script_regular_5_glyph_outlines() {glyph_outlines("ClickerScript-Regular.ttf", "100-200,202,301,304")}
 #[test] fn noto_sans_regular_0_cmap() {cmap("NotoSans-Regular.ttf", "*")}
 #[test] fn noto_sans_regular_0_face_metrics() {face_metrics("NotoSans-Regular.ttf", "*")}
 #[test] fn noto_sans_regular_0_glyph_metrics() {glyph_metrics("NotoSans-Regular.ttf", "*")}
