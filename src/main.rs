@@ -13,7 +13,7 @@ fn main() {
     glyphs.push(132);
     glyphs.push(137);
     let profile = Profile::pdf(&glyphs);
-    let (sub, gid_map) = subset(&data, 0, profile).unwrap();
+    let (sub, _) = subset(&data, 0, profile).unwrap();
 
     // Write the resulting file.
     std::fs::write(&args[2], sub).unwrap();
