@@ -126,19 +126,19 @@ pub(crate) fn subset_subtable12(ctx: &Context, data: &[u8]) -> crate::Result<Vec
     if let Some(first) = map_iter.next() {
         let mut cur_start = first.0;
         let mut cur_gid = first.1;
-        let mut cur_range: u16 = 0;
+        let mut cur_range = 0;
 
         while let Some(next) = map_iter.next() {
-            if next.0 == cur_start + cur_range as u32 + 1 {
-                if next.1 == cur_gid + cur_range + 1 {
+            if next.0 == cur_start + cur_range + 1 {
+                if next.1 as u32 == cur_gid as u32 + cur_range + 1 {
                     cur_range += 1;
                     continue;
                 }
             }
 
             new_groups.push(SequentialMapGroupRecord {
-                start_char_code: cur_start as u32,
-                end_char_code: (cur_start + cur_range as u32 + 1) as u32,
+                start_char_code: cur_start,
+                end_char_code: cur_start + cur_range,
                 start_glyph_id: cur_gid as u32,
             });
 
@@ -148,8 +148,8 @@ pub(crate) fn subset_subtable12(ctx: &Context, data: &[u8]) -> crate::Result<Vec
         }
 
         new_groups.push(SequentialMapGroupRecord {
-            start_char_code: cur_start as u32,
-            end_char_code: (cur_start + cur_range as u32 + 1) as u32,
+            start_char_code: cur_start,
+            end_char_code: cur_start + cur_range,
             start_glyph_id: cur_gid as u32,
         });
     }
