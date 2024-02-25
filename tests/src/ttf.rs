@@ -28,6 +28,10 @@ use crate::{cmap, face_metrics, glyph_metrics, glyph_outlines};
 #[test] fn clicker_script_regular_5_face_metrics() {face_metrics("ClickerScript-Regular.ttf", "100-200,202,301,304")}
 #[test] fn clicker_script_regular_5_glyph_metrics() {glyph_metrics("ClickerScript-Regular.ttf", "100-200,202,301,304")}
 #[test] fn clicker_script_regular_5_glyph_outlines() {glyph_outlines("ClickerScript-Regular.ttf", "100-200,202,301,304")}
+#[test] fn clicker_script_regular_6_cmap() {cmap("ClickerScript-Regular.ttf", "10,100-105,108,130-145")}
+#[test] fn clicker_script_regular_6_face_metrics() {face_metrics("ClickerScript-Regular.ttf", "10,100-105,108,130-145")}
+#[test] fn clicker_script_regular_6_glyph_metrics() {glyph_metrics("ClickerScript-Regular.ttf", "10,100-105,108,130-145")}
+#[test] fn clicker_script_regular_6_glyph_outlines() {glyph_outlines("ClickerScript-Regular.ttf", "10,100-105,108,130-145")}
 #[test] fn noto_sans_regular_0_cmap() {cmap("NotoSans-Regular.ttf", "*")}
 #[test] fn noto_sans_regular_0_face_metrics() {face_metrics("NotoSans-Regular.ttf", "*")}
 #[test] fn noto_sans_regular_0_glyph_metrics() {glyph_metrics("NotoSans-Regular.ttf", "*")}
