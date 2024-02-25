@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::error::Error;
+use std::fs;
 use std::path::PathBuf;
+use sha2::{Digest, Sha256};
 use subsetter::{subset, Profile};
 use ttf_parser::GlyphId;
 
@@ -9,11 +11,28 @@ mod ttf;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
+const SAVE_SUBSETS: bool = true;
+
 struct TestContext {
     font: Vec<u8>,
     subset: Vec<u8>,
     gid_map: HashMap<u16, u16>,
     gids: Vec<u16>,
+}
+
+fn save_font(font: &[u8]) {
+    let mut font_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    font_path.push("tests");
+    font_path.push("subsets");
+    let _ = std::fs::create_dir_all(&font_path);
+
+    let mut hasher = Sha256::new();
+    hasher.update(font);
+    let hash = hex::encode(&hasher.finalize()[..]);
+
+    font_path.push(hash);
+    println!("{:?}", font_path);
+    fs::write(&font_path, font).unwrap();
 }
 
 fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
@@ -29,6 +48,10 @@ fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
         0,
         Profile::pdf(gids.iter().copied().collect::<Vec<_>>().as_ref()),
     )?;
+
+    if SAVE_SUBSETS {
+        save_font(&subset);
+    }
 
     Ok(TestContext { font: data, subset, gid_map, gids })
 }

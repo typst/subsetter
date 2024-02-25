@@ -16,12 +16,14 @@ def main():
     imports = ", ".join(functions)
     test_string += f"use crate::{{{imports}}};\n\n"
 
-
     for p in DATA_DIR.rglob("*.tests"):
         if p.is_file() and p.suffix == ".tests":
             with open(p) as file:
                 content = file.read().splitlines()
                 for i, line in enumerate(content):
+                    if line.startswith("//"):
+                        continue
+
                     for function in functions:
                         function_name = f"{p.stem}_{i}_{function}"
                         parts = line.split(";")
