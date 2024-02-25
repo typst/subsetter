@@ -2,7 +2,8 @@ use crate::cmap::subtable12::subset_subtable12;
 use crate::cmap::subtable4::subset_subtable4;
 use crate::stream::{Reader, Structure, Writer};
 use crate::Error::InvalidOffset;
-use crate::{Context, Error, Tag};
+use crate::Result;
+use crate::{Context, Tag};
 
 mod subtable12;
 mod subtable4;
@@ -37,53 +38,20 @@ impl Structure<'_> for EncodingRecord {
     }
 }
 
-// This function is heavily inspired by how fonttools does the subsetting of that
-// table.
-pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
-    let cmap = ctx.expect_table(Tag::CMAP)?;
-    let mut reader = Reader::new(cmap);
-
-    reader.read::<u16>()?; // version
-    let num_tables = reader.read::<u16>()?;
-    let mut subsetted_subtables = vec![];
-
-    for _ in 0..num_tables {
-        let record = reader.read::<EncodingRecord>()?;
-        if record.is_unicode() {
-            let subtable_data =
-                cmap.get((record.subtable_offset as usize)..).ok_or(InvalidOffset)?;
-            match u16::read_at(subtable_data, 0) {
-                Ok(4) => {
-                    subsetted_subtables
-                        .push((record, subset_subtable4(ctx, subtable_data)?));
-                }
-                // TODO: If an entry already exists in a 4 table we subsetted, we don't
-                // need to add it to the 12 one again.
-                Ok(12) => {
-                    subsetted_subtables
-                        .push((record, subset_subtable12(ctx, subtable_data)?));
-                }
-                // TODO: Implement subtable 14 and add tests for it.
-                _ => {}
-            }
-        }
-    }
-
-    if subsetted_subtables.len() == 0 && num_tables != 0 {
-        // The font only contains non-Unicode subtables.
-        return Err(Error::Unimplemented);
-    }
+pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
+    let new_subtables = subset_subtables(ctx)?;
+    let num_tables = new_subtables.len() as u16;
 
     let mut sub_cmap = Writer::new();
     let mut subtables = Writer::new();
-    let num_tables = subsetted_subtables.len() as u16;
 
-    let mut subtable_offset = (2 * 2 + num_tables * 8) as u32;
+    // 2 * (version + num_tables) + num_tables * (platform_id + encoding_id + subtable_offset)
+    let mut subtable_offset = 2 * 2 + num_tables as u32 * 8;
 
-    sub_cmap.write::<u16>(0);
-    sub_cmap.write::<u16>(num_tables);
+    sub_cmap.write::<u16>(0); // version
+    sub_cmap.write::<u16>(new_subtables.len() as u16);
 
-    for (mut record, data) in subsetted_subtables {
+    for (mut record, data) in new_subtables {
         record.subtable_offset = subtable_offset;
         sub_cmap.write::<EncodingRecord>(record);
         subtables.extend(&data);
@@ -94,4 +62,40 @@ pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
 
     ctx.push(Tag::CMAP, sub_cmap.finish());
     Ok(())
+}
+
+fn subset_subtables(
+    ctx: &mut Context,
+) -> Result<Vec<(EncodingRecord, Vec<u8>)>> {
+    let cmap = ctx.expect_table(Tag::CMAP)?;
+    let mut reader = Reader::new(cmap);
+
+    reader.read::<u16>()?; // version
+    let num_tables = reader.read::<u16>()?;
+    let mut new_subtables = vec![];
+
+    for _ in 0..num_tables {
+        let record = reader.read::<EncodingRecord>()?;
+        // We follow fonttools approach here, were by default we discard non-Unicode
+        // cmap records.
+        if record.is_unicode() {
+            let subtable_data =
+                cmap.get((record.subtable_offset as usize)..).ok_or(InvalidOffset)?;
+
+            match u16::read_at(subtable_data, 0) {
+                Ok(4) => {
+                    new_subtables.push((record, subset_subtable4(ctx, subtable_data)?));
+                }
+                // TODO: Optimization: if an entry already exists in a 4 table we subsetted, we don't
+                // need to add it to the 12 one again. It seems like fonttools does this.
+                Ok(12) => {
+                    new_subtables.push((record, subset_subtable12(ctx, subtable_data)?));
+                }
+                // TODO: Implement subtable 14 and add tests for it.
+                _ => {}
+            }
+        }
+    }
+
+    Ok(new_subtables)
 }
