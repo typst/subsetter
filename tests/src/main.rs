@@ -129,10 +129,6 @@ fn face_metrics(font_file: &str, gids: &str) {
     assert_eq!(old_face.typographic_ascender(), new_face.typographic_ascender());
     assert_eq!(old_face.typographic_descender(), new_face.typographic_descender());
     assert_eq!(old_face.typographic_line_gap(), new_face.typographic_line_gap());
-    assert_eq!(old_face.vertical_ascender(), new_face.vertical_ascender());
-    assert_eq!(old_face.vertical_descender(), new_face.vertical_descender());
-    assert_eq!(old_face.vertical_height(), new_face.vertical_height());
-    assert_eq!(old_face.vertical_line_gap(), new_face.vertical_line_gap());
     assert_eq!(old_face.units_per_em(), new_face.units_per_em());
 }
 
@@ -160,33 +156,14 @@ fn glyph_metrics(font_file: &str, gids: &str) {
         );
 
         assert_eq!(
-            old_face.glyph_ver_advance(GlyphId(glyph)),
-            new_face.glyph_ver_advance(GlyphId(mapped)),
-        );
-
-        assert_eq!(
-            old_face.glyph_y_origin(GlyphId(glyph)),
-            new_face.glyph_y_origin(GlyphId(mapped)),
-        );
-
-        assert_eq!(
             old_face.glyph_hor_side_bearing(GlyphId(glyph)),
             new_face.glyph_hor_side_bearing(GlyphId(mapped)),
         );
 
-        assert_eq!(
-            old_face.glyph_ver_side_bearing(GlyphId(glyph)),
-            new_face.glyph_ver_side_bearing(GlyphId(mapped)),
-        );
 
         assert_eq!(
             old_face.glyph_hor_advance(GlyphId(glyph)),
             new_face.glyph_hor_advance(GlyphId(mapped)),
-        );
-
-        assert_eq!(
-            old_face.glyph_ver_advance(GlyphId(glyph)),
-            new_face.glyph_ver_advance(GlyphId(mapped)),
         );
 
         assert_eq!(

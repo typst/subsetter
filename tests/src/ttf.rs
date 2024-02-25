@@ -4,6 +4,18 @@
 
 use crate::{cmap, face_metrics, glyph_metrics, glyph_outlines};
 
+#[test] fn mplus1p_regular_0_cmap() {cmap("MPLUS1P-Regular.ttf", "0,1")}
+#[test] fn mplus1p_regular_0_face_metrics() {face_metrics("MPLUS1P-Regular.ttf", "0,1")}
+#[test] fn mplus1p_regular_0_glyph_metrics() {glyph_metrics("MPLUS1P-Regular.ttf", "0,1")}
+#[test] fn mplus1p_regular_0_glyph_outlines() {glyph_outlines("MPLUS1P-Regular.ttf", "0,1")}
+#[test] fn mplus1p_regular_1_cmap() {cmap("MPLUS1P-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
+#[test] fn mplus1p_regular_1_face_metrics() {face_metrics("MPLUS1P-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
+#[test] fn mplus1p_regular_1_glyph_metrics() {glyph_metrics("MPLUS1P-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
+#[test] fn mplus1p_regular_1_glyph_outlines() {glyph_outlines("MPLUS1P-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
+#[test] fn mplus1p_regular_2_cmap() {cmap("MPLUS1P-Regular.ttf", "*")}
+#[test] fn mplus1p_regular_2_face_metrics() {face_metrics("MPLUS1P-Regular.ttf", "*")}
+#[test] fn mplus1p_regular_2_glyph_metrics() {glyph_metrics("MPLUS1P-Regular.ttf", "*")}
+#[test] fn mplus1p_regular_2_glyph_outlines() {glyph_outlines("MPLUS1P-Regular.ttf", "*")}
 #[test] fn clicker_script_regular_0_cmap() {cmap("ClickerScript-Regular.ttf", "*")}
 #[test] fn clicker_script_regular_0_face_metrics() {face_metrics("ClickerScript-Regular.ttf", "*")}
 #[test] fn clicker_script_regular_0_glyph_metrics() {glyph_metrics("ClickerScript-Regular.ttf", "*")}
@@ -92,6 +104,22 @@ use crate::{cmap, face_metrics, glyph_metrics, glyph_outlines};
 #[test] fn roboto_regular_3_face_metrics() {face_metrics("Roboto-Regular.ttf", "45-60,120-145,750-780,810,812,830,850,900,1467,2000,2314-2350")}
 #[test] fn roboto_regular_3_glyph_metrics() {glyph_metrics("Roboto-Regular.ttf", "45-60,120-145,750-780,810,812,830,850,900,1467,2000,2314-2350")}
 #[test] fn roboto_regular_3_glyph_outlines() {glyph_outlines("Roboto-Regular.ttf", "45-60,120-145,750-780,810,812,830,850,900,1467,2000,2314-2350")}
+#[test] fn roboto_regular_4_cmap() {cmap("Roboto-Regular.ttf", "1853")}
+#[test] fn roboto_regular_4_face_metrics() {face_metrics("Roboto-Regular.ttf", "1853")}
+#[test] fn roboto_regular_4_glyph_metrics() {glyph_metrics("Roboto-Regular.ttf", "1853")}
+#[test] fn roboto_regular_4_glyph_outlines() {glyph_outlines("Roboto-Regular.ttf", "1853")}
+#[test] fn roboto_regular_5_cmap() {cmap("Roboto-Regular.ttf", "1850-1855")}
+#[test] fn roboto_regular_5_face_metrics() {face_metrics("Roboto-Regular.ttf", "1850-1855")}
+#[test] fn roboto_regular_5_glyph_metrics() {glyph_metrics("Roboto-Regular.ttf", "1850-1855")}
+#[test] fn roboto_regular_5_glyph_outlines() {glyph_outlines("Roboto-Regular.ttf", "1850-1855")}
+#[test] fn roboto_regular_6_cmap() {cmap("Roboto-Regular.ttf", "1854-1855")}
+#[test] fn roboto_regular_6_face_metrics() {face_metrics("Roboto-Regular.ttf", "1854-1855")}
+#[test] fn roboto_regular_6_glyph_metrics() {glyph_metrics("Roboto-Regular.ttf", "1854-1855")}
+#[test] fn roboto_regular_6_glyph_outlines() {glyph_outlines("Roboto-Regular.ttf", "1854-1855")}
+#[test] fn roboto_regular_7_cmap() {cmap("Roboto-Regular.ttf", "1854-1900")}
+#[test] fn roboto_regular_7_face_metrics() {face_metrics("Roboto-Regular.ttf", "1854-1900")}
+#[test] fn roboto_regular_7_glyph_metrics() {glyph_metrics("Roboto-Regular.ttf", "1854-1900")}
+#[test] fn roboto_regular_7_glyph_outlines() {glyph_outlines("Roboto-Regular.ttf", "1854-1900")}
 #[test] fn dejavu_sans_mono_0_cmap() {cmap("DejaVuSansMono.ttf", "*")}
 #[test] fn dejavu_sans_mono_0_face_metrics() {face_metrics("DejaVuSansMono.ttf", "*")}
 #[test] fn dejavu_sans_mono_0_glyph_metrics() {glyph_metrics("DejaVuSansMono.ttf", "*")}

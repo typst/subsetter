@@ -11,5 +11,9 @@ Roboto Regular:
 Dejavu Sans Mono:
 - TTF mono font
 - number_of_hmetrics < num_glyphs
+Mplus1p:
+- TTF
+- Contains vmtx and vhea table -> should be dropped and shouldn't
+ affect result.
 
 TODO: Add font licenses!
