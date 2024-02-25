@@ -72,7 +72,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
     let mut pruned = prune_name_records(name_records);
 
-    if pruned.len() == 0 && count != 0 {
+    if pruned.is_empty() && count != 0 {
         // Only contains non-Unicode records, so we don't subset.
         ctx.push(Tag::NAME, name);
         return Ok(());

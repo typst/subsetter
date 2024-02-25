@@ -64,9 +64,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     Ok(())
 }
 
-fn subset_subtables(
-    ctx: &mut Context,
-) -> Result<Vec<(EncodingRecord, Vec<u8>)>> {
+fn subset_subtables(ctx: &mut Context) -> Result<Vec<(EncodingRecord, Vec<u8>)>> {
     let cmap = ctx.expect_table(Tag::CMAP)?;
     let mut reader = Reader::new(cmap);
 

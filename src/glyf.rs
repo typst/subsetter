@@ -144,7 +144,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         let data = table.glyph_data(*old_gid)?;
 
         // Not contours
-        if data.len() == 0 {
+        if data.is_empty() {
             continue;
         }
 

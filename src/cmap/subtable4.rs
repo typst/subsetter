@@ -165,7 +165,7 @@ pub(crate) fn subset_subtable4(ctx: &Context, data: &[u8]) -> crate::Result<Vec<
                 }
             }
 
-            return None;
+            None
         })
         .collect::<Vec<_>>();
 
@@ -181,12 +181,10 @@ pub(crate) fn subset_subtable4(ctx: &Context, data: &[u8]) -> crate::Result<Vec<
         let mut cur_delta = delta(first);
         let mut cur_range = 0;
 
-        while let Some(next) = map_iter.next() {
-            if next.0 == cur_start + cur_range + 1 {
-                if delta(next) == cur_delta {
-                    cur_range += 1;
-                    continue;
-                }
+        for next in map_iter {
+            if next.0 == cur_start + cur_range + 1 && delta(next) == cur_delta {
+                cur_range += 1;
+                continue;
             }
 
             segments.push((cur_start, cur_start + cur_range, cur_delta));

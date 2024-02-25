@@ -331,11 +331,9 @@ impl<'a> Context<'a> {
         let mut original_gids = self.subset.iter().collect::<Vec<_>>();
         original_gids.sort();
 
-        let mut counter = 0;
-        for gid in original_gids {
-            self.gid_map.insert(*gid, counter);
+        for (counter, gid) in original_gids.into_iter().enumerate() {
+            self.gid_map.insert(*gid, counter as u16);
             self.reverse_gid_map.push(*gid);
-            counter += 1;
         }
     }
 

@@ -114,7 +114,7 @@ pub(crate) fn subset_subtable12(ctx: &Context, data: &[u8]) -> crate::Result<Vec
                 }
             }
 
-            return None;
+            None
         })
         .collect::<Vec<_>>();
 
@@ -128,12 +128,12 @@ pub(crate) fn subset_subtable12(ctx: &Context, data: &[u8]) -> crate::Result<Vec
         let mut cur_gid = first.1;
         let mut cur_range = 0;
 
-        while let Some(next) = map_iter.next() {
-            if next.0 == cur_start + cur_range + 1 {
-                if next.1 as u32 == cur_gid as u32 + cur_range + 1 {
-                    cur_range += 1;
-                    continue;
-                }
+        for next in map_iter {
+            if next.0 == cur_start + cur_range + 1
+                && next.1 as u32 == cur_gid as u32 + cur_range + 1
+            {
+                cur_range += 1;
+                continue;
             }
 
             new_groups.push(SequentialMapGroupRecord {
