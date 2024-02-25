@@ -34,7 +34,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     // Start writing a new subsetted post table.
     let mut sub_post = Writer::new();
     sub_post.write::<u32>(0x00020000);
-    sub_post.give(header);
+    sub_post.extend(header);
     sub_post.write::<u16>(num_glyphs);
 
     let mut sub_strings = Writer::new();
@@ -52,11 +52,11 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         let name = strings.get(index as usize).ok_or(Error::InvalidOffset)?;
         sub_post.write::<u16>(count + 258);
         sub_strings.write::<u8>(name.len() as u8);
-        sub_strings.give(name);
+        sub_strings.extend(name);
         count += 1;
     }
 
-    sub_post.give(&sub_strings.finish());
+    sub_post.extend(&sub_strings.finish());
     ctx.push(Tag::POST, sub_post.finish());
 
     Ok(())

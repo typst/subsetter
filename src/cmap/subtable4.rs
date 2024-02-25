@@ -119,7 +119,7 @@ impl<'a> Structure<'a> for Subtable4<'a> {
             id_deltas.push(r.read::<i16>()?);
         }
 
-        let glyph_id_array = Cow::Borrowed(r.data());
+        let glyph_id_array = Cow::Borrowed(r.tail());
         let mut id_range_offsets = vec![];
 
         for _ in 0..seg_count {

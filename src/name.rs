@@ -68,7 +68,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         name_records.push(r.read::<NameRecord>()?);
     }
 
-    let storage = r.data();
+    let storage = r.tail();
 
     let mut pruned = prune_name_records(name_records);
 
@@ -92,16 +92,16 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     sub_name.write::<u16>(2 * 3 + count * 12);
 
     for record in &mut pruned {
-        new_storage.give(
+        new_storage.extend(
             &storage[(record.string_offset as usize)
                 ..((record.string_offset + record.length) as usize)],
         );
         record.string_offset = cur_storage_offset;
-        sub_name.write_ref::<NameRecord>(record);
+        record.write(&mut sub_name);
         cur_storage_offset += record.length;
     }
 
-    sub_name.give(&new_storage.finish());
+    sub_name.extend(&new_storage.finish());
 
     ctx.push(Tag::NAME, sub_name.finish());
     Ok(())

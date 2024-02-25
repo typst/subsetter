@@ -246,7 +246,7 @@ fn construct(mut ctx: Context) -> (Vec<u8>, HashMap<u16, u16>) {
     // Write tables.
     for (_, data) in &ctx.tables {
         // Write data plus padding zeros to align to 4 bytes.
-        w.give(data);
+        w.extend(data);
         w.align(4);
     }
 

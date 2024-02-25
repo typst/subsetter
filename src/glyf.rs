@@ -149,9 +149,9 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         }
 
         if i16::read_at(data, 0)? < 0 {
-            sub_glyf.give(&remap_component_glyphs(ctx, data)?);
+            sub_glyf.extend(&remap_component_glyphs(ctx, data)?);
         } else {
-            sub_glyf.give(data);
+            sub_glyf.extend(data);
         }
 
         if !ctx.long_loca {

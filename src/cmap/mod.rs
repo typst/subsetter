@@ -86,11 +86,11 @@ pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
     for (mut record, data) in subsetted_subtables {
         record.subtable_offset = subtable_offset;
         sub_cmap.write::<EncodingRecord>(record);
-        subtables.give(&data);
+        subtables.extend(&data);
         subtable_offset += data.len() as u32;
     }
 
-    sub_cmap.give(&subtables.finish());
+    sub_cmap.extend(&subtables.finish());
 
     ctx.push(Tag::CMAP, sub_cmap.finish());
     Ok(())

@@ -1,22 +1,25 @@
 use super::{Error, Result};
 
 /// A readable stream of binary data.
-pub struct Reader<'a>(&'a [u8]);
+pub struct Reader<'a> {
+    data: &'a [u8],
+    offset: usize,
+}
 
 impl<'a> Reader<'a> {
     /// Create a new readable stream of binary data.
     pub fn new(data: &'a [u8]) -> Self {
-        Self(data)
+        Self { data, offset: 0 }
     }
 
     /// The remaining data.
-    pub fn data(&self) -> &'a [u8] {
-        self.0
+    pub fn tail(&self) -> &'a [u8] {
+        &self.data[self.offset..]
     }
 
     /// Whether there is no data remaining.
     pub fn eof(&self) -> bool {
-        self.0.is_empty()
+        self.offset >= self.data.len()
     }
 
     /// Try to read `T` from the data.
@@ -26,10 +29,10 @@ impl<'a> Reader<'a> {
 
     /// Take the first `n` bytes from the stream.
     pub fn take(&mut self, n: usize) -> Result<&'a [u8]> {
-        if n <= self.0.len() {
-            let head = &self.0[..n];
-            self.0 = &self.0[n..];
-            Ok(head)
+        if n + self.offset <= self.data.len() {
+            let slice = &self.data[self.offset..self.offset + n];
+            self.offset += n;
+            Ok(slice)
         } else {
             Err(Error::MissingData)
         }
@@ -37,26 +40,17 @@ impl<'a> Reader<'a> {
 
     /// Skip the first `n` bytes from the stream.
     pub fn skip(&mut self, n: usize) -> Result<()> {
-        if n <= self.0.len() {
-            self.0 = &self.0[n..];
-            Ok(())
-        } else {
-            Err(Error::MissingData)
-        }
+        self.take(n).map(|_| ())
     }
 }
 
 /// A writable stream of binary data.
-pub struct Writer(Vec<u8>, #[cfg(test)] usize);
+pub struct Writer(Vec<u8>);
 
 impl Writer {
     /// Create a new writable stream of binary data.
     pub fn new() -> Self {
-        Self(
-            Vec::with_capacity(1024),
-            #[cfg(test)]
-            0,
-        )
+        Self(Vec::with_capacity(1024))
     }
 
     /// Write `T` into the data.
@@ -64,13 +58,8 @@ impl Writer {
         data.write(self);
     }
 
-    /// Write `T` into the data, passing it by reference.
-    pub fn write_ref<'a, T: Structure<'a>>(&mut self, data: &T) {
-        data.write(self);
-    }
-
     /// Give bytes into the writer.
-    pub fn give(&mut self, bytes: &[u8]) {
+    pub fn extend(&mut self, bytes: &[u8]) {
         self.0.extend(bytes);
     }
 
@@ -116,7 +105,7 @@ impl<const N: usize> Structure<'_> for [u8; N] {
     }
 
     fn write(&self, w: &mut Writer) {
-        w.give(self)
+        w.extend(self)
     }
 }
 
