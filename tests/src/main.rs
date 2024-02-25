@@ -10,7 +10,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 struct TestContext<'a> {
     original_face: ttf_parser::Face<'a>,
     new_face: ttf_parser::Face<'a>,
-    // gid_map: HashMap<u16, u16>,
+    gid_map: HashMap<u16, u16>,
     gids: Vec<u16>,
 }
 
@@ -29,11 +29,12 @@ fn run_ttf_test(font_path: &Path, gids: &str) -> Result<()> {
     let test_context = TestContext {
         original_face: face,
         new_face: subsetted_face,
-        // gid_map,
+        gid_map,
         gids,
     };
 
     check_cmap(&test_context);
+    check_face_metrics(&test_context);
 
     Ok(())
 }
@@ -79,16 +80,29 @@ fn check_cmap(ctx: &TestContext) {
     let relevant_chars = all_chars
         .iter()
         .map(|c| char::from_u32(*c).unwrap())
-        .filter(|c| {
-            if let Some(g) = ctx.original_face.glyph_index(*c) {
-                return ctx.gids.contains(&g.0);
-            }
-
-            return false;
+        .filter_map(|c| match ctx.original_face.glyph_index(c) {
+            Some(g) if ctx.gids.contains(&g.0) => Some((c, g)),
+            _ => None,
         })
         .collect::<Vec<_>>();
 
-    for char in relevant_chars {
-        assert!(ctx.new_face.glyph_index(char).is_some());
+    for (c, gid) in relevant_chars {
+        let mapped_gid = ctx.gid_map.get(&gid.0).copied();
+        let cur_gid = ctx.new_face.glyph_index(c).map(|g| g.0);
+        assert_eq!((c, mapped_gid), (c, cur_gid));
     }
+}
+
+fn check_face_metrics(ctx: &TestContext) {
+    assert_eq!(ctx.original_face.width(), ctx.new_face.width());
+    assert_eq!(ctx.original_face.height(), ctx.new_face.height());
+    assert_eq!(ctx.original_face.ascender(), ctx.new_face.ascender());
+    assert_eq!(ctx.original_face.descender(), ctx.new_face.descender());
+    assert_eq!(ctx.original_face.style(), ctx.new_face.style());
+    assert_eq!(ctx.original_face.capital_height(), ctx.new_face.capital_height());
+    assert_eq!(ctx.original_face.is_italic(), ctx.new_face.is_italic());
+    assert_eq!(ctx.original_face.is_bold(), ctx.new_face.is_bold());
+    assert_eq!(ctx.original_face.is_monospaced(), ctx.new_face.is_monospaced());
+    assert_eq!(ctx.original_face.is_oblique(), ctx.new_face.is_oblique());
+    assert_eq!(ctx.original_face.is_regular(), ctx.new_face.is_regular());
 }
