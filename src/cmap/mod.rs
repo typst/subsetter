@@ -1,8 +1,10 @@
+use crate::cmap::subtable12::subset_subtable12;
 use crate::cmap::subtable4::subset_subtable4;
 use crate::stream::{Reader, Structure, Writer};
 use crate::Error::InvalidOffset;
 use crate::{Context, Error, Tag};
 
+mod subtable12;
 mod subtable4;
 
 #[derive(Debug)]
@@ -54,6 +56,10 @@ pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
                 Ok(4) => {
                     subsetted_subtables
                         .push((record, subset_subtable4(ctx, subtable_data)?));
+                }
+                Ok(12) => {
+                    subsetted_subtables
+                        .push((record, subset_subtable12(ctx, subtable_data)?));
                 }
                 _ => {}
             }

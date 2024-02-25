@@ -1,8 +1,8 @@
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
-use sha2::{Digest, Sha256};
 use subsetter::{subset, Profile};
 use ttf_parser::GlyphId;
 
@@ -31,7 +31,6 @@ fn save_font(font: &[u8]) {
     let hash = hex::encode(&hasher.finalize()[..]);
 
     font_path.push(hash);
-    println!("{:?}", font_path);
     fs::write(&font_path, font).unwrap();
 }
 
