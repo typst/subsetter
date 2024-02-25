@@ -38,9 +38,7 @@ fn parse_gids(gids: &str) -> Vec<u16> {
         return (0..u16::MAX).collect();
     }
 
-    let split = gids.split(",")
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<_>>();
+    let split = gids.split(",").filter(|s| !s.is_empty()).collect::<Vec<_>>();
     let mut gids = vec![];
 
     for el in &split {

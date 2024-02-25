@@ -19,7 +19,6 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     for i in 0..ctx.subset.len() {
         let original_gid = ctx.reverse_gid_map[i];
 
-
         if original_gid < num_h_metrics {
             let offset = original_gid as usize * 4;
             let mut r = Reader::new(&hmtx[offset..]);

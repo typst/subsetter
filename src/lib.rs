@@ -50,7 +50,6 @@ mod post;
 mod stream;
 
 use crate::stream::{Reader, Structure, Writer};
-use crate::Error::InvalidData;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Debug, Display, Formatter};
