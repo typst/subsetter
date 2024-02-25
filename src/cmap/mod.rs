@@ -63,6 +63,7 @@ pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
                     subsetted_subtables
                         .push((record, subset_subtable12(ctx, subtable_data)?));
                 }
+                // TODO: Implement subtable 14 and add tests for it.
                 _ => {}
             }
         }
