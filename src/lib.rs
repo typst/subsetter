@@ -38,7 +38,6 @@ resulting font is 36 KB (5 KB zipped).
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
 
-mod cff;
 mod cmap;
 mod glyf;
 mod head;
@@ -129,9 +128,9 @@ pub fn subset(
         glyf::discover(&mut ctx)?;
     }
 
-    if ctx.kind == FontKind::Cff {
-        cff::discover(&mut ctx);
-    }
+    // if ctx.kind == FontKind::Cff {
+    //     cff::discover(&mut ctx);
+    // }
 
     ctx.initialize_gid_map();
 
@@ -144,11 +143,11 @@ pub fn subset(
         ctx.process(Tag::GASP)?; // won't be subsetted.
     }
 
-    if ctx.kind == FontKind::Cff {
-        ctx.process(Tag::CFF)?;
-        ctx.process(Tag::CFF2)?;
-        ctx.process(Tag::VORG)?;
-    }
+    // if ctx.kind == FontKind::Cff {
+    //     ctx.process(Tag::CFF)?;
+    //     ctx.process(Tag::CFF2)?;
+    //     ctx.process(Tag::VORG)?;
+    // }
 
     // Required tables.
     ctx.process(Tag::CMAP)?;
@@ -314,7 +313,7 @@ impl<'a> Context<'a> {
         match tag {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
-            Tag::CFF => cff::subset(self)?,
+            // Tag::CFF => cff::subset(self)?,
             Tag::HEAD => head::subset(self)?,
             Tag::HHEA => hhea::subset(self)?,
             Tag::HMTX => hmtx::subset(self)?,

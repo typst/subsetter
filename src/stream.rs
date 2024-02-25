@@ -90,15 +90,6 @@ impl Writer {
     pub fn finish(self) -> Vec<u8> {
         self.0
     }
-
-    /// Print how many bytes were written since the last inspect call.
-    pub fn inspect(&mut self, _name: &str) {
-        #[cfg(test)]
-        {
-            eprintln!("{_name} took {} bytes", self.len() - self.1);
-            self.1 = self.len();
-        }
-    }
 }
 
 /// Decode structures from a stream of binary data.
