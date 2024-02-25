@@ -1,4 +1,4 @@
-fonttools subset tests/fonts/NotoSans-Regular.ttf --drop-tables=GSUB,GPOS,GDEF \
- --gids=30-50,132,137 --glyph-names --output-file=out_ft.ttf \
+fonttools subset fonts/Roboto-Regular.ttf --drop-tables=GSUB,GPOS,GDEF,FFTM \
+ --gids=* --glyph-names --output-file=out_ft.ttf \
  --notdef-outline --no-prune-unicode-ranges &&
 fonttools ttx -f -o out_ft.ttx out_ft.ttf

@@ -15,17 +15,28 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let hmtx = ctx.expect_table(Tag::HMTX)?;
     let mut sub_htmx = Writer::new();
 
+    let mut last_advance_width = 0;
     for i in 0..ctx.subset.len() {
         let original_gid = ctx.reverse_gid_map[i];
 
+
         if original_gid < num_h_metrics {
-            let mut r = Reader::new(&hmtx[(original_gid as usize * 4)..]);
+            let offset = original_gid as usize * 4;
+            let mut r = Reader::new(&hmtx[offset..]);
             let advance_width = r.read::<u16>()?;
             let lsb = r.read::<u16>()?;
             sub_htmx.write::<u16>(advance_width);
             sub_htmx.write::<u16>(lsb);
+
+            last_advance_width = advance_width;
         } else {
-            return Err(Error::Unimplemented);
+            let metrics_end = num_h_metrics as usize * 4;
+            let offset = metrics_end + (original_gid - num_h_metrics) as usize * 2;
+            let mut r = Reader::new(&hmtx[offset..]);
+
+            let lsb = r.read::<u16>()?;
+            sub_htmx.write::<u16>(last_advance_width);
+            sub_htmx.write::<u16>(lsb);
         }
     }
 
