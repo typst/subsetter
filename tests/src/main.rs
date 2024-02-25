@@ -1,7 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::error::Error;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use subsetter::{subset, Profile};
+use ttf_parser::GlyphId;
 
 mod ttf;
 
@@ -14,10 +15,17 @@ struct TestContext<'a> {
     gids: Vec<u16>,
 }
 
-fn run_ttf_test(font_path: &Path, gids: &str) -> Result<()> {
+fn run_ttf_test(font_file: &str, gids: &str) -> Result<()> {
+    let mut font_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    font_path.push("fonts");
+    font_path.push(font_file);
+
     let data = std::fs::read(font_path)?;
     let face = ttf_parser::Face::parse(&data, 0)?;
-    let gids = parse_gids(gids);
+    let gids: Vec<_> = parse_gids(gids)
+        .into_iter()
+        .filter(|g| *g < face.number_of_glyphs())
+        .collect();
 
     let (subset, gid_map) = subset(
         &data,
@@ -35,6 +43,7 @@ fn run_ttf_test(font_path: &Path, gids: &str) -> Result<()> {
 
     check_cmap(&test_context);
     check_face_metrics(&test_context);
+    check_glyph_metrics(&test_context);
 
     Ok(())
 }
@@ -105,4 +114,84 @@ fn check_face_metrics(ctx: &TestContext) {
     assert_eq!(ctx.original_face.is_monospaced(), ctx.new_face.is_monospaced());
     assert_eq!(ctx.original_face.is_oblique(), ctx.new_face.is_oblique());
     assert_eq!(ctx.original_face.is_regular(), ctx.new_face.is_regular());
+    assert_eq!(ctx.original_face.x_height(), ctx.new_face.x_height());
+    assert_eq!(ctx.original_face.strikeout_metrics(), ctx.new_face.strikeout_metrics());
+    assert_eq!(ctx.original_face.subscript_metrics(), ctx.new_face.subscript_metrics());
+    assert_eq!(
+        ctx.original_face.superscript_metrics(),
+        ctx.new_face.superscript_metrics()
+    );
+    assert_eq!(
+        ctx.original_face.typographic_ascender(),
+        ctx.new_face.typographic_ascender()
+    );
+    assert_eq!(
+        ctx.original_face.typographic_descender(),
+        ctx.new_face.typographic_descender()
+    );
+    assert_eq!(
+        ctx.original_face.typographic_line_gap(),
+        ctx.new_face.typographic_line_gap()
+    );
+    assert_eq!(ctx.original_face.vertical_ascender(), ctx.new_face.vertical_ascender());
+    assert_eq!(ctx.original_face.vertical_descender(), ctx.new_face.vertical_descender());
+    assert_eq!(ctx.original_face.vertical_height(), ctx.new_face.vertical_height());
+    assert_eq!(ctx.original_face.vertical_line_gap(), ctx.new_face.vertical_line_gap());
+    assert_eq!(ctx.original_face.units_per_em(), ctx.new_face.units_per_em());
+}
+
+fn check_glyph_metrics(ctx: &TestContext) {
+    for glyph in ctx
+        .gids
+        .iter()
+        .copied()
+        .filter(|g| ctx.gids.contains(g) && *g < ctx.original_face.number_of_glyphs())
+    {
+        let mapped = *ctx.gid_map.get(&glyph).unwrap();
+
+        assert_eq!(
+            ctx.original_face.glyph_bounding_box(GlyphId(glyph)),
+            ctx.new_face.glyph_bounding_box(GlyphId(mapped)),
+        );
+
+        assert_eq!(
+            ctx.original_face.glyph_hor_advance(GlyphId(glyph)),
+            ctx.new_face.glyph_hor_advance(GlyphId(mapped)),
+        );
+
+        assert_eq!(
+            ctx.original_face.glyph_ver_advance(GlyphId(glyph)),
+            ctx.new_face.glyph_ver_advance(GlyphId(mapped)),
+        );
+
+        assert_eq!(
+            ctx.original_face.glyph_y_origin(GlyphId(glyph)),
+            ctx.new_face.glyph_y_origin(GlyphId(mapped)),
+        );
+
+        assert_eq!(
+            ctx.original_face.glyph_hor_side_bearing(GlyphId(glyph)),
+            ctx.new_face.glyph_hor_side_bearing(GlyphId(mapped)),
+        );
+
+        assert_eq!(
+            ctx.original_face.glyph_ver_side_bearing(GlyphId(glyph)),
+            ctx.new_face.glyph_ver_side_bearing(GlyphId(mapped)),
+        );
+
+        assert_eq!(
+            ctx.original_face.glyph_hor_advance(GlyphId(glyph)),
+            ctx.new_face.glyph_hor_advance(GlyphId(mapped)),
+        );
+
+        assert_eq!(
+            ctx.original_face.glyph_ver_advance(GlyphId(glyph)),
+            ctx.new_face.glyph_ver_advance(GlyphId(mapped)),
+        );
+
+        assert_eq!(
+            ctx.original_face.glyph_name(GlyphId(glyph)),
+            ctx.new_face.glyph_name(GlyphId(mapped)),
+        );
+    }
 }
