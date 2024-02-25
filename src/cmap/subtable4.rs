@@ -3,7 +3,8 @@ use crate::Context;
 use crate::Error::InvalidData;
 use std::borrow::Cow;
 
-#[derive(Debug)]
+/// A Format 4 subtable.
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Subtable4<'a> {
     language: u16,
     seg_count: u16,
@@ -14,10 +15,9 @@ pub(crate) struct Subtable4<'a> {
     glyph_id_array: Cow<'a, [u8]>,
 }
 
+// TODO: Add attribution to ttf-parser (also in other code locations)
 impl Subtable4<'_> {
     /// Returns a glyph index for a code point.
-    ///
-    /// Returns `None` when `code_point` is larger than `u16`.
     pub fn glyph_index(&self, code_point: u32) -> Option<u16> {
         // This subtable supports code points only in a u16 range.
         let code_point = u16::try_from(code_point).ok()?;
@@ -96,35 +96,14 @@ impl<'a> Structure<'a> for Subtable4<'a> {
         }
 
         let seg_count = seg_count_x2 / 2;
-
         r.skip(6)?; // search range + entry selector + range shift
-
-        let mut end_codes = vec![];
-
-        for _ in 0..seg_count {
-            end_codes.push(r.read::<u16>()?);
-        }
-
+        let end_codes = r.read_vector::<u16>(seg_count as usize)?;
         r.skip(2)?; // reserved pad
-
-        let mut start_codes = vec![];
-
-        for _ in 0..seg_count {
-            start_codes.push(r.read::<u16>()?);
-        }
-
-        let mut id_deltas = vec![];
-
-        for _ in 0..seg_count {
-            id_deltas.push(r.read::<i16>()?);
-        }
+        let start_codes = r.read_vector::<u16>(seg_count as usize)?;
+        let id_deltas = r.read_vector::<i16>(seg_count as usize)?;
 
         let glyph_id_array = Cow::Borrowed(r.tail());
-        let mut id_range_offsets = vec![];
-
-        for _ in 0..seg_count {
-            id_range_offsets.push(r.read::<u16>()?);
-        }
+        let id_range_offsets = r.read_vector::<u16>(seg_count as usize)?;
 
         Ok(Subtable4 {
             language,
@@ -138,8 +117,11 @@ impl<'a> Structure<'a> for Subtable4<'a> {
     }
 
     fn write(&self, w: &mut Writer) {
-        w.write::<u16>(4);
+        w.write::<u16>(4); // version
 
+        // 2 * (format + length + language + seg_count_x2 + search_range +
+        // entry_selector + range_shift + reserved_pad) + 2 * seg_count *
+        // (end_code + start_code + id_delta + id_range_offsets)
         let length = 2 * 8 + 2 * self.seg_count * 4;
         w.write::<u16>(length);
         w.write::<u16>(self.language);
@@ -155,32 +137,24 @@ impl<'a> Structure<'a> for Subtable4<'a> {
         w.write::<u16>(entry_selector);
         w.write::<u16>(range_shift);
 
-        for end_code in &self.end_codes {
-            w.write::<u16>(*end_code);
-        }
-
-        w.write::<u16>(0);
-
-        for start_code in &self.start_codes {
-            w.write::<u16>(*start_code);
-        }
-
-        for id_delta in &self.id_deltas {
-            w.write::<i16>(*id_delta);
-        }
-
-        for id_range_offset in &self.id_range_offsets {
-            w.write::<u16>(*id_range_offset);
-        }
+        w.write_vector(&self.end_codes);
+        w.write::<u16>(0); // reserved pad
+        w.write_vector(&self.start_codes);
+        w.write_vector(&self.id_deltas);
+        w.write_vector(&self.id_range_offsets);
     }
 }
 
+/// Create a subsetter version of a Subtable4.
 pub(crate) fn subset_subtable4(ctx: &Context, data: &[u8]) -> crate::Result<Vec<u8>> {
-    let subtable = Subtable4::read_at(data, 0)?;
+    let subtable = Reader::new(data).read::<Subtable4>()?;
+
     let mut all_codepoints = vec![];
     subtable.codepoints(|c| all_codepoints.push(c as u16));
 
-    let mut new_mappings = all_codepoints
+    // Create vector of pairs (c, g), where c is the codepoint and
+    // g is the new gid.
+    let mut char_to_new_gid_mappings = all_codepoints
         .into_iter()
         .filter_map(|c| {
             if let Some(g) = subtable.glyph_index(c as u32) {
@@ -195,13 +169,12 @@ pub(crate) fn subset_subtable4(ctx: &Context, data: &[u8]) -> crate::Result<Vec<
         })
         .collect::<Vec<_>>();
 
-    new_mappings.sort();
-
-    let mut segments = vec![];
+    char_to_new_gid_mappings.sort();
 
     let delta = |pair: (u16, u16)| (pair.1 as i32 - pair.0 as i32) as i16;
 
-    let mut map_iter = new_mappings.into_iter();
+    let mut segments = vec![];
+    let mut map_iter = char_to_new_gid_mappings.into_iter();
 
     if let Some(first) = map_iter.next() {
         let mut cur_start = first.0;
@@ -222,21 +195,22 @@ pub(crate) fn subset_subtable4(ctx: &Context, data: &[u8]) -> crate::Result<Vec<
             cur_range = 0;
         }
 
+        // Don't forget the last range!
         segments.push((cur_start, cur_start + cur_range, cur_delta));
     }
 
+    // "For the search to terminate, the final start code and endCode values must
+    // be 0xFFFF. This segment need not contain any valid mappings. (It can just map the
+    // single character code 0xFFFF to missingGlyph). However, the segment must be present."
     segments.push((0xFFFF, 0xFFFF, 1));
 
     let language = subtable.language;
     let seg_count = segments.len() as u16;
-    let end_codes = segments.iter().map(|e| e.1).collect::<Vec<_>>();
-    let start_codes = segments.iter().map(|e| e.0).collect::<Vec<_>>();
-    let id_deltas = segments.iter().map(|e| e.2).collect::<Vec<_>>();
-    let id_range_offsets = [0u16]
-        .into_iter()
-        .cycle()
-        .take(seg_count as usize)
-        .collect::<Vec<_>>();
+    let end_codes = segments.iter().map(|e| e.1).collect();
+    let start_codes = segments.iter().map(|e| e.0).collect();
+    let id_deltas = segments.iter().map(|e| e.2).collect();
+    let id_range_offsets =
+        [0].into_iter().cycle().take(seg_count as usize).collect::<Vec<_>>();
     let glyph_id_array = Cow::Owned(vec![]);
 
     let new_subtable = Subtable4 {

@@ -12,7 +12,7 @@ impl<'a> Reader<'a> {
         Self { data, offset: 0 }
     }
 
-    /// The remaining data.
+    /// The remaining data from the current offset.
     pub fn tail(&self) -> &'a [u8] {
         &self.data[self.offset..]
     }
@@ -27,7 +27,18 @@ impl<'a> Reader<'a> {
         T::read(self)
     }
 
-    /// Take the first `n` bytes from the stream.
+    /// Try to read a vector of `T` from the data.
+    pub fn read_vector<T: Structure<'a>>(&mut self, count: usize) -> Result<Vec<T>> {
+        let mut res = Vec::with_capacity(count);
+
+        for _ in 0..count {
+            res.push(self.read::<T>()?);
+        }
+
+        Ok(res)
+    }
+
+    /// Take the next `n` bytes from the stream.
     pub fn take(&mut self, n: usize) -> Result<&'a [u8]> {
         if n + self.offset <= self.data.len() {
             let slice = &self.data[self.offset..self.offset + n];
@@ -38,7 +49,7 @@ impl<'a> Reader<'a> {
         }
     }
 
-    /// Skip the first `n` bytes from the stream.
+    /// Skip the next `n` bytes from the stream.
     pub fn skip(&mut self, n: usize) -> Result<()> {
         self.take(n).map(|_| ())
     }
@@ -56,6 +67,12 @@ impl Writer {
     /// Write `T` into the data.
     pub fn write<'a, T: Structure<'a>>(&mut self, data: T) {
         data.write(self);
+    }
+
+    pub fn write_vector<'a, T: Structure<'a>>(&mut self, data: &Vec<T>) {
+        for el in data {
+            el.write(self);
+        }
     }
 
     /// Give bytes into the writer.
