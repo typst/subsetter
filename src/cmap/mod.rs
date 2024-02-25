@@ -57,6 +57,8 @@ pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
                     subsetted_subtables
                         .push((record, subset_subtable4(ctx, subtable_data)?));
                 }
+                // TODO: If an entry already exists in a 4 table we subsetted, we don't
+                // need to add it to the 12 one again.
                 Ok(12) => {
                     subsetted_subtables
                         .push((record, subset_subtable12(ctx, subtable_data)?));
