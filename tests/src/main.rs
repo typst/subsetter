@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use subsetter::{subset, Profile};
 use ttf_parser::GlyphId;
 
+#[rustfmt::skip]
 mod ttf;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -57,7 +58,7 @@ fn parse_gids(gids: &str) -> Vec<u16> {
 
 /// Check that for each character that was mapped to a gid that is in the subset,
 /// a corresponding map also exists in the new face.
-fn check_cmap(font_file: &str, gids: &str) {
+fn cmap(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
@@ -83,7 +84,7 @@ fn check_cmap(font_file: &str, gids: &str) {
     }
 }
 
-fn check_face_metrics(font_file: &str, gids: &str) {
+fn face_metrics(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
@@ -113,7 +114,7 @@ fn check_face_metrics(font_file: &str, gids: &str) {
     assert_eq!(old_face.units_per_em(), new_face.units_per_em());
 }
 
-fn check_glyph_metrics(font_file: &str, gids: &str) {
+fn glyph_metrics(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
@@ -173,7 +174,7 @@ fn check_glyph_metrics(font_file: &str, gids: &str) {
     }
 }
 
-pub fn check_glyph_outlines(font_file: &str, gids: &str) {
+pub fn glyph_outlines(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
@@ -182,7 +183,7 @@ pub fn check_glyph_outlines(font_file: &str, gids: &str) {
         let mut sink1 = Sink::default();
         let mut sink2 = Sink::default();
         old_face.outline_glyph(GlyphId(glyph), &mut sink1);
-        new_face.outline_glyph(GlyphId(glyph), &mut sink2);
+        new_face.outline_glyph(GlyphId(*ctx.gid_map.get(&glyph).unwrap()), &mut sink2);
         assert_eq!(sink1, sink2);
     }
 }
