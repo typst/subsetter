@@ -1,9 +1,8 @@
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
-use subsetter::subset;
+use subsetter::{Mapper, subset};
 use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
@@ -11,12 +10,12 @@ mod ttf;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-const SAVE_SUBSETS: bool = true;
+const SAVE_SUBSETS: bool = false;
 
 struct TestContext {
     font: Vec<u8>,
     subset: Vec<u8>,
-    gid_map: HashMap<u16, u16>,
+    mapper: Mapper,
     gids: Vec<u16>,
 }
 
@@ -42,13 +41,13 @@ fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
     let data = std::fs::read(font_path)?;
     let gids: Vec<_> = parse_gids(gids);
 
-    let (subset, gid_map) = subset(&data, 0, &gids)?;
+    let (subset, mapper) = subset(&data, 0, &gids)?;
 
     if SAVE_SUBSETS {
         save_font(&subset);
     }
 
-    Ok(TestContext { font: data, subset, gid_map, gids })
+    Ok(TestContext { font: data, subset, mapper: mapper, gids })
 }
 
 fn parse_gids(gids: &str) -> Vec<u16> {
@@ -96,7 +95,7 @@ fn cmap(font_file: &str, gids: &str) {
         .collect::<Vec<_>>();
 
     for (c, gid) in relevant_chars {
-        let mapped_gid = ctx.gid_map.get(&gid.0).copied();
+        let mapped_gid = ctx.mapper.get(gid.0);
         let cur_gid = new_face.glyph_index(c).map(|g| g.0);
         assert_eq!((c, mapped_gid), (c, cur_gid));
     }
@@ -139,7 +138,7 @@ fn glyph_metrics(font_file: &str, gids: &str) {
         .copied()
         .filter(|g| ctx.gids.contains(g) && *g < old_face.number_of_glyphs())
     {
-        let mapped = *ctx.gid_map.get(&glyph).unwrap();
+        let mapped = ctx.mapper.get(glyph).unwrap();
 
         assert_eq!(
             old_face.glyph_bounding_box(GlyphId(glyph)),
@@ -177,7 +176,7 @@ pub fn glyph_outlines(font_file: &str, gids: &str) {
         let mut sink1 = Sink::default();
         let mut sink2 = Sink::default();
         old_face.outline_glyph(GlyphId(glyph), &mut sink1);
-        new_face.outline_glyph(GlyphId(*ctx.gid_map.get(&glyph).unwrap()), &mut sink2);
+        new_face.outline_glyph(GlyphId(ctx.mapper.get(glyph).unwrap()), &mut sink2);
         assert_eq!(sink1, sink2);
     }
 }

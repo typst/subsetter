@@ -132,7 +132,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         }
     };
 
-    for old_gid in &ctx.reverse_gid_map {
+    for old_gid in &ctx.mapper.backward {
         write_offset(sub_glyf.len());
         let data = table.glyph_data(*old_gid)?;
 
@@ -185,7 +185,7 @@ fn remap_component_glyphs(ctx: &Context, data: &[u8]) -> Result<Vec<u8>> {
         let flags = r.read::<u16>()?;
         w.write(flags);
         let component = r.read::<u16>()?;
-        let new_component = *ctx.gid_map.get(&component).ok_or(Error::InvalidData)?;
+        let new_component = *ctx.mapper.forward.get(&component).ok_or(Error::InvalidData)?;
         w.write(new_component);
 
         if flags & ARG_1_AND_2_ARE_WORDS != 0 {

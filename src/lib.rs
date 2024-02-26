@@ -48,11 +48,15 @@ mod maxp;
 mod name;
 mod post;
 mod stream;
+mod mapper;
 
 use crate::stream::{Reader, Structure, Writer};
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fmt::{self, Debug, Display, Formatter};
+use crate::mapper::{InternalMapper, MapperVariant};
+
+pub use crate::mapper::Mapper;
 
 /// Subset a font face to include less glyphs and tables.
 ///
@@ -63,7 +67,7 @@ pub fn subset(
     data: &[u8],
     index: u32,
     profile: &[u16],
-) -> Result<(Vec<u8>, HashMap<u16, u16>)> {
+) -> Result<(Vec<u8>, Mapper)> {
     let face = parse(data, index)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
         Some(_) => FontKind::Cff,
@@ -82,8 +86,7 @@ pub fn subset(
         num_glyphs,
         subset: HashSet::new(),
         requested_glyphs,
-        gid_map: HashMap::new(),
-        reverse_gid_map: vec![],
+        mapper: InternalMapper::new(),
         kind,
         tables: vec![],
         long_loca: true,
@@ -164,7 +167,7 @@ fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
 }
 
 /// Construct a brand new font.
-fn construct(mut ctx: Context) -> (Vec<u8>, HashMap<u16, u16>) {
+fn construct(mut ctx: Context) -> (Vec<u8>, Mapper) {
     let mut w = Writer::new();
     w.write::<FontKind>(ctx.kind);
 
@@ -228,7 +231,7 @@ fn construct(mut ctx: Context) -> (Vec<u8>, HashMap<u16, u16>) {
         data[i..i + 4].copy_from_slice(&val.to_be_bytes());
     }
 
-    (data, ctx.gid_map)
+    (data, Mapper(MapperVariant::HashmapMapper(ctx.mapper)))
 }
 
 /// Calculate a checksum over the sliced data as a sum of u32s. If the data
@@ -255,11 +258,8 @@ struct Context<'a> {
     /// Actual glyphs that are needed to subset the font correctly,
     /// including glyphs referenced indirectly through components.
     subset: HashSet<u16>,
-    // A map from old gids to new gids
-    gid_map: HashMap<u16, u16>,
-    // A map from new gids to old gids. The index represents the
-    // new gid, and the value at that index the old gid.
-    reverse_gid_map: Vec<u16>,
+    // A map from old gids to new gids, and the reverse
+    mapper: InternalMapper,
     /// The kind of face.
     kind: FontKind,
     /// Subsetted tables.
@@ -303,8 +303,8 @@ impl<'a> Context<'a> {
         original_gids.sort();
 
         for (counter, gid) in original_gids.into_iter().enumerate() {
-            self.gid_map.insert(*gid, counter as u16);
-            self.reverse_gid_map.push(*gid);
+            self.mapper.forward.insert(*gid, counter as u16);
+            self.mapper.backward.push(*gid);
         }
     }
 

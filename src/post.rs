@@ -40,7 +40,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let mut sub_strings = Writer::new();
     let mut count = 0;
     for i in 0..num_glyphs {
-        let old_gid = ctx.reverse_gid_map[i as usize];
+        let old_gid = ctx.mapper.backward[i as usize];
         let index = indices[old_gid as usize];
 
         if index <= 257 {

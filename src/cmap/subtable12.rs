@@ -105,7 +105,7 @@ pub(crate) fn subset_subtable12(ctx: &Context, data: &[u8]) -> crate::Result<Vec
         .filter_map(|c| {
             if let Some(g) = subtable.glyph_index(c) {
                 if ctx.requested_glyphs.contains(&g) {
-                    if let Some(new_g) = ctx.gid_map.get(&g) {
+                    if let Some(new_g) = ctx.mapper.forward.get(&g) {
                         return Some((c, *new_g));
                     }
                 }
