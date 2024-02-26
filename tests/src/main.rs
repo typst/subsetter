@@ -2,7 +2,7 @@ use sha2::{Digest, Sha256};
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
-use subsetter::{Mapper, subset};
+use subsetter::{subset, Mapper};
 use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
@@ -47,7 +47,7 @@ fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
         save_font(&subset);
     }
 
-    Ok(TestContext { font: data, subset, mapper: mapper, gids })
+    Ok(TestContext { font: data, subset, mapper, gids })
 }
 
 fn parse_gids(gids: &str) -> Vec<u16> {

@@ -44,17 +44,17 @@ mod glyf;
 mod head;
 mod hhea;
 mod hmtx;
+mod mapper;
 mod maxp;
 mod name;
 mod post;
 mod stream;
-mod mapper;
 
+use crate::mapper::{InternalMapper, MapperVariant};
 use crate::stream::{Reader, Structure, Writer};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::fmt::{self, Debug, Display, Formatter};
-use crate::mapper::{InternalMapper, MapperVariant};
 
 pub use crate::mapper::Mapper;
 
@@ -63,11 +63,7 @@ pub use crate::mapper::Mapper;
 /// - The `data` must be in the OpenType font format.
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
-pub fn subset(
-    data: &[u8],
-    index: u32,
-    profile: &[u16],
-) -> Result<(Vec<u8>, Mapper)> {
+pub fn subset(data: &[u8], index: u32, profile: &[u16]) -> Result<(Vec<u8>, Mapper)> {
     let face = parse(data, index)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
         Some(_) => FontKind::Cff,
@@ -302,9 +298,8 @@ impl<'a> Context<'a> {
         let mut original_gids = self.subset.iter().collect::<Vec<_>>();
         original_gids.sort();
 
-        for (counter, gid) in original_gids.into_iter().enumerate() {
-            self.mapper.forward.insert(*gid, counter as u16);
-            self.mapper.backward.push(*gid);
+        for gid in original_gids {
+            self.mapper.insert(*gid);
         }
     }
 

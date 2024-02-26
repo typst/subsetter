@@ -17,7 +17,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
     let mut last_advance_width = 0;
     for i in 0..ctx.subset.len() {
-        let original_gid = ctx.mapper.backward[i];
+        let original_gid = ctx.mapper.get_reverse(i as u16).unwrap();
 
         if original_gid < num_h_metrics {
             let offset = original_gid as usize * 4;
