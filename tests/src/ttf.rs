@@ -4,18 +4,18 @@
 
 use crate::{cmap, face_metrics, glyph_metrics, glyph_outlines};
 
-#[test] fn mplus1p_regular_0_cmap() {cmap("MPLUS1P-Regular.ttf", "0,1")}
-#[test] fn mplus1p_regular_0_face_metrics() {face_metrics("MPLUS1P-Regular.ttf", "0,1")}
-#[test] fn mplus1p_regular_0_glyph_metrics() {glyph_metrics("MPLUS1P-Regular.ttf", "0,1")}
-#[test] fn mplus1p_regular_0_glyph_outlines() {glyph_outlines("MPLUS1P-Regular.ttf", "0,1")}
-#[test] fn mplus1p_regular_1_cmap() {cmap("MPLUS1P-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
-#[test] fn mplus1p_regular_1_face_metrics() {face_metrics("MPLUS1P-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
-#[test] fn mplus1p_regular_1_glyph_metrics() {glyph_metrics("MPLUS1P-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
-#[test] fn mplus1p_regular_1_glyph_outlines() {glyph_outlines("MPLUS1P-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
-#[test] fn mplus1p_regular_2_cmap() {cmap("MPLUS1P-Regular.ttf", "*")}
-#[test] fn mplus1p_regular_2_face_metrics() {face_metrics("MPLUS1P-Regular.ttf", "*")}
-#[test] fn mplus1p_regular_2_glyph_metrics() {glyph_metrics("MPLUS1P-Regular.ttf", "*")}
-#[test] fn mplus1p_regular_2_glyph_outlines() {glyph_outlines("MPLUS1P-Regular.ttf", "*")}
+#[test] fn mplus1p_regular_0_cmap() {cmap("MPLUS1p-Regular.ttf", "0,1")}
+#[test] fn mplus1p_regular_0_face_metrics() {face_metrics("MPLUS1p-Regular.ttf", "0,1")}
+#[test] fn mplus1p_regular_0_glyph_metrics() {glyph_metrics("MPLUS1p-Regular.ttf", "0,1")}
+#[test] fn mplus1p_regular_0_glyph_outlines() {glyph_outlines("MPLUS1p-Regular.ttf", "0,1")}
+#[test] fn mplus1p_regular_1_cmap() {cmap("MPLUS1p-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
+#[test] fn mplus1p_regular_1_face_metrics() {face_metrics("MPLUS1p-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
+#[test] fn mplus1p_regular_1_glyph_metrics() {glyph_metrics("MPLUS1p-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
+#[test] fn mplus1p_regular_1_glyph_outlines() {glyph_outlines("MPLUS1p-Regular.ttf", "3,45,98,120,245,389,1043,1055-1063")}
+#[test] fn mplus1p_regular_2_cmap() {cmap("MPLUS1p-Regular.ttf", "*")}
+#[test] fn mplus1p_regular_2_face_metrics() {face_metrics("MPLUS1p-Regular.ttf", "*")}
+#[test] fn mplus1p_regular_2_glyph_metrics() {glyph_metrics("MPLUS1p-Regular.ttf", "*")}
+#[test] fn mplus1p_regular_2_glyph_outlines() {glyph_outlines("MPLUS1p-Regular.ttf", "*")}
 #[test] fn clicker_script_regular_0_cmap() {cmap("ClickerScript-Regular.ttf", "*")}
 #[test] fn clicker_script_regular_0_face_metrics() {face_metrics("ClickerScript-Regular.ttf", "*")}
 #[test] fn clicker_script_regular_0_glyph_metrics() {glyph_metrics("ClickerScript-Regular.ttf", "*")}

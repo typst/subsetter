@@ -35,7 +35,7 @@ def main():
 
                         test_string += f'fn {function_name}() {{{function}("{font_file}", "{gids}")}}\n'
 
-    with open(Path(OUT_PATH), "w") as file:
+    with open(Path(OUT_PATH), "w+") as file:
         file.write(test_string)
 
 
