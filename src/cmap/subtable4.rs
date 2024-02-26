@@ -119,8 +119,8 @@ impl<'a> Structure<'a> for Subtable4<'a> {
     fn write(&self, w: &mut Writer) {
         w.write::<u16>(4); // version
 
-        // 2 * (format + length + language + seg_count_x2 + search_range +
-        // entry_selector + range_shift + reserved_pad) + 2 * seg_count *
+        // (format + length + language + seg_count_x2 + search_range +
+        // entry_selector + range_shift + reserved_pad) + seg_count *
         // (end_code + start_code + id_delta + id_range_offsets)
         let length = 2 * 8 + 2 * self.seg_count * 4;
         w.write::<u16>(length);

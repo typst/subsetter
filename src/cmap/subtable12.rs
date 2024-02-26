@@ -23,6 +23,7 @@ impl Structure<'_> for SequentialMapGroupRecord {
     }
 }
 
+/// A format 12 subtable.
 pub(crate) struct Subtable12 {
     language: u32,
     groups: Vec<SequentialMapGroupRecord>,
@@ -67,23 +68,20 @@ impl Subtable12 {
 
 impl Structure<'_> for Subtable12 {
     fn read(r: &mut Reader<'_>) -> crate::Result<Self> {
-        r.read::<u16>()?;
-        r.read::<u16>()?;
-        r.read::<u32>()?;
+        r.read::<u16>()?; // format
+        r.read::<u16>()?; // reserved
+        r.read::<u32>()?; // length
         let language = r.read::<u32>()?;
         let num_groups = r.read::<u32>()?;
 
-        let mut groups = vec![];
-
-        for _ in 0..num_groups {
-            let group = r.read::<SequentialMapGroupRecord>()?;
-            groups.push(group);
-        }
-
+        let groups = r
+            .read_vector::<SequentialMapGroupRecord>(num_groups as usize)?;
         Ok(Self { language, groups })
     }
 
     fn write(&self, w: &mut Writer) {
+        // format + reserved + length + language + num_groups + num_groups * (start_char,
+        // end_char, start_glyph_id)
         let length = 2 + 2 + 4 + 4 + 4 + (4 + 4 + 4) * self.groups.len();
 
         w.write::<u16>(12);

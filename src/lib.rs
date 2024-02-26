@@ -34,6 +34,7 @@ it in a PDF file.
 In the above example, the original font was 375 KB (188 KB zipped) while the
 resulting font is 36 KB (5 KB zipped).
 */
+// TODO: Update code examples, README and look at documentation again.
 
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
