@@ -53,7 +53,7 @@ mod stream;
 use crate::mapper::{InternalMapper, MapperVariant};
 use crate::stream::{Reader, Structure, Writer};
 use std::borrow::Cow;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Debug, Display, Formatter};
 
 pub use crate::mapper::Mapper;
@@ -64,6 +64,15 @@ pub use crate::mapper::Mapper;
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
 pub fn subset(data: &[u8], index: u32, profile: &[u16]) -> Result<(Vec<u8>, Mapper)> {
+    _subset(data, index, profile, InternalMapper::new())
+}
+
+/// Subset with a custom mapper
+pub fn subset_with_mapper(data: &[u8], index: u32, profile: &[u16], mapper: HashMap<u16, u16>) -> Result<(Vec<u8>, Mapper)> {
+    _subset(data, index, profile, mapper.into())
+}
+
+fn _subset(data: &[u8], index: u32, profile: &[u16], mapper: InternalMapper) -> Result<(Vec<u8>, Mapper)> {
     let face = parse(data, index)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
         Some(_) => FontKind::Cff,
@@ -82,7 +91,7 @@ pub fn subset(data: &[u8], index: u32, profile: &[u16]) -> Result<(Vec<u8>, Mapp
         num_glyphs,
         subset: HashSet::new(),
         requested_glyphs,
-        mapper: InternalMapper::new(),
+        mapper,
         kind,
         tables: vec![],
         long_loca: true,

@@ -7,6 +7,21 @@ pub(crate) struct InternalMapper {
     backward: Vec<u16>,
 }
 
+impl From<HashMap<u16, u16>> for InternalMapper {
+    fn from(value: HashMap<u16, u16>) -> Self {
+        let mut mapper = InternalMapper::new();
+
+        let mut items = value.iter().collect::<Vec<_>>();
+        items.sort_by_key(|(k, v)| *v);
+
+        for (k, _) in items {
+            mapper.insert(*k);
+        }
+
+        mapper
+    }
+}
+
 impl InternalMapper {
     pub fn new() -> Self {
         Self {
