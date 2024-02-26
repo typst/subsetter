@@ -54,40 +54,6 @@ use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Debug, Display, Formatter};
 
-/// Defines which things to keep in the font.
-///
-/// #### Possible Future Work
-/// - A setter for variation coordinates which would make the subsetter create a
-///   static instance of a variable font.
-/// - A profile which keeps and subsets bitmap, color and SVG tables.
-/// - A profile which takes a char set instead of a glyph set and subsets the
-///   layout tables.
-pub struct Profile<'a> {
-    glyphs: &'a [u16],
-}
-
-impl<'a> Profile<'a> {
-    /// Reduces the font to the subset needed for PDF embedding.
-    ///
-    /// Keeps only the basic required tables plus either the TrueType-related or
-    /// CFF-related tables.
-    ///
-    /// In particular, this removes:
-    /// - all text-layout related tables like GSUB and GPOS as it is expected
-    ///   that text was already mapped to glyphs.
-    /// - all non-outline glyph descriptions like bitmaps, layered color glyphs
-    ///   and SVGs.
-    ///
-    /// The subsetted font can be embedded in a PDF as a `FontFile3` with
-    /// Subtype `OpenType`. Alternatively:
-    /// - For TrueType outlines: You can embed it as a `FontFile2`.
-    /// - For CFF outlines: You can extract the CFF table and embed just the
-    ///   table as a `FontFile3` with Subtype `Type1C`
-    pub fn pdf(glyphs: &'a [u16]) -> Self {
-        Self { glyphs }
-    }
-}
-
 /// Subset a font face to include less glyphs and tables.
 ///
 /// - The `data` must be in the OpenType font format.
@@ -96,7 +62,7 @@ impl<'a> Profile<'a> {
 pub fn subset(
     data: &[u8],
     index: u32,
-    profile: Profile,
+    profile: &[u16],
 ) -> Result<(Vec<u8>, HashMap<u16, u16>)> {
     let face = parse(data, index)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
@@ -107,14 +73,17 @@ pub fn subset(
     let maxp = face.table(Tag::MAXP).ok_or(Error::MissingTable(Tag::MAXP))?;
     let num_glyphs = u16::read_at(maxp, 4)?;
 
+    let mut requested_glyphs = HashSet::from_iter(profile.iter().copied());
+    // We always include the .notdef glyph.
+    requested_glyphs.insert(0);
+
     let mut ctx = Context {
         face,
         num_glyphs,
         subset: HashSet::new(),
-        direct_glyphs: HashSet::new(),
+        requested_glyphs,
         gid_map: HashMap::new(),
         reverse_gid_map: vec![],
-        profile,
         kind,
         tables: vec![],
         long_loca: true,
@@ -281,15 +250,16 @@ struct Context<'a> {
     face: Face<'a>,
     /// The number of glyphs in the original face.
     num_glyphs: u16,
+    /// Requested glyphs to subset
+    requested_glyphs: HashSet<u16>,
+    /// Actual glyphs that are needed to subset the font correctly,
+    /// including glyphs referenced indirectly through components.
     subset: HashSet<u16>,
     // A map from old gids to new gids
-    direct_glyphs: HashSet<u16>,
     gid_map: HashMap<u16, u16>,
     // A map from new gids to old gids. The index represents the
     // new gid, and the value at that index the old gid.
     reverse_gid_map: Vec<u16>,
-    /// The subsetting profile.
-    profile: Profile<'a>,
     /// The kind of face.
     kind: FontKind,
     /// Subsetted tables.

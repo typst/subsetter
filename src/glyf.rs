@@ -38,33 +38,26 @@ pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
     // Because glyphs may depend on other glyphs as components (also with
     // multiple layers of nesting), we have to process all glyphs to find
     // their components.
-    let mut iter = ctx.profile.glyphs.iter().copied();
-    let mut work = vec![(0, true)];
+    let mut glyph_vec = ctx.requested_glyphs.iter().copied().collect::<Vec<_>>();
+    glyph_vec.sort();
+    let mut iter = glyph_vec.into_iter();
+    let mut work = vec![0];
 
     // Find composite glyph descriptions.
-    while let Some((id, direct_glyph)) =
-        work.pop().or_else(|| iter.next().map(|g| (g, true)))
-    {
-        if id < ctx.num_glyphs {
-            if direct_glyph {
-                ctx.direct_glyphs.insert(id);
-            }
+    while let Some(id) = work.pop().or_else(|| iter.next()) {
+        if id < ctx.num_glyphs && ctx.subset.insert(id) {
+            let mut r = Reader::new(table.glyph_data(id)?);
+            if let Ok(num_contours) = r.read::<i16>() {
+                // Negative means this is a composite glyph.
+                if num_contours < 0 {
+                    // Skip min/max metrics.
+                    r.read::<i16>()?;
+                    r.read::<i16>()?;
+                    r.read::<i16>()?;
+                    r.read::<i16>()?;
 
-            if ctx.subset.insert(id) {
-                let mut r = Reader::new(table.glyph_data(id)?);
-                if let Ok(num_contours) = r.read::<i16>() {
-                    // Negative means this is a composite glyph.
-                    if num_contours < 0 {
-                        // Skip min/max metrics.
-                        r.read::<i16>()?;
-                        r.read::<i16>()?;
-                        r.read::<i16>()?;
-                        r.read::<i16>()?;
-
-                        let extended =
-                            component_glyphs(r).map(|g| (g, false)).collect::<Vec<_>>();
-                        work.extend(extended);
-                    }
+                    let extended = component_glyphs(r).collect::<Vec<_>>();
+                    work.extend(extended);
                 }
             }
         }

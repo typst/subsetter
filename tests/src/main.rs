@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
-use subsetter::{subset, Profile};
+use subsetter::subset;
 use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
@@ -42,11 +42,7 @@ fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
     let data = std::fs::read(font_path)?;
     let gids: Vec<_> = parse_gids(gids);
 
-    let (subset, gid_map) = subset(
-        &data,
-        0,
-        Profile::pdf(gids.iter().copied().collect::<Vec<_>>().as_ref()),
-    )?;
+    let (subset, gid_map) = subset(&data, 0, &gids)?;
 
     if SAVE_SUBSETS {
         save_font(&subset);
