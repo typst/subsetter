@@ -68,7 +68,9 @@ pub fn subset(data: &[u8], index: u32, profile: &[u16]) -> Result<(Vec<u8>, Mapp
 }
 
 /// Subset with a custom mapper
+/// TODO: Write preconditions
 pub fn subset_with_mapper(data: &[u8], index: u32, profile: &[u16], mapper: HashMap<u16, u16>) -> Result<(Vec<u8>, Mapper)> {
+    assert_eq!(mapper.get(&0), Some(&0));
     _subset(data, index, profile, mapper.into())
 }
 

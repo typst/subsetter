@@ -12,7 +12,7 @@ impl From<HashMap<u16, u16>> for InternalMapper {
         let mut mapper = InternalMapper::new();
 
         let mut items = value.iter().collect::<Vec<_>>();
-        items.sort_by_key(|(k, v)| *v);
+        items.sort_by_key(|(_, v)| *v);
 
         for (k, _) in items {
             mapper.insert(*k);
