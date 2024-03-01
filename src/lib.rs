@@ -296,6 +296,15 @@ impl<'a> Context<'a> {
             Tag::HHEA => hhea::subset(self)?,
             Tag::HMTX => hmtx::subset(self)?,
             Tag::POST => post::subset(self)?,
+            // TODO: cmap can actually also be dropped for PDF since we use
+            // CID-keyed fonts.
+            // "If used with a simple font dictionary, the font
+            // program must additionally contain a “cmap” table
+            // defining one or more encodings, as discussed in
+            // “Encodings for TrueType Fonts” on page 429. If
+            // used with a CIDFont dictionary, the “cmap” table
+            // is not needed, since the mapping from character codes
+            // to glyph descriptions is provided separately.
             Tag::CMAP => cmap::subset(self)?,
             Tag::MAXP => maxp::subset(self)?,
             Tag::NAME => name::subset(self)?,
