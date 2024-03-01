@@ -8,7 +8,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let num_h_metrics = {
         let hhea = ctx.expect_table(Tag::HHEA)?;
         let mut r = Reader::new(hhea);
-        r.skip(34)?;
+        r.advance(34)?;
         r.read::<u16>()?
     };
 

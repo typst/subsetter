@@ -39,6 +39,7 @@ resulting font is 36 KB (5 KB zipped).
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
 
+mod cff;
 mod cmap;
 mod glyf;
 mod head;
@@ -69,12 +70,22 @@ pub fn subset(data: &[u8], index: u32, profile: &[u16]) -> Result<(Vec<u8>, Mapp
 
 /// Subset with a custom mapper
 /// TODO: Write preconditions
-pub fn subset_with_mapper(data: &[u8], index: u32, profile: &[u16], mapper: HashMap<u16, u16>) -> Result<(Vec<u8>, Mapper)> {
+pub fn subset_with_mapper(
+    data: &[u8],
+    index: u32,
+    profile: &[u16],
+    mapper: HashMap<u16, u16>,
+) -> Result<(Vec<u8>, Mapper)> {
     assert_eq!(mapper.get(&0), Some(&0));
     _subset(data, index, profile, mapper.into())
 }
 
-fn _subset(data: &[u8], index: u32, profile: &[u16], mapper: InternalMapper) -> Result<(Vec<u8>, Mapper)> {
+fn _subset(
+    data: &[u8],
+    index: u32,
+    profile: &[u16],
+    mapper: InternalMapper,
+) -> Result<(Vec<u8>, Mapper)> {
     let face = parse(data, index)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
         Some(_) => FontKind::Cff,
@@ -108,9 +119,9 @@ fn _subset(data: &[u8], index: u32, profile: &[u16], mapper: InternalMapper) -> 
         glyf::discover(&mut ctx)?;
     }
 
-    // if ctx.kind == FontKind::Cff {
-    //     cff::discover(&mut ctx);
-    // }
+    if ctx.kind == FontKind::Cff {
+        cff::discover(&mut ctx)?;
+    }
 
     ctx.initialize_gid_map();
 
@@ -123,14 +134,18 @@ fn _subset(data: &[u8], index: u32, profile: &[u16], mapper: InternalMapper) -> 
         ctx.process(Tag::GASP)?; // won't be subsetted.
     }
 
-    // if ctx.kind == FontKind::Cff {
-    //     ctx.process(Tag::CFF)?;
-    //     ctx.process(Tag::CFF2)?;
-    //     ctx.process(Tag::VORG)?;
-    // }
+    if ctx.kind == FontKind::Cff {
+        ctx.process(Tag::CFF)?;
+        // Typst doesn't support CFF2 or vertical writing anyway,
+        // so we don't need those.
+        // ctx.process(Tag::CFF2)?;
+        // ctx.process(Tag::VORG)?;
+    }
 
     // Required tables.
-    ctx.process(Tag::CMAP)?;
+    // CMAP tables will be encoded separately into the PDF,
+    // so not needed.
+    // ctx.process(Tag::CMAP)?;
     ctx.process(Tag::HEAD)?;
     ctx.process(Tag::HHEA)?;
     ctx.process(Tag::HMTX)?;
@@ -291,7 +306,7 @@ impl<'a> Context<'a> {
         match tag {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
-            // Tag::CFF => cff::subset(self)?,
+            Tag::CFF => cff::subset(self)?,
             Tag::HEAD => head::subset(self)?,
             Tag::HHEA => hhea::subset(self)?,
             Tag::HMTX => hmtx::subset(self)?,

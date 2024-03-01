@@ -1,4 +1,5 @@
 use super::{Error, Result};
+use crate::Error::MissingData;
 
 /// A readable stream of binary data.
 pub struct Reader<'a> {
@@ -10,6 +11,13 @@ impl<'a> Reader<'a> {
     /// Create a new readable stream of binary data.
     pub fn new(data: &'a [u8]) -> Self {
         Self { data, offset: 0 }
+    }
+
+    /// Create a new readable stream of binary data at a specific position.
+    pub fn new_at(data: &'a [u8], offset: usize) -> Result<Self> {
+        let mut reader = Self { data, offset: 0 };
+        reader.advance(offset)?;
+        Ok(reader)
     }
 
     /// The remaining data from the current offset.
@@ -25,6 +33,19 @@ impl<'a> Reader<'a> {
     /// Try to read `T` from the data.
     pub fn read<T: Structure<'a>>(&mut self) -> Result<T> {
         T::read(self)
+    }
+
+    /// Read a certain number of bytes
+    pub fn read_bytes(&mut self, len: usize) -> Result<&'a [u8]> {
+        let v = self.data.get(self.offset..self.offset + len).ok_or(MissingData)?;
+        self.advance(len)?;
+        Ok(v)
+    }
+
+    /// Try to read `T` from the data.
+    pub fn skip<T: Structure<'a>>(&mut self) -> Result<()> {
+        let _ = self.read::<T>()?;
+        Ok(())
     }
 
     /// Try to read a vector of `T` from the data.
@@ -50,7 +71,7 @@ impl<'a> Reader<'a> {
     }
 
     /// Skip the next `n` bytes from the stream.
-    pub fn skip(&mut self, n: usize) -> Result<()> {
+    pub fn advance(&mut self, n: usize) -> Result<()> {
         self.take(n).map(|_| ())
     }
 }
@@ -173,5 +194,20 @@ impl Structure<'_> for i32 {
 
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 4]>(self.to_be_bytes());
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct U24(pub u32);
+
+impl Structure<'_> for U24 {
+    fn read(r: &mut Reader<'_>) -> crate::Result<Self> {
+        let data = r.read::<[u8; 3]>()?;
+        Ok(U24(u32::from_be_bytes([0, data[0], data[1], data[2]])))
+    }
+
+    fn write(&self, w: &mut Writer) {
+        let data = self.0.to_be_bytes();
+        w.write::<[u8; 3]>([data[0], data[1], data[2]]);
     }
 }

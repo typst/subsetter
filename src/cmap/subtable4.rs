@@ -87,7 +87,7 @@ impl Subtable4<'_> {
 
 impl<'a> Structure<'a> for Subtable4<'a> {
     fn read(r: &mut Reader<'a>) -> crate::Result<Self> {
-        r.skip(4)?; // format + length
+        r.advance(4)?; // format + length
         let language = r.read::<u16>()?;
         let seg_count_x2 = r.read::<u16>()?;
 
@@ -96,9 +96,9 @@ impl<'a> Structure<'a> for Subtable4<'a> {
         }
 
         let seg_count = seg_count_x2 / 2;
-        r.skip(6)?; // search range + entry selector + range shift
+        r.advance(6)?; // search range + entry selector + range shift
         let end_codes = r.read_vector::<u16>(seg_count as usize)?;
-        r.skip(2)?; // reserved pad
+        r.advance(2)?; // reserved pad
         let start_codes = r.read_vector::<u16>(seg_count as usize)?;
         let id_deltas = r.read_vector::<i16>(seg_count as usize)?;
 
