@@ -58,6 +58,11 @@ impl<'a> Reader<'a> {
         Ok(())
     }
 
+    /// Jump to a specific location.
+    pub fn jump(&mut self, offset: usize) {
+        self.offset = offset;
+    }
+
     /// Try to read a vector of `T` from the data.
     pub fn read_vector<T: Structure<'a>>(&mut self, count: usize) -> Result<Vec<T>> {
         let mut res = Vec::with_capacity(count);

@@ -8,7 +8,7 @@ const TWO_BYTE_OPERATOR_MARK: u8 = 12;
 const FLOAT_STACK_LEN: usize = 64;
 const END_OF_FLOAT_FLAG: u8 = 0xf;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
 pub struct Operator(pub u16);
 
 impl Operator {
