@@ -1,10 +1,13 @@
 mod dict;
+mod encoding;
 mod index;
 mod top_dict;
 
 use super::*;
+use crate::cff::dict::Operator;
 use crate::cff::index::{parse_index, Index};
 use crate::cff::top_dict::parse_top_dict;
+use crate::Error::InvalidData;
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const MAX_OPERANDS_LEN: usize = 48;
@@ -51,9 +54,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
     // let name_index_data = &cff[name_index_start..top_dict_index_start];
 
-    // Skip top_dict_index for now
-    let top_dict = parse_top_dict(&mut r);
-    println!("{:?}", top_dict.map(|m| m.into_iter().collect::<Vec<_>>()));
+    let top_dict = parse_top_dict(&mut r).ok_or(InvalidData)?;
 
     let mut strings = parse_index::<u16>(&mut r)?
         .into_iter()
@@ -62,8 +63,26 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         .enumerate()
         .collect::<HashMap<_, _>>();
 
-    // Go back to top_dict_index
-    r.jump(top_dict_index_start);
+    // Skip global subrs for now
+    let _ = parse_index::<u16>(&mut r)?;
+
+    let mut char_strings = HashMap::new();
+    let mut num_glyphs = 0;
+
+    if let Some(offset) = top_dict.get(&Operator(17)) {
+        let offset = offset.get(0).map(|o| *o as usize).ok_or(InvalidData)?;
+        let mut cs_r = Reader::new_at(cff, offset)?;
+        let char_strings_index = parse_index::<u16>(&mut cs_r)?;
+
+        char_strings = char_strings_index
+            .into_iter()
+            .enumerate()
+            .map(|(index, data)| (u16::try_from(index).unwrap(), data))
+            .filter(|(index, data)| ctx.requested_glyphs.contains(index))
+            .collect();
+
+        println!("{:?}", char_strings.into_iter().collect::<Vec<_>>());
+    }
 
     Ok(())
 }

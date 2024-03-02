@@ -226,3 +226,17 @@ impl Structure<'_> for U24 {
         w.write::<[u8; 3]>([data[0], data[1], data[2]]);
     }
 }
+
+/// A type-safe wrapper for string ID.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug)]
+pub struct StringId(u16);
+
+impl Structure<'_> for StringId {
+    fn read(r: &mut Reader<'_>) -> Result<Self> {
+        Ok(Self(r.read::<u16>()?))
+    }
+
+    fn write(&self, w: &mut Writer) {
+        w.write::<u16>(self.0)
+    }
+}
