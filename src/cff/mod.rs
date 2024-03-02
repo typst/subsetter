@@ -1,4 +1,5 @@
 mod index;
+mod dict;
 
 use super::*;
 use crate::cff::index::{parse_index, Index};
@@ -24,6 +25,10 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     }
 
     let name_index = parse_index::<u16>(&mut r)?;
+    println!("{:?}", name_index);
+
+
+
     Ok(())
 }
 

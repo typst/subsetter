@@ -25,6 +25,16 @@ impl<'a> Reader<'a> {
         &self.data[self.offset..]
     }
 
+    /// Whether the reader has reached the end.
+    pub fn at_end(&self) -> bool {
+        self.offset >= self.data.len()
+    }
+
+    /// Returns the current offset.
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
+
     /// Whether there is no data remaining.
     pub fn eof(&self) -> bool {
         self.offset >= self.data.len()
