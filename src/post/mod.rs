@@ -5,7 +5,6 @@ use super::*;
 use crate::post::read::Version2Table;
 use crate::Error::{MalformedFont, SubsetError};
 
-/// Subset the glyf and loca tables by removing glyph data for unused glyphs.
 pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let post = ctx.expect_table(Tag::POST).ok_or(MalformedFont)?;
     let mut r = Reader::new(post);

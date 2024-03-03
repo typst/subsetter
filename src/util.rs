@@ -1,5 +1,7 @@
 use crate::stream::{Readable, Reader};
 
+// TODO: Remove?
+
 /// A slice-like container that converts internal binary data only on access.
 ///
 /// Array values are stored in a continuous data chunk.

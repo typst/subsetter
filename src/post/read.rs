@@ -1,5 +1,4 @@
 use crate::stream::Reader;
-use crate::util::LazyArray16;
 
 /// An iterator over glyph names.
 ///
@@ -42,10 +41,10 @@ impl<'a> Iterator for Names<'a> {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Version2Table<'a> {
     pub header: &'a [u8],
-    pub glyph_indexes: LazyArray16<'a, u16>,
+    pub glyph_indexes: Vec<u16>,
     pub names_data: &'a [u8],
 }
 
@@ -62,7 +61,7 @@ impl<'a> Version2Table<'a> {
         let header = r.read_bytes(32)?;
 
         let indexes_count = r.read::<u16>()?;
-        let glyph_indexes = r.read_array16::<u16>(indexes_count)?;
+        let glyph_indexes = r.read_vector::<u16>(indexes_count as usize)?;
         let names_data = r.tail()?;
 
         Some(Version2Table { header, glyph_indexes, names_data })

@@ -10,7 +10,7 @@ pub struct SubsettedVersion2Table<'a> {
 }
 
 pub fn subset<'a>(
-    ctx: &mut Context,
+    ctx: &Context,
     table: &Version2Table<'a>,
 ) -> Option<SubsettedVersion2Table<'a>> {
     let old_names = table.names().collect::<Vec<_>>();
@@ -23,7 +23,7 @@ pub fn subset<'a>(
     let mut count = 0;
     for i in 0..num_glyphs {
         let old_gid = ctx.mapper.get_reverse(i).unwrap();
-        let index = table.glyph_indexes.get(old_gid)?;
+        let index = *table.glyph_indexes.get(old_gid as usize)?;
 
         if index <= 257 {
             glyph_indexes.push(index);
