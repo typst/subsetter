@@ -38,6 +38,8 @@ impl<'a> Reader<'a> {
         T::read(self)
     }
 
+    // TODO: Add skip function
+
     /// Read a certain number of bytes.
     pub fn read_bytes(&mut self, len: usize) -> Option<&'a [u8]> {
         let v = self.data.get(self.offset..self.offset + len)?;
@@ -84,7 +86,7 @@ impl Writer {
     }
 
     /// Write `T` into the data.
-    pub fn write<'a, T: Writeable>(&mut self, data: T) {
+    pub fn write<T: Writeable>(&mut self, data: T) {
         data.write(self);
     }
 

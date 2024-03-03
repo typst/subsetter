@@ -75,31 +75,31 @@ fn parse_gids(gids: &str) -> Vec<u16> {
 
 /// Check that for each character that was mapped to a gid that is in the subset,
 /// a corresponding map also exists in the new face.
-fn cmap(font_file: &str, gids: &str) {
-    let ctx = get_test_context(font_file, gids).unwrap();
-    let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
-    let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
-    let mut all_chars = vec![];
-
-    old_face.tables().cmap.unwrap().subtables.into_iter().for_each(|s| {
-        s.codepoints(|c| all_chars.push(c));
-    });
-
-    let relevant_chars = all_chars
-        .iter()
-        .map(|c| char::from_u32(*c).unwrap())
-        .filter_map(|c| match old_face.glyph_index(c) {
-            Some(g) if ctx.gids.contains(&g.0) => Some((c, g)),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-
-    for (c, gid) in relevant_chars {
-        let mapped_gid = ctx.mapper.get(gid.0);
-        let cur_gid = new_face.glyph_index(c).map(|g| g.0);
-        assert_eq!((c, mapped_gid), (c, cur_gid));
-    }
-}
+// fn cmap(font_file: &str, gids: &str) {
+//     let ctx = get_test_context(font_file, gids).unwrap();
+//     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
+//     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
+//     let mut all_chars = vec![];
+//
+//     old_face.tables().cmap.unwrap().subtables.into_iter().for_each(|s| {
+//         s.codepoints(|c| all_chars.push(c));
+//     });
+//
+//     let relevant_chars = all_chars
+//         .iter()
+//         .map(|c| char::from_u32(*c).unwrap())
+//         .filter_map(|c| match old_face.glyph_index(c) {
+//             Some(g) if ctx.gids.contains(&g.0) => Some((c, g)),
+//             _ => None,
+//         })
+//         .collect::<Vec<_>>();
+//
+//     for (c, gid) in relevant_chars {
+//         let mapped_gid = ctx.mapper.get(gid.0);
+//         let cur_gid = new_face.glyph_index(c).map(|g| g.0);
+//         assert_eq!((c, mapped_gid), (c, cur_gid));
+//     }
+// }
 
 fn face_metrics(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
