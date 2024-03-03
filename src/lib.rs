@@ -52,7 +52,7 @@ mod post;
 mod stream;
 
 use crate::mapper::{InternalMapper, MapperVariant};
-use crate::stream::{Reader, Structure, Writer};
+use crate::stream::{Readable, Reader, Writeable, Writer};
 use crate::Error::{MalformedFont, UnknownKind};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
@@ -378,7 +378,7 @@ enum FontKind {
     Collection,
 }
 
-impl Structure<'_> for FontKind {
+impl Readable<'_> for FontKind {
     fn read(r: &mut Reader) -> Option<Self> {
         match r.read::<u32>()? {
             0x00010000 | 0x74727565 => Some(FontKind::TrueType),
@@ -387,7 +387,9 @@ impl Structure<'_> for FontKind {
             _ => None,
         }
     }
+}
 
+impl Writeable for FontKind {
     fn write(&self, w: &mut Writer) {
         w.write::<u32>(match self {
             FontKind::TrueType => 0x00010000,
@@ -438,11 +440,13 @@ impl Tag {
     const SVG: Self = Self(*b"SVG ");
 }
 
-impl Structure<'_> for Tag {
+impl Readable<'_> for Tag {
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self)
     }
+}
 
+impl Writeable for Tag {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 4]>(self.0)
     }
@@ -469,7 +473,7 @@ struct TableRecord {
     length: u32,
 }
 
-impl Structure<'_> for TableRecord {
+impl Readable<'_> for TableRecord {
     fn read(r: &mut Reader) -> Option<Self> {
         Some(TableRecord {
             tag: r.read::<Tag>()?,
@@ -478,7 +482,9 @@ impl Structure<'_> for TableRecord {
             length: r.read::<u32>()?,
         })
     }
+}
 
+impl Writeable for TableRecord {
     fn write(&self, w: &mut Writer) {
         w.write::<Tag>(self.tag);
         w.write::<u32>(self.checksum);
@@ -490,11 +496,13 @@ impl Structure<'_> for TableRecord {
 /// A signed 16-bit fixed-point number.
 struct F2Dot14(u16);
 
-impl Structure<'_> for F2Dot14 {
+impl Readable<'_> for F2Dot14 {
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<u16>().map(Self)
     }
+}
 
+impl Writeable for F2Dot14 {
     fn write(&self, w: &mut Writer) {
         w.write::<u16>(self.0)
     }

@@ -34,7 +34,7 @@ impl<'a> Reader<'a> {
     // }
 
     /// Try to read `T` from the data.
-    pub fn read<T: Structure<'a>>(&mut self) -> Option<T> {
+    pub fn read<T: Readable<'a>>(&mut self) -> Option<T> {
         T::read(self)
     }
 
@@ -84,7 +84,7 @@ impl Writer {
     }
 
     /// Write `T` into the data.
-    pub fn write<'a, T: Structure<'a>>(&mut self, data: T) {
+    pub fn write<'a, T: Writeable>(&mut self, data: T) {
         data.write(self);
     }
 
@@ -117,70 +117,77 @@ impl Writer {
     }
 }
 
-/// Decode structures from a stream of binary data.
-pub trait Structure<'a>: Sized {
-    /// Try to read `Self` from the reader.
+pub trait Readable<'a>: Sized {
     fn read(r: &mut Reader<'a>) -> Option<Self>;
+}
 
-    /// Write `Self` into the writer.
+pub trait Writeable: Sized {
     fn write(&self, w: &mut Writer);
 }
 
-impl<const N: usize> Structure<'_> for [u8; N] {
+impl<const N: usize> Readable<'_> for [u8; N] {
     fn read(r: &mut Reader) -> Option<Self> {
         Some(r.read_bytes(N)?.try_into().unwrap_or([0; N]))
     }
+}
 
+impl<const N: usize> Writeable for [u8; N] {
     fn write(&self, w: &mut Writer) {
         w.extend(self)
     }
 }
 
-impl Structure<'_> for u8 {
+impl Readable<'_> for u8 {
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 1]>().map(Self::from_be_bytes)
     }
-
+}
+impl Writeable for u8 {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 1]>(self.to_be_bytes());
     }
 }
 
-impl Structure<'_> for u16 {
+impl Readable<'_> for u16 {
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
-
+}
+impl Writeable for u16 {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 2]>(self.to_be_bytes());
     }
 }
 
-impl Structure<'_> for i16 {
+impl Readable<'_> for i16 {
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
-
+}
+impl Writeable for i16 {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 2]>(self.to_be_bytes());
     }
 }
 
-impl Structure<'_> for u32 {
+impl Readable<'_> for u32 {
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
+}
 
+impl Writeable for u32 {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 4]>(self.to_be_bytes());
     }
 }
 
-impl Structure<'_> for i32 {
+impl Readable<'_> for i32 {
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
-
+}
+impl Writeable for i32 {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 4]>(self.to_be_bytes());
     }
@@ -189,12 +196,14 @@ impl Structure<'_> for i32 {
 #[derive(Clone, Copy, Debug)]
 pub struct U24(pub u32);
 
-impl Structure<'_> for U24 {
+impl Readable<'_> for U24 {
     fn read(r: &mut Reader<'_>) -> Option<Self> {
         let data = r.read::<[u8; 3]>()?;
         Some(U24(u32::from_be_bytes([0, data[0], data[1], data[2]])))
     }
+}
 
+impl Writeable for U24 {
     fn write(&self, w: &mut Writer) {
         let data = self.0.to_be_bytes();
         w.write::<[u8; 3]>([data[0], data[1], data[2]]);
@@ -205,11 +214,13 @@ impl Structure<'_> for U24 {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug, Hash)]
 pub struct StringId(pub u16);
 
-impl Structure<'_> for StringId {
+impl Readable<'_> for StringId {
     fn read(r: &mut Reader<'_>) -> Option<Self> {
         Some(Self(r.read::<u16>()?))
     }
+}
 
+impl Writeable for StringId {
     fn write(&self, w: &mut Writer) {
         w.write::<u16>(self.0)
     }

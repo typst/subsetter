@@ -1,4 +1,5 @@
 use super::*;
+use crate::stream::{Readable, Writeable};
 use crate::Error::MalformedFont;
 
 struct NameRecord {
@@ -17,7 +18,7 @@ impl NameRecord {
     }
 }
 
-impl Structure<'_> for NameRecord {
+impl Readable<'_> for NameRecord {
     fn read(r: &mut Reader<'_>) -> Option<Self> {
         let platform_id = r.read::<u16>()?;
         let encoding_id = r.read::<u16>()?;
@@ -35,7 +36,9 @@ impl Structure<'_> for NameRecord {
             string_offset,
         })
     }
+}
 
+impl Writeable for NameRecord {
     fn write(&self, w: &mut Writer) {
         w.write::<u16>(self.platform_id);
         w.write::<u16>(self.encoding_id);
