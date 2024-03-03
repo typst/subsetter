@@ -120,6 +120,8 @@ impl Writer {
 }
 
 pub trait Readable<'a>: Sized {
+    const SIZE: usize;
+
     fn read(r: &mut Reader<'a>) -> Option<Self>;
 }
 
@@ -128,6 +130,8 @@ pub trait Writeable: Sized {
 }
 
 impl<const N: usize> Readable<'_> for [u8; N] {
+    const SIZE: usize = u8::SIZE * N;
+
     fn read(r: &mut Reader) -> Option<Self> {
         Some(r.read_bytes(N)?.try_into().unwrap_or([0; N]))
     }
@@ -140,6 +144,8 @@ impl<const N: usize> Writeable for [u8; N] {
 }
 
 impl Readable<'_> for u8 {
+    const SIZE: usize = 1;
+
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 1]>().map(Self::from_be_bytes)
     }
@@ -151,6 +157,8 @@ impl Writeable for u8 {
 }
 
 impl Readable<'_> for u16 {
+    const SIZE: usize = 2;
+
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
@@ -162,6 +170,8 @@ impl Writeable for u16 {
 }
 
 impl Readable<'_> for i16 {
+    const SIZE: usize = 2;
+
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
@@ -173,6 +183,8 @@ impl Writeable for i16 {
 }
 
 impl Readable<'_> for u32 {
+    const SIZE: usize = 4;
+
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
@@ -185,6 +197,8 @@ impl Writeable for u32 {
 }
 
 impl Readable<'_> for i32 {
+    const SIZE: usize = 4;
+
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
@@ -199,6 +213,8 @@ impl Writeable for i32 {
 pub struct U24(pub u32);
 
 impl Readable<'_> for U24 {
+    const SIZE: usize = 3;
+
     fn read(r: &mut Reader<'_>) -> Option<Self> {
         let data = r.read::<[u8; 3]>()?;
         Some(U24(u32::from_be_bytes([0, data[0], data[1], data[2]])))
@@ -217,6 +233,8 @@ impl Writeable for U24 {
 pub struct StringId(pub u16);
 
 impl Readable<'_> for StringId {
+    const SIZE: usize = u16::SIZE;
+
     fn read(r: &mut Reader<'_>) -> Option<Self> {
         Some(Self(r.read::<u16>()?))
     }

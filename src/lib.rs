@@ -50,6 +50,7 @@ mod maxp;
 mod name;
 mod post;
 mod stream;
+mod util;
 
 use crate::mapper::{InternalMapper, MapperVariant};
 use crate::stream::{Readable, Reader, Writeable, Writer};
@@ -379,6 +380,8 @@ enum FontKind {
 }
 
 impl Readable<'_> for FontKind {
+    const SIZE: usize = u32::SIZE;
+
     fn read(r: &mut Reader) -> Option<Self> {
         match r.read::<u32>()? {
             0x00010000 | 0x74727565 => Some(FontKind::TrueType),
@@ -441,6 +444,8 @@ impl Tag {
 }
 
 impl Readable<'_> for Tag {
+    const SIZE: usize = u8::SIZE * 4;
+
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self)
     }
@@ -474,6 +479,8 @@ struct TableRecord {
 }
 
 impl Readable<'_> for TableRecord {
+    const SIZE: usize = Tag::SIZE + u32::SIZE + u32::SIZE + u32::SIZE;
+
     fn read(r: &mut Reader) -> Option<Self> {
         Some(TableRecord {
             tag: r.read::<Tag>()?,
@@ -497,6 +504,8 @@ impl Writeable for TableRecord {
 struct F2Dot14(u16);
 
 impl Readable<'_> for F2Dot14 {
+    const SIZE: usize = u16::SIZE;
+
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<u16>().map(Self)
     }

@@ -19,6 +19,8 @@ impl NameRecord {
 }
 
 impl Readable<'_> for NameRecord {
+    const SIZE: usize = u16::SIZE * 6;
+
     fn read(r: &mut Reader<'_>) -> Option<Self> {
         let platform_id = r.read::<u16>()?;
         let encoding_id = r.read::<u16>()?;
