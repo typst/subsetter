@@ -169,7 +169,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
 fn remap_component_glyphs(ctx: &Context, data: &[u8]) -> Result<Vec<u8>> {
     let mut r = Reader::new(data);
-    let mut w = Writer::new();
+    let mut w = Writer::with_capacity(data.len());
 
     // num_contours
     w.write(r.read::<i16>().ok_or(MalformedFont)?);

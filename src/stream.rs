@@ -90,6 +90,11 @@ impl Writer {
         Self(Vec::with_capacity(1024))
     }
 
+    /// Create a new writable stream of binary data with a capacity.
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self(Vec::with_capacity(capacity))
+    }
+
     /// Write `T` into the data.
     pub fn write<T: Writeable>(&mut self, data: T) {
         data.write(self);
