@@ -1,4 +1,5 @@
 use super::*;
+use crate::Error::MalformedFont;
 
 /// Subset the htmx table.
 ///
@@ -6,13 +7,13 @@ use super::*;
 /// for unused glyphs so that it compresses better when embedded into a PDF.
 pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let num_h_metrics = {
-        let hhea = ctx.expect_table(Tag::HHEA)?;
+        let hhea = ctx.expect_table(Tag::HHEA).ok_or(MalformedFont)?;
         let mut r = Reader::new(hhea);
-        r.advance(34)?;
-        r.read::<u16>()?
+        r.skip_bytes(34).ok_or(MalformedFont)?;
+        r.read::<u16>().ok_or(MalformedFont)?
     };
 
-    let hmtx = ctx.expect_table(Tag::HMTX)?;
+    let hmtx = ctx.expect_table(Tag::HMTX).ok_or(MalformedFont)?;
     let mut sub_htmx = Writer::new();
 
     let mut last_advance_width = 0;
@@ -22,8 +23,8 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         if original_gid < num_h_metrics {
             let offset = original_gid as usize * 4;
             let mut r = Reader::new(&hmtx[offset..]);
-            let advance_width = r.read::<u16>()?;
-            let lsb = r.read::<u16>()?;
+            let advance_width = r.read::<u16>().ok_or(MalformedFont)?;
+            let lsb = r.read::<u16>().ok_or(MalformedFont)?;
             sub_htmx.write::<u16>(advance_width);
             sub_htmx.write::<u16>(lsb);
 
@@ -33,7 +34,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
             let offset = metrics_end + (original_gid - num_h_metrics) as usize * 2;
             let mut r = Reader::new(&hmtx[offset..]);
 
-            let lsb = r.read::<u16>()?;
+            let lsb = r.read::<u16>().ok_or(MalformedFont)?;
             sub_htmx.write::<u16>(last_advance_width);
             sub_htmx.write::<u16>(lsb);
         }

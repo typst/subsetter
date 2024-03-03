@@ -39,8 +39,8 @@ resulting font is 36 KB (5 KB zipped).
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
 
-mod cff;
-mod cmap;
+// mod cff;
+// mod cmap;
 mod glyf;
 mod head;
 mod hhea;
@@ -53,6 +53,7 @@ mod stream;
 
 use crate::mapper::{InternalMapper, MapperVariant};
 use crate::stream::{Reader, Structure, Writer};
+use crate::Error::{MalformedFont, UnknownKind};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Debug, Display, Formatter};
@@ -92,8 +93,9 @@ fn _subset(
         None => FontKind::TrueType,
     };
 
-    let maxp = face.table(Tag::MAXP).ok_or(Error::MissingTable(Tag::MAXP))?;
-    let num_glyphs = u16::read_at(maxp, 4)?;
+    let maxp = face.table(Tag::MAXP).ok_or(MalformedFont)?;
+    let mut r = Reader::new_at(maxp, 4);
+    let num_glyphs = r.read::<u16>().ok_or(MalformedFont)?;
 
     let mut requested_glyphs = HashSet::from_iter(profile.iter().copied());
     // We always include the .notdef glyph.
@@ -120,7 +122,7 @@ fn _subset(
     }
 
     if ctx.kind == FontKind::Cff {
-        cff::discover(&mut ctx)?;
+        // cff::discover(&mut ctx)?;
     }
 
     ctx.initialize_gid_map();
@@ -160,29 +162,30 @@ fn _subset(
 /// Parse a font face from OpenType data.
 fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
     let mut r = Reader::new(data);
-    let mut kind = r.read::<FontKind>()?;
+    let mut kind = r.read::<FontKind>().ok_or(UnknownKind)?;
 
     // Parse font collection header if necessary.
     if kind == FontKind::Collection {
-        let offset = u32::read_at(data, 12 + 4 * (index as usize))?;
-        let subdata = data.get(offset as usize..).ok_or(Error::InvalidOffset)?;
+        let mut r = Reader::new_at(data, 12 + 4 * (index as usize));
+        let offset = r.read::<u32>().ok_or(MalformedFont)?;
+        let subdata = data.get(offset as usize..).ok_or(MalformedFont)?;
         r = Reader::new(subdata);
-        kind = r.read::<FontKind>()?;
+        kind = r.read::<FontKind>().ok_or(MalformedFont)?;
         if kind == FontKind::Collection {
-            return Err(Error::UnknownKind);
+            return Err(UnknownKind);
         }
     }
 
     // Read number of table records.
-    let count = r.read::<u16>()?;
-    r.read::<u16>()?;
-    r.read::<u16>()?;
-    r.read::<u16>()?;
+    let count = r.read::<u16>().ok_or(MalformedFont)?;
+    r.read::<u16>().ok_or(MalformedFont)?;
+    r.read::<u16>().ok_or(MalformedFont)?;
+    r.read::<u16>().ok_or(MalformedFont)?;
 
     // Read table records.
     let mut records = vec![];
     for _ in 0..count {
-        records.push(r.read::<TableRecord>()?);
+        records.push(r.read::<TableRecord>().ok_or(MalformedFont)?);
     }
 
     Ok(Face { data, records })
@@ -292,8 +295,8 @@ struct Context<'a> {
 
 impl<'a> Context<'a> {
     /// Expect a table.
-    fn expect_table(&self, tag: Tag) -> Result<&'a [u8]> {
-        self.face.table(tag).ok_or(Error::MissingTable(tag))
+    fn expect_table(&self, tag: Tag) -> Option<&'a [u8]> {
+        self.face.table(tag)
     }
 
     /// Process a table.
@@ -306,7 +309,7 @@ impl<'a> Context<'a> {
         match tag {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
-            Tag::CFF => cff::subset(self)?,
+            // Tag::CFF => cff::subset(self)?,
             Tag::HEAD => head::subset(self)?,
             Tag::HHEA => hhea::subset(self)?,
             Tag::HMTX => hmtx::subset(self)?,
@@ -320,7 +323,7 @@ impl<'a> Context<'a> {
             // used with a CIDFont dictionary, the “cmap” table
             // is not needed, since the mapping from character codes
             // to glyph descriptions is provided separately.
-            Tag::CMAP => cmap::subset(self)?,
+            // Tag::CMAP => cmap::subset(self)?,
             Tag::MAXP => maxp::subset(self)?,
             Tag::NAME => name::subset(self)?,
             _ => self.push(tag, data),
@@ -376,12 +379,12 @@ enum FontKind {
 }
 
 impl Structure<'_> for FontKind {
-    fn read(r: &mut Reader) -> Result<Self> {
+    fn read(r: &mut Reader) -> Option<Self> {
         match r.read::<u32>()? {
-            0x00010000 | 0x74727565 => Ok(FontKind::TrueType),
-            0x4F54544F => Ok(FontKind::Cff),
-            0x74746366 => Ok(FontKind::Collection),
-            _ => Err(Error::UnknownKind),
+            0x00010000 | 0x74727565 => Some(FontKind::TrueType),
+            0x4F54544F => Some(FontKind::Cff),
+            0x74746366 => Some(FontKind::Collection),
+            _ => None,
         }
     }
 
@@ -436,7 +439,7 @@ impl Tag {
 }
 
 impl Structure<'_> for Tag {
-    fn read(r: &mut Reader) -> Result<Self> {
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self)
     }
 
@@ -467,8 +470,8 @@ struct TableRecord {
 }
 
 impl Structure<'_> for TableRecord {
-    fn read(r: &mut Reader) -> Result<Self> {
-        Ok(TableRecord {
+    fn read(r: &mut Reader) -> Option<Self> {
+        Some(TableRecord {
             tag: r.read::<Tag>()?,
             checksum: r.read::<u32>()?,
             offset: r.read::<u32>()?,
@@ -488,7 +491,7 @@ impl Structure<'_> for TableRecord {
 struct F2Dot14(u16);
 
 impl Structure<'_> for F2Dot14 {
-    fn read(r: &mut Reader) -> Result<Self> {
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<u16>().map(Self)
     }
 
@@ -505,33 +508,22 @@ type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     /// The file contains an unknown kind of font.
     UnknownKind,
-    /// An offset pointed outside of the data.
-    InvalidOffset,
-    /// Parsing expected more data.
-    MissingData,
-    /// Parsed data was invalid.
-    InvalidData,
-    /// A table is missing.
-    ///
-    /// Mostly, the subsetter just ignores (i.e. not subsets) tables if they are
-    /// missing (even the required ones). This error only occurs if a table
-    /// depends on another table and that one is missing, e.g., `glyf` is
-    /// present but `loca` is missing.
-    MissingTable(Tag),
+    /// The font seems to be malformed.
+    MalformedFont,
     /// The font relies on some unimplemented feature, and thus we cannot guarantee
     /// that the subsetted font would be correct.
     Unimplemented,
+    /// An error occurred when subsetting the font.
+    SubsetError,
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            Self::UnknownKind => f.pad("unknown font kind"),
-            Self::InvalidOffset => f.pad("invalid offset"),
-            Self::MissingData => f.pad("missing more data"),
-            Self::InvalidData => f.pad("invalid data"),
-            Self::MissingTable(tag) => write!(f, "missing {tag} table"),
-            Self::Unimplemented => f.pad("unimplemented feature in font"),
+            Self::UnknownKind => f.write_str("unknown font kind"),
+            Self::MalformedFont => f.write_str("malformed font"),
+            Self::Unimplemented => f.write_str("unsupported feature in font"),
+            Self::SubsetError => f.write_str("subsetting of font failed"),
         }
     }
 }

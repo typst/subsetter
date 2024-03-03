@@ -1,4 +1,5 @@
 use super::*;
+use crate::Error::MalformedFont;
 
 struct NameRecord {
     platform_id: u16,
@@ -17,7 +18,7 @@ impl NameRecord {
 }
 
 impl Structure<'_> for NameRecord {
-    fn read(r: &mut Reader<'_>) -> Result<Self> {
+    fn read(r: &mut Reader<'_>) -> Option<Self> {
         let platform_id = r.read::<u16>()?;
         let encoding_id = r.read::<u16>()?;
         let language_id = r.read::<u16>()?;
@@ -25,7 +26,7 @@ impl Structure<'_> for NameRecord {
         let length = r.read::<u16>()?;
         let string_offset = r.read::<u16>()?;
 
-        Ok(Self {
+        Some(Self {
             platform_id,
             encoding_id,
             language_id,
@@ -46,29 +47,29 @@ impl Structure<'_> for NameRecord {
 }
 
 pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
-    let name = ctx.expect_table(Tag::NAME)?;
+    let name = ctx.expect_table(Tag::NAME).ok_or(MalformedFont)?;
     let mut r = Reader::new(name);
 
     // From the over 3k font (variations) I had locally, none had version 1.
     // So we only focus on subsetting version 0 and on the off-chance
     // that a font has version 1, we just add it as is.
-    let version = r.read::<u16>()?;
+    let version = r.read::<u16>().ok_or(MalformedFont)?;
 
     if version != 0 {
         ctx.push(Tag::NAME, name);
         return Ok(());
     }
 
-    let count = r.read::<u16>()?;
-    r.read::<u16>()?; // storage offset
+    let count = r.read::<u16>().ok_or(MalformedFont)?;
+    r.read::<u16>().ok_or(MalformedFont)?; // storage offset
 
     let mut name_records = vec![];
 
     for _ in 0..count {
-        name_records.push(r.read::<NameRecord>()?);
+        name_records.push(r.read::<NameRecord>().ok_or(MalformedFont)?);
     }
 
-    let storage = r.tail();
+    let storage = r.tail().ok_or(MalformedFont)?;
 
     let mut pruned = prune_name_records(name_records);
 

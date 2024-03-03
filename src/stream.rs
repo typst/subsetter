@@ -1,10 +1,9 @@
-use super::{Error, Result};
-use crate::Error::MissingData;
-
 #[derive(Clone, Debug)]
 /// A readable stream of binary data.
 pub struct Reader<'a> {
+    /// The underlying data of the reader.
     data: &'a [u8],
+    /// The current offset in bytes. Is not guaranteed to be in range.
     offset: usize,
 }
 
@@ -15,15 +14,13 @@ impl<'a> Reader<'a> {
     }
 
     /// Create a new readable stream of binary data at a specific position.
-    pub fn new_at(data: &'a [u8], offset: usize) -> Result<Self> {
-        let mut reader = Self { data, offset: 0 };
-        reader.advance(offset)?;
-        Ok(reader)
+    pub fn new_at(data: &'a [u8], offset: usize) -> Self {
+        Self { data, offset }
     }
 
     /// The remaining data from the current offset.
-    pub fn tail(&self) -> &'a [u8] {
-        &self.data[self.offset..]
+    pub fn tail(&self) -> Option<&'a [u8]> {
+        self.data.get(self.offset..)
     }
 
     /// Whether the reader has reached the end.
@@ -31,64 +28,49 @@ impl<'a> Reader<'a> {
         self.offset >= self.data.len()
     }
 
-    /// Returns the current offset.
-    pub fn offset(&self) -> usize {
-        self.offset
-    }
-
-    /// Whether there is no data remaining.
-    pub fn eof(&self) -> bool {
-        self.offset >= self.data.len()
-    }
+    // /// Returns the current offset.
+    // pub fn offset(&self) -> usize {
+    //     self.offset
+    // }
 
     /// Try to read `T` from the data.
-    pub fn read<T: Structure<'a>>(&mut self) -> Result<T> {
+    pub fn read<T: Structure<'a>>(&mut self) -> Option<T> {
         T::read(self)
     }
 
-    /// Read a certain number of bytes
-    pub fn read_bytes(&mut self, len: usize) -> Result<&'a [u8]> {
-        let v = self.data.get(self.offset..self.offset + len).ok_or(MissingData)?;
-        self.advance(len)?;
-        Ok(v)
+    /// Read a certain number of bytes.
+    pub fn read_bytes(&mut self, len: usize) -> Option<&'a [u8]> {
+        let v = self.data.get(self.offset..self.offset + len)?;
+        self.offset += len;
+        Some(v)
     }
 
-    /// Try to read `T` from the data.
-    pub fn skip<T: Structure<'a>>(&mut self) -> Result<()> {
-        let _ = self.read::<T>()?;
-        Ok(())
-    }
-
-    /// Jump to a specific location.
-    pub fn jump(&mut self, offset: usize) {
-        self.offset = offset;
-    }
-
-    /// Try to read a vector of `T` from the data.
-    pub fn read_vector<T: Structure<'a>>(&mut self, count: usize) -> Result<Vec<T>> {
-        let mut res = Vec::with_capacity(count);
-
-        for _ in 0..count {
-            res.push(self.read::<T>()?);
-        }
-
-        Ok(res)
-    }
-
-    /// Take the next `n` bytes from the stream.
-    pub fn take(&mut self, n: usize) -> Result<&'a [u8]> {
-        if n + self.offset <= self.data.len() {
-            let slice = &self.data[self.offset..self.offset + n];
-            self.offset += n;
-            Ok(slice)
-        } else {
-            Err(Error::MissingData)
-        }
-    }
+    // /// Try to skip `T` from the data.
+    // pub fn skip<T: Structure<'a>>(&mut self) -> Option<()> {
+    //     // TODO: Maybe add a skip function for each readable structure?
+    //     // For better performance
+    //     self.read::<T>().map(|_| ())
+    // }
+    //
+    // /// Jump to a specific location.
+    // pub fn jump(&mut self, offset: usize) {
+    //     self.offset = offset;
+    // }
+    //
+    // /// Try to read a vector of `T` from the data.
+    // pub fn read_vector<T: Structure<'a>>(&mut self, count: usize) -> Option<Vec<T>> {
+    //     let mut res = Vec::with_capacity(count);
+    //
+    //     for _ in 0..count {
+    //         res.push(self.read::<T>()?);
+    //     }
+    //
+    //     Some(res)
+    // }
 
     /// Skip the next `n` bytes from the stream.
-    pub fn advance(&mut self, n: usize) -> Result<()> {
-        self.take(n).map(|_| ())
+    pub fn skip_bytes(&mut self, n: usize) -> Option<()> {
+        self.read_bytes(n).map(|_| ())
     }
 }
 
@@ -106,11 +88,11 @@ impl Writer {
         data.write(self);
     }
 
-    pub fn write_vector<'a, T: Structure<'a>>(&mut self, data: &Vec<T>) {
-        for el in data {
-            el.write(self);
-        }
-    }
+    // pub fn write_vector<'a, T: Structure<'a>>(&mut self, data: &Vec<T>) {
+    //     for el in data {
+    //         el.write(self);
+    //     }
+    // }
 
     /// Give bytes into the writer.
     pub fn extend(&mut self, bytes: &[u8]) {
@@ -138,24 +120,15 @@ impl Writer {
 /// Decode structures from a stream of binary data.
 pub trait Structure<'a>: Sized {
     /// Try to read `Self` from the reader.
-    fn read(r: &mut Reader<'a>) -> Result<Self>;
+    fn read(r: &mut Reader<'a>) -> Option<Self>;
 
     /// Write `Self` into the writer.
     fn write(&self, w: &mut Writer);
-
-    /// Read self at the given offset in the binary data.
-    fn read_at(data: &'a [u8], offset: usize) -> Result<Self> {
-        if let Some(sub) = data.get(offset..) {
-            Self::read(&mut Reader::new(sub))
-        } else {
-            Err(Error::InvalidOffset)
-        }
-    }
 }
 
 impl<const N: usize> Structure<'_> for [u8; N] {
-    fn read(r: &mut Reader) -> Result<Self> {
-        Ok(r.take(N)?.try_into().unwrap_or([0; N]))
+    fn read(r: &mut Reader) -> Option<Self> {
+        Some(r.read_bytes(N)?.try_into().unwrap_or([0; N]))
     }
 
     fn write(&self, w: &mut Writer) {
@@ -164,7 +137,7 @@ impl<const N: usize> Structure<'_> for [u8; N] {
 }
 
 impl Structure<'_> for u8 {
-    fn read(r: &mut Reader) -> Result<Self> {
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 1]>().map(Self::from_be_bytes)
     }
 
@@ -174,7 +147,7 @@ impl Structure<'_> for u8 {
 }
 
 impl Structure<'_> for u16 {
-    fn read(r: &mut Reader) -> Result<Self> {
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
 
@@ -184,7 +157,7 @@ impl Structure<'_> for u16 {
 }
 
 impl Structure<'_> for i16 {
-    fn read(r: &mut Reader) -> Result<Self> {
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
 
@@ -194,7 +167,7 @@ impl Structure<'_> for i16 {
 }
 
 impl Structure<'_> for u32 {
-    fn read(r: &mut Reader) -> Result<Self> {
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
 
@@ -204,7 +177,7 @@ impl Structure<'_> for u32 {
 }
 
 impl Structure<'_> for i32 {
-    fn read(r: &mut Reader) -> Result<Self> {
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
 
@@ -217,9 +190,9 @@ impl Structure<'_> for i32 {
 pub struct U24(pub u32);
 
 impl Structure<'_> for U24 {
-    fn read(r: &mut Reader<'_>) -> crate::Result<Self> {
+    fn read(r: &mut Reader<'_>) -> Option<Self> {
         let data = r.read::<[u8; 3]>()?;
-        Ok(U24(u32::from_be_bytes([0, data[0], data[1], data[2]])))
+        Some(U24(u32::from_be_bytes([0, data[0], data[1], data[2]])))
     }
 
     fn write(&self, w: &mut Writer) {
@@ -233,8 +206,8 @@ impl Structure<'_> for U24 {
 pub struct StringId(pub u16);
 
 impl Structure<'_> for StringId {
-    fn read(r: &mut Reader<'_>) -> Result<Self> {
-        Ok(Self(r.read::<u16>()?))
+    fn read(r: &mut Reader<'_>) -> Option<Self> {
+        Some(Self(r.read::<u16>()?))
     }
 
     fn write(&self, w: &mut Writer) {
