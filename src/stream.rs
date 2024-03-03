@@ -1,3 +1,5 @@
+use crate::util::LazyArray16;
+
 #[derive(Clone, Debug)]
 /// A readable stream of binary data.
 pub struct Reader<'a> {
@@ -45,6 +47,13 @@ impl<'a> Reader<'a> {
         let v = self.data.get(self.offset..self.offset + len)?;
         self.offset += len;
         Some(v)
+    }
+
+    /// Reads the next `count` types as a slice.
+    #[inline]
+    pub fn read_array16<T: Readable<'a>>(&mut self, count: u16) -> Option<LazyArray16<'a, T>> {
+        let len = usize::from(count) * T::SIZE;
+        self.read_bytes(len).map(LazyArray16::new)
     }
 
     // /// Try to skip `T` from the data.
