@@ -1,5 +1,5 @@
 mod read;
-mod write;
+mod subset;
 
 use super::*;
 use crate::post::read::Version2Table;
@@ -17,7 +17,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     }
 
     let table = Version2Table::parse(post).ok_or(MalformedFont)?;
-    let subsetted_table = write::subset(ctx, &table).ok_or(SubsetError)?;
+    let subsetted_table = subset::subset(ctx, &table).ok_or(SubsetError)?;
 
     let mut w = Writer::new();
     w.write(subsetted_table);
