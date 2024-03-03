@@ -2,7 +2,9 @@ mod dict;
 mod encoding;
 mod index;
 mod top_dict;
+mod charset;
 
+use crate::cff::charset::{Charset, charset_id, parse_charset};
 use super::*;
 use crate::cff::dict::Operator;
 use crate::cff::index::{parse_index, Index};
@@ -66,23 +68,36 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     // Skip global subrs for now
     let _ = parse_index::<u16>(&mut r)?;
 
-    let mut char_strings = HashMap::new();
     let mut num_glyphs = 0;
 
-    if let Some(offset) = top_dict.get(&Operator(17)) {
-        let offset = offset.get(0).map(|o| *o as usize).ok_or(InvalidData)?;
-        let mut cs_r = Reader::new_at(cff, offset)?;
-        let char_strings_index = parse_index::<u16>(&mut cs_r)?;
+    let char_strings = top_dict.get(&Operator(17)).and_then(|offset| {
+        let offset = offset.get(0).map(|o| *o as usize)?;
+        let mut cs_r = Reader::new_at(cff, offset).ok()?;
+        let char_strings_index = parse_index::<u16>(&mut cs_r).ok()?;
+        num_glyphs = u16::try_from(char_strings_index.len()).unwrap();
 
-        char_strings = char_strings_index
+        Some(char_strings_index
             .into_iter()
             .enumerate()
             .map(|(index, data)| (u16::try_from(index).unwrap(), data))
             .filter(|(index, data)| ctx.requested_glyphs.contains(index))
-            .collect();
+            .collect::<HashMap<_, _>>())
+    });
 
-        println!("{:?}", char_strings.into_iter().collect::<Vec<_>>());
-    }
+    let charset = top_dict.get(&Operator(15)).and_then(|offset| {
+        let offset = offset.get(0).map(|o| *o as usize);
+
+        match offset {
+            Some(charset_id::ISO_ADOBE) => Some(Charset::ISOAdobe),
+            Some(charset_id::EXPERT) => Some(Charset::Expert),
+            Some(charset_id::EXPERT_SUBSET) => Some(Charset::ExpertSubset),
+            Some(offset) => {
+                let mut r = Reader::new_at(cff, offset).ok()?;
+                parse_charset(&mut r, num_glyphs)
+            }
+            None => Some(Charset::ISOAdobe), // default
+        }
+    }).ok_or(InvalidData)?;
 
     Ok(())
 }

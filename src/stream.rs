@@ -1,6 +1,7 @@
 use super::{Error, Result};
 use crate::Error::MissingData;
 
+#[derive(Clone, Debug)]
 /// A readable stream of binary data.
 pub struct Reader<'a> {
     data: &'a [u8],
@@ -228,8 +229,8 @@ impl Structure<'_> for U24 {
 }
 
 /// A type-safe wrapper for string ID.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug)]
-pub struct StringId(u16);
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug, Hash)]
+pub struct StringId(pub u16);
 
 impl Structure<'_> for StringId {
     fn read(r: &mut Reader<'_>) -> Result<Self> {
