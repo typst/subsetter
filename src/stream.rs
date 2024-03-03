@@ -25,11 +25,6 @@ impl<'a> Reader<'a> {
         self.data.get(self.offset..)
     }
 
-    /// Whether the reader has reached the end.
-    pub fn at_end(&self) -> bool {
-        self.offset >= self.data.len()
-    }
-
     // /// Returns the current offset.
     // pub fn offset(&self) -> usize {
     //     self.offset
@@ -51,7 +46,10 @@ impl<'a> Reader<'a> {
 
     /// Reads the next `count` types as a slice.
     #[inline]
-    pub fn read_array16<T: Readable<'a>>(&mut self, count: u16) -> Option<LazyArray16<'a, T>> {
+    pub fn read_array16<T: Readable<'a>>(
+        &mut self,
+        count: u16,
+    ) -> Option<LazyArray16<'a, T>> {
         let len = usize::from(count) * T::SIZE;
         self.read_bytes(len).map(LazyArray16::new)
     }

@@ -1,6 +1,6 @@
-use crate::{Context, Error};
 use crate::post::read::Version2Table;
 use crate::stream::{Writeable, Writer};
+use crate::Context;
 
 #[derive(Clone, Debug)]
 pub struct SubsettedVersion2Table<'a> {
@@ -9,7 +9,10 @@ pub struct SubsettedVersion2Table<'a> {
     names_data: Vec<&'a str>,
 }
 
-pub fn subset<'a>(ctx: &mut Context, table: &Version2Table<'a>) -> Option<SubsettedVersion2Table<'a>> {
+pub fn subset<'a>(
+    ctx: &mut Context,
+    table: &Version2Table<'a>,
+) -> Option<SubsettedVersion2Table<'a>> {
     let old_names = table.names().collect::<Vec<_>>();
 
     let num_glyphs = ctx.subset.len() as u16;
@@ -35,16 +38,11 @@ pub fn subset<'a>(ctx: &mut Context, table: &Version2Table<'a>) -> Option<Subset
         count += 1;
     }
 
-    Some(SubsettedVersion2Table {
-        header: table.header,
-        glyph_indexes,
-        names_data
-    })
+    Some(SubsettedVersion2Table { header: table.header, glyph_indexes, names_data })
 }
 
 impl Writeable for SubsettedVersion2Table<'_> {
     fn write(&self, w: &mut Writer) {
-        w.write::<u32>(0x00020000);
         w.extend(self.header);
         w.write::<u16>(u16::try_from(self.glyph_indexes.len()).unwrap());
 

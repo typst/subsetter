@@ -1,4 +1,4 @@
-use crate::stream::{Readable, Reader};
+use crate::stream::Reader;
 use crate::util::LazyArray16;
 
 /// An iterator over glyph names.
@@ -61,27 +61,17 @@ impl<'a> Version2Table<'a> {
         let mut r = Reader::new(data);
         let header = r.read_bytes(32)?;
 
-        let mut names_data: &[u8] = &[];
-        let mut glyph_indexes = LazyArray16::default();
-
         let indexes_count = r.read::<u16>()?;
-        glyph_indexes = r.read_array16::<u16>(indexes_count)?;
-        names_data = r.tail()?;
+        let glyph_indexes = r.read_array16::<u16>(indexes_count)?;
+        let names_data = r.tail()?;
 
-        Some(Version2Table {
-            header,
-            glyph_indexes,
-            names_data
-        })
+        Some(Version2Table { header, glyph_indexes, names_data })
     }
 
     /// Returns an iterator over glyph names.
     ///
     /// Default/predefined names are not included. Just the one in the font file.
     pub fn names(&self) -> Names<'a> {
-        Names {
-            data: self.names_data,
-            offset: 0,
-        }
+        Names { data: self.names_data, offset: 0 }
     }
 }
