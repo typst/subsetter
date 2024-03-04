@@ -1,12 +1,15 @@
 mod charset;
 mod dict;
+mod encoding;
 mod index;
 
 use super::*;
 use crate::cff::charset::{parse_charset, Charset};
 use crate::cff::dict::DictionaryParser;
+use crate::cff::encoding::{parse_encoding, Encoding};
 use crate::cff::index::{parse_index, Index};
 use crate::stream::StringId;
+use crate::util::LazyArray16;
 use std::num::NonZeroU16;
 use std::ops::Range;
 
@@ -74,6 +77,21 @@ impl<'a> Table<'a> {
                 parse_charset(number_of_glyphs, &mut s).ok_or(MalformedFont)?
             }
             None => Charset::ISOAdobe, // default
+        };
+
+        let kind = if top_dict.ros.is_some() {
+            parse_cid_metadata(cff, &top_dict, number_of_glyphs)
+        } else {
+            None
+            // // Only SID fonts are allowed to have an Encoding.
+            // let encoding = match top_dict.encoding {
+            //     Some(encoding_id::STANDARD) => Encoding::new_standard(),
+            //     Some(encoding_id::EXPERT) => Encoding::new_expert(),
+            //     Some(offset) => parse_encoding(&mut Reader::new_at(cff, offset)?)?,
+            //     None => Encoding::new_standard(), // default
+            // };
+            //
+            // parse_sid_metadata(cff, top_dict, encoding)?
         };
 
         Ok(Self {
@@ -272,11 +290,95 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
     Some(top_dict)
 }
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum FontKind<'a> {
+    SID(SIDMetadata<'a>),
+    CID(CIDMetadata<'a>),
+}
+
+#[derive(Clone, Copy, Default, Debug)]
+pub(crate) struct SIDMetadata<'a> {
+    local_subrs: Index<'a>,
+    /// Can be zero.
+    default_width: f32,
+    /// Can be zero.
+    nominal_width: f32,
+    encoding: Encoding<'a>,
+}
+
+#[derive(Clone, Copy, Default, Debug)]
+pub(crate) struct CIDMetadata<'a> {
+    fd_array: Index<'a>,
+    fd_select: FDSelect<'a>,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum FDSelect<'a> {
+    Format0(LazyArray16<'a, u8>),
+    Format3(&'a [u8]), // It's easier to parse it in-place.
+}
+
+impl Default for FDSelect<'_> {
+    fn default() -> Self {
+        FDSelect::Format0(LazyArray16::default())
+    }
+}
+
+fn parse_cid_metadata<'a>(
+    data: &'a [u8],
+    top_dict: &TopDict,
+    number_of_glyphs: u16,
+) -> Option<FontKind<'a>> {
+    let (charset_offset, fd_array_offset, fd_select_offset) =
+        match (top_dict.charset, top_dict.fd_array, top_dict.fd_select) {
+            (Some(a), Some(b), Some(c)) => (a, b, c),
+            _ => return None, // charset, FDArray and FDSelect must be set.
+        };
+
+    if charset_offset <= charset_id::EXPERT_SUBSET {
+        // 'There are no predefined charsets for CID fonts.'
+        // Adobe Technical Note #5176, chapter 18 CID-keyed Fonts
+        return None;
+    }
+
+    let mut metadata = CIDMetadata::default();
+
+    metadata.fd_array = {
+        let mut r = Reader::new_at(data, fd_array_offset);
+        parse_index::<u16>(&mut r)?
+    };
+
+    metadata.fd_select = {
+        let mut s = Reader::new_at(data, fd_select_offset);
+        parse_fd_select(number_of_glyphs, &mut s)?
+    };
+
+    Some(FontKind::CID(metadata))
+}
+
+fn parse_fd_select<'a>(
+    number_of_glyphs: u16,
+    r: &mut Reader<'a>,
+) -> Option<FDSelect<'a>> {
+    let format = r.read::<u8>()?;
+    match format {
+        0 => Some(FDSelect::Format0(r.read_array16::<u8>(number_of_glyphs)?)),
+        3 => Some(FDSelect::Format3(r.tail()?)),
+        _ => None,
+    }
+}
+
 /// Enumerates Charset IDs defined in the Adobe Technical Note #5176, Table 22
 mod charset_id {
     pub const ISO_ADOBE: usize = 0;
     pub const EXPERT: usize = 1;
     pub const EXPERT_SUBSET: usize = 2;
+}
+
+/// Enumerates Charset IDs defined in the Adobe Technical Note #5176, Table 16
+mod encoding_id {
+    pub const STANDARD: usize = 0;
+    pub const EXPERT: usize = 1;
 }
 
 /// Enumerates some operators defined in the Adobe Technical Note #5176,
