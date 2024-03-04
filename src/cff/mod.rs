@@ -1,7 +1,9 @@
+mod charset;
 mod dict;
 mod index;
 
 use super::*;
+use crate::cff::charset::{parse_charset, Charset};
 use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{parse_index, Index};
 use crate::stream::StringId;
@@ -13,7 +15,7 @@ const MAX_OPERANDS_LEN: usize = 48;
 
 /// A [Compact Font Format Table](
 /// https://docs.microsoft.com/en-us/typography/opentype/spec/cff).
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Table<'a> {
     table_data: &'a [u8],
     header: &'a [u8],
@@ -21,7 +23,7 @@ pub struct Table<'a> {
     top_dict: TopDict,
     strings: Index<'a>,
     global_subrs: Index<'a>,
-    // charset: Charset<'a>,
+    charset: Charset<'a>,
     // number_of_glyphs: NonZeroU16,
     // matrix: Matrix,
     // char_strings: Index<'a>,
@@ -52,6 +54,28 @@ impl<'a> Table<'a> {
         let strings = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
         let global_subrs = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
 
+        let char_strings_offset = top_dict.char_strings.ok_or(MalformedFont)?;
+        let char_strings = {
+            let mut r = Reader::new_at(cff, char_strings_offset);
+            parse_index::<u16>(&mut r).ok_or(MalformedFont)?
+        };
+
+        let number_of_glyphs = u16::try_from(char_strings.len())
+            .ok()
+            .filter(|n| *n > 0)
+            .ok_or(MalformedFont)?;
+
+        let charset = match top_dict.charset {
+            Some(charset_id::ISO_ADOBE) => Charset::ISOAdobe,
+            Some(charset_id::EXPERT) => Charset::Expert,
+            Some(charset_id::EXPERT_SUBSET) => Charset::ExpertSubset,
+            Some(offset) => {
+                let mut s = Reader::new_at(cff, offset);
+                parse_charset(number_of_glyphs, &mut s).ok_or(MalformedFont)?
+            }
+            None => Charset::ISOAdobe, // default
+        };
+
         Ok(Self {
             table_data: cff,
             header,
@@ -59,6 +83,7 @@ impl<'a> Table<'a> {
             top_dict,
             strings,
             global_subrs,
+            charset,
         })
     }
 }
@@ -76,7 +101,7 @@ pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
     Ok(())
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 struct TopDict {
     version: Option<StringId>,
     notice: Option<StringId>,
@@ -244,9 +269,14 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
         }
     }
 
-    println!("{:?}", top_dict);
-
     Some(top_dict)
+}
+
+/// Enumerates Charset IDs defined in the Adobe Technical Note #5176, Table 22
+mod charset_id {
+    pub const ISO_ADOBE: usize = 0;
+    pub const EXPERT: usize = 1;
+    pub const EXPERT_SUBSET: usize = 2;
 }
 
 /// Enumerates some operators defined in the Adobe Technical Note #5176,
