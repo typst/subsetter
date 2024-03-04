@@ -17,13 +17,15 @@ const MAX_OPERANDS_LEN: usize = 48;
 pub struct Table<'a> {
     table_data: &'a [u8],
     header: &'a [u8],
-    names: Index<'a>, // strings: Index<'a>,
-                      // global_subrs: Index<'a>,
-                      // charset: Charset<'a>,
-                      // number_of_glyphs: NonZeroU16,
-                      // matrix: Matrix,
-                      // char_strings: Index<'a>,
-                      // kind: FontKind<'a>,
+    names: Index<'a>,
+    top_dict: TopDict,
+    strings: Index<'a>,
+    global_subrs: Index<'a>,
+    // charset: Charset<'a>,
+    // number_of_glyphs: NonZeroU16,
+    // matrix: Matrix,
+    // char_strings: Index<'a>,
+    // kind: FontKind<'a>,
 }
 
 impl<'a> Table<'a> {
@@ -45,9 +47,19 @@ impl<'a> Table<'a> {
         r.jump(header_size as usize);
 
         let names = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
-        let top_dict = parse_top_dict(&mut r)?;
+        let top_dict = parse_top_dict(&mut r).ok_or(MalformedFont)?;
 
-        Ok(Self { table_data: cff, header, names })
+        let strings = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
+        let global_subrs = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
+
+        Ok(Self {
+            table_data: cff,
+            header,
+            names,
+            top_dict,
+            strings,
+            global_subrs,
+        })
     }
 }
 
@@ -223,9 +235,7 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
                 top_dict.cid_count = dict_parser.parse_number()
             }
             top_dict_operator::UID_BASE => top_dict.uid_base = dict_parser.parse_number(),
-            top_dict_operator::FD_ARRAY => {
-                top_dict.fd_arrray = dict_parser.parse_offset()
-            }
+            top_dict_operator::FD_ARRAY => top_dict.fd_array = dict_parser.parse_offset(),
             top_dict_operator::FD_SELECT => {
                 top_dict.fd_select = dict_parser.parse_offset()
             }
