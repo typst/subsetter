@@ -41,6 +41,7 @@ resulting font is 36 KB (5 KB zipped).
 
 // mod cff;
 // mod cmap;
+mod cff;
 mod glyf;
 mod head;
 mod hhea;
@@ -123,7 +124,7 @@ fn _subset(
     }
 
     if ctx.kind == FontKind::Cff {
-        // cff::discover(&mut ctx)?;
+        cff::discover(&mut ctx)?;
     }
 
     ctx.initialize_gid_map();
@@ -310,7 +311,7 @@ impl<'a> Context<'a> {
         match tag {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
-            // Tag::CFF => cff::subset(self)?,
+            Tag::CFF => cff::subset(self)?,
             Tag::HEAD => head::subset(self)?,
             Tag::HHEA => hhea::subset(self)?,
             Tag::HMTX => hmtx::subset(self)?,

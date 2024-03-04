@@ -1,14 +1,12 @@
-use core::convert::TryFrom;
-use core::ops::Range;
-
-use crate::Reader;
+use crate::stream::Reader;
+use std::ops::Range;
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const TWO_BYTE_OPERATOR_MARK: u8 = 12;
 const FLOAT_STACK_LEN: usize = 64;
 const END_OF_FLOAT_FLAG: u8 = 0xf;
 
-#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug)]
 pub struct Operator(pub u16);
 
 impl Operator {
@@ -49,10 +47,10 @@ impl<'a> DictionaryParser<'a> {
 
     #[inline(never)]
     pub fn parse_next(&mut self) -> Option<Operator> {
-        let mut r = Reader::new_at(self.data, self.offset).ok()?;
+        let mut r = Reader::new_at(self.data, self.offset);
         self.operands_offset = self.offset;
         while !r.at_end() {
-            let b = r.read::<u8>().ok()?;
+            let b = r.read::<u8>()?;
             // 0..=21 bytes are operators.
             if is_dict_one_byte_op(b) {
                 let mut operator = u16::from(b);
@@ -61,7 +59,7 @@ impl<'a> DictionaryParser<'a> {
                 if b == TWO_BYTE_OPERATOR_MARK {
                     // Use a 1200 'prefix' to make two byte operators more readable.
                     // 12 3 => 1203
-                    operator = 1200 + u16::from(r.read::<u8>().ok()?);
+                    operator = 1200 + u16::from(r.read::<u8>()?);
                 }
 
                 self.offset = r.offset();
@@ -85,10 +83,10 @@ impl<'a> DictionaryParser<'a> {
     /// We still have to "skip" operands during operators search (see `skip_number()`),
     /// but it's still faster that a naive method.
     pub fn parse_operands(&mut self) -> Option<()> {
-        let mut r = Reader::new_at(self.data, self.operands_offset).ok()?;
+        let mut r = Reader::new_at(self.data, self.operands_offset);
         self.operands_len = 0;
         while !r.at_end() {
-            let b = r.read::<u8>().ok()?;
+            let b = r.read::<u8>()?;
             // 0..=21 bytes are operators.
             if is_dict_one_byte_op(b) {
                 break;
@@ -159,11 +157,11 @@ pub fn is_dict_one_byte_op(b: u8) -> bool {
 pub fn parse_number(b0: u8, r: &mut Reader) -> Option<f64> {
     match b0 {
         28 => {
-            let n = i32::from(r.read::<i16>().ok()?);
+            let n = i32::from(r.read::<i16>()?);
             Some(f64::from(n))
         }
         29 => {
-            let n = r.read::<i32>().ok()?;
+            let n = r.read::<i32>()?;
             Some(f64::from(n))
         }
         30 => parse_float(r),
@@ -172,12 +170,12 @@ pub fn parse_number(b0: u8, r: &mut Reader) -> Option<f64> {
             Some(f64::from(n))
         }
         247..=250 => {
-            let b1 = i32::from(r.read::<u8>().ok()?);
+            let b1 = i32::from(r.read::<u8>()?);
             let n = (i32::from(b0) - 247) * 256 + b1 + 108;
             Some(f64::from(n))
         }
         251..=254 => {
-            let b1 = i32::from(r.read::<u8>().ok()?);
+            let b1 = i32::from(r.read::<u8>()?);
             let n = -(i32::from(b0) - 251) * 256 - b1 - 108;
             Some(f64::from(n))
         }
@@ -190,7 +188,7 @@ fn parse_float(r: &mut Reader) -> Option<f64> {
     let mut idx = 0;
 
     loop {
-        let b1: u8 = r.read().ok()?;
+        let b1: u8 = r.read()?;
         let nibble1 = b1 >> 4;
         let nibble2 = b1 & 15;
 
@@ -255,11 +253,11 @@ fn parse_float_nibble(nibble: u8, mut idx: usize, data: &mut [u8]) -> Option<usi
 // Just like `parse_number`, but doesn't actually parses the data.
 pub fn skip_number(b0: u8, r: &mut Reader) -> Option<()> {
     match b0 {
-        28 => r.skip::<u16>().ok()?,
-        29 => r.skip::<u32>().ok()?,
+        28 => r.skip::<u16>(),
+        29 => r.skip::<u32>(),
         30 => {
             while !r.at_end() {
-                let b1 = r.read::<u8>().ok()?;
+                let b1 = r.read::<u8>()?;
                 let nibble1 = b1 >> 4;
                 let nibble2 = b1 & 15;
                 if nibble1 == END_OF_FLOAT_FLAG || nibble2 == END_OF_FLOAT_FLAG {
@@ -268,8 +266,8 @@ pub fn skip_number(b0: u8, r: &mut Reader) -> Option<()> {
             }
         }
         32..=246 => {}
-        247..=250 => r.skip::<u8>().ok()?,
-        251..=254 => r.skip::<u8>().ok()?,
+        247..=250 => r.skip::<u8>(),
+        251..=254 => r.skip::<u8>(),
         _ => return None,
     }
 

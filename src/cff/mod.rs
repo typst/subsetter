@@ -1,103 +1,56 @@
 mod dict;
-mod encoding;
 mod index;
-mod top_dict;
-mod charset;
 
-use crate::cff::charset::{Charset, charset_id, parse_charset};
 use super::*;
-use crate::cff::dict::Operator;
+use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{parse_index, Index};
-use crate::cff::top_dict::parse_top_dict;
-use crate::Error::InvalidData;
+use std::num::NonZeroU16;
+use std::ops::Range;
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const MAX_OPERANDS_LEN: usize = 48;
 
-struct SIDMapper(Vec<String>);
+/// A [Compact Font Format Table](
+/// https://docs.microsoft.com/en-us/typography/opentype/spec/cff).
+#[derive(Clone, Copy)]
+pub struct Table<'a> {
+    table_data: &'a [u8],
+    header: &'a [u8],
+    names: Index<'a>, // strings: Index<'a>,
+                      // global_subrs: Index<'a>,
+                      // charset: Charset<'a>,
+                      // number_of_glyphs: NonZeroU16,
+                      // matrix: Matrix,
+                      // char_strings: Index<'a>,
+                      // kind: FontKind<'a>,
+}
 
-impl SIDMapper {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
+impl<'a> Table<'a> {
+    pub fn parse(ctx: &mut Context<'a>) -> Result<Self> {
+        let cff = ctx.expect_table(Tag::CFF).ok_or(MalformedFont)?;
 
-    pub fn insert(&mut self, string: String) -> u16 {
-        let sid = self.0.iter().position(|s| *s == string).unwrap_or_else(|| {
-            self.0.push(string);
-            self.0.len() - 1
-        }) + 391;
-        u16::try_from(sid).unwrap()
+        let mut r = Reader::new(cff);
+
+        let major = r.read::<u8>().ok_or(MalformedFont)?;
+
+        if major != 1 {
+            return Err(Error::Unimplemented);
+        }
+
+        r.skip::<u8>(); // minor
+        let header_size = r.read::<u8>().ok_or(MalformedFont)?;
+        let header = cff.get(0..header_size as usize).ok_or(MalformedFont)?;
+
+        r.jump(header_size as usize);
+
+        let names = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
+
+        Ok(Self { table_data: cff, header, names })
     }
 }
 
 pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
-    let cff = ctx.expect_table(Tag::CFF)?;
-
-    let mut r = Reader::new(cff);
-
-    // Parse Header.
-    let major = r.read::<u8>()?;
-    r.skip::<u8>()?; // minor
-    let header_size = r.read::<u8>()?;
-    r.skip::<u8>()?; // Absolute offset
-
-    if major != 1 {
-        return Err(Error::Unimplemented);
-    }
-
-    // Jump to Name INDEX. It's not necessarily right after the header.
-    if header_size > 4 {
-        r.advance(usize::from(header_size) - 4)?;
-    }
-
-    let name_index_start = r.offset();
-    let _ = parse_index::<u16>(&mut r)?;
-    let top_dict_index_start = r.offset();
-
-    // let name_index_data = &cff[name_index_start..top_dict_index_start];
-
-    let top_dict = parse_top_dict(&mut r).ok_or(InvalidData)?;
-
-    let mut strings = parse_index::<u16>(&mut r)?
-        .into_iter()
-        // TODO: Remove this
-        .map(|s| std::str::from_utf8(s).unwrap())
-        .enumerate()
-        .collect::<HashMap<_, _>>();
-
-    // Skip global subrs for now
-    let _ = parse_index::<u16>(&mut r)?;
-
-    let mut num_glyphs = 0;
-
-    let char_strings = top_dict.get(&Operator(17)).and_then(|offset| {
-        let offset = offset.get(0).map(|o| *o as usize)?;
-        let mut cs_r = Reader::new_at(cff, offset).ok()?;
-        let char_strings_index = parse_index::<u16>(&mut cs_r).ok()?;
-        num_glyphs = u16::try_from(char_strings_index.len()).unwrap();
-
-        Some(char_strings_index
-            .into_iter()
-            .enumerate()
-            .map(|(index, data)| (u16::try_from(index).unwrap(), data))
-            .filter(|(index, data)| ctx.requested_glyphs.contains(index))
-            .collect::<HashMap<_, _>>())
-    });
-
-    let charset = top_dict.get(&Operator(15)).and_then(|offset| {
-        let offset = offset.get(0).map(|o| *o as usize);
-
-        match offset {
-            Some(charset_id::ISO_ADOBE) => Some(Charset::ISOAdobe),
-            Some(charset_id::EXPERT) => Some(Charset::Expert),
-            Some(charset_id::EXPERT_SUBSET) => Some(Charset::ExpertSubset),
-            Some(offset) => {
-                let mut r = Reader::new_at(cff, offset).ok()?;
-                parse_charset(&mut r, num_glyphs)
-            }
-            None => Some(Charset::ISOAdobe), // default
-        }
-    }).ok_or(InvalidData)?;
+    let table = Table::parse(ctx)?;
 
     Ok(())
 }
@@ -107,4 +60,73 @@ pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
     ctx.subset
         .extend(ctx.requested_glyphs.iter().filter(|g| **g < ctx.num_glyphs));
     Ok(())
+}
+
+#[derive(Default)]
+struct TopDict {
+    charset_offset: Option<usize>,
+    encoding_offset: Option<usize>,
+    char_strings_offset: usize,
+    private_dict_range: Option<Range<usize>>,
+    matrix: Vec<f64>,
+    has_ros: bool,
+    fd_array_offset: Option<usize>,
+    fd_select_offset: Option<usize>,
+}
+
+fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
+    let mut top_dict = TopDict::default();
+
+    let index = parse_index::<u16>(r)?;
+
+    // The Top DICT INDEX should have only one dictionary.
+    let data = index.get(0)?;
+
+    let mut operands_buffer = [0.0; MAX_OPERANDS_LEN];
+    let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
+    while let Some(operator) = dict_parser.parse_next() {
+        match operator.get() {
+            top_dict_operator::CHARSET_OFFSET => {
+                top_dict.charset_offset = dict_parser.parse_offset();
+            }
+            top_dict_operator::ENCODING_OFFSET => {
+                top_dict.encoding_offset = dict_parser.parse_offset();
+            }
+            top_dict_operator::CHAR_STRINGS_OFFSET => {
+                top_dict.char_strings_offset = dict_parser.parse_offset()?;
+            }
+            top_dict_operator::PRIVATE_DICT_SIZE_AND_OFFSET => {
+                top_dict.private_dict_range = dict_parser.parse_range();
+            }
+            top_dict_operator::FONT_MATRIX => {
+                dict_parser.parse_operands()?;
+                top_dict.matrix = Vec::from(dict_parser.operands());
+            }
+            top_dict_operator::ROS => {
+                top_dict.has_ros = true;
+            }
+            top_dict_operator::FD_ARRAY => {
+                top_dict.fd_array_offset = dict_parser.parse_offset();
+            }
+            top_dict_operator::FD_SELECT => {
+                top_dict.fd_select_offset = dict_parser.parse_offset();
+            }
+            _ => {}
+        }
+    }
+
+    Some(top_dict)
+}
+
+/// Enumerates some operators defined in the Adobe Technical Note #5176,
+/// Table 9 Top DICT Operator Entries
+mod top_dict_operator {
+    pub const CHARSET_OFFSET: u16 = 15;
+    pub const ENCODING_OFFSET: u16 = 16;
+    pub const CHAR_STRINGS_OFFSET: u16 = 17;
+    pub const PRIVATE_DICT_SIZE_AND_OFFSET: u16 = 18;
+    pub const FONT_MATRIX: u16 = 1207;
+    pub const ROS: u16 = 1230;
+    pub const FD_ARRAY: u16 = 1236;
+    pub const FD_SELECT: u16 = 1237;
 }

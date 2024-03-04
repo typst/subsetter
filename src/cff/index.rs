@@ -1,10 +1,6 @@
-use super::*;
-use crate::stream::U24;
-use crate::Error::InvalidData;
+use crate::stream::{Readable, Reader, U24};
 
-// Most of the implementation was copied from ttf-parser.
-
-pub trait IndexSize: for<'a> Structure<'a> {
+pub trait IndexSize: for<'a> Readable<'a> {
     fn to_u32(self) -> u32;
 }
 
@@ -21,19 +17,19 @@ impl IndexSize for u32 {
 }
 
 #[inline]
-pub fn parse_index<'a, T: IndexSize>(r: &mut Reader<'a>) -> Result<Index<'a>> {
+pub fn parse_index<'a, T: IndexSize>(r: &mut Reader<'a>) -> Option<Index<'a>> {
     let count = r.read::<T>()?;
     parse_index_impl(count.to_u32(), r)
 }
 
 #[inline(never)]
-fn parse_index_impl<'a>(count: u32, r: &mut Reader<'a>) -> Result<Index<'a>> {
+fn parse_index_impl<'a>(count: u32, r: &mut Reader<'a>) -> Option<Index<'a>> {
     if count == 0 || count == core::u32::MAX {
-        return Ok(Index::default());
+        return Some(Index::default());
     }
 
     let offset_size = r.read::<OffsetSize>()?;
-    let offsets_len = (count + 1).checked_mul(offset_size.to_u32()).ok_or(InvalidData)?;
+    let offsets_len = (count + 1).checked_mul(offset_size.to_u32())?;
     let offsets = VarOffsets {
         data: r.read_bytes(offsets_len as usize)?,
         offset_size,
@@ -43,9 +39,9 @@ fn parse_index_impl<'a>(count: u32, r: &mut Reader<'a>) -> Result<Index<'a>> {
     match offsets.last() {
         Some(last_offset) => {
             let data = r.read_bytes(last_offset as usize)?;
-            Ok(Index { data, offsets })
+            Some(Index { data, offsets })
         }
-        None => Ok(Index::default()),
+        None => Some(Index::default()),
     }
 }
 
@@ -62,12 +58,12 @@ impl<'a> VarOffsets<'a> {
         }
 
         let start = index as usize * self.offset_size.to_usize();
-        let mut s = Reader::new_at(self.data, start).ok()?;
+        let mut r = Reader::new_at(self.data, start);
         let n: u32 = match self.offset_size {
-            OffsetSize::Size1 => u32::from(s.read::<u8>().ok()?),
-            OffsetSize::Size2 => u32::from(s.read::<u16>().ok()?),
-            OffsetSize::Size3 => s.read::<U24>().ok()?.0,
-            OffsetSize::Size4 => s.read::<u32>().ok()?,
+            OffsetSize::Size1 => u32::from(r.read::<u8>()?),
+            OffsetSize::Size2 => u32::from(r.read::<u16>()?),
+            OffsetSize::Size3 => r.read::<U24>()?.0,
+            OffsetSize::Size4 => r.read::<u32>()?,
         };
 
         // Offsets are offset by one byte in the font,
@@ -175,18 +171,16 @@ impl OffsetSize {
     }
 }
 
-impl Structure<'_> for OffsetSize {
-    fn read(r: &mut Reader<'_>) -> Result<Self> {
-        match r.read::<u8>()? {
-            1 => Ok(OffsetSize::Size1),
-            2 => Ok(OffsetSize::Size2),
-            3 => Ok(OffsetSize::Size3),
-            4 => Ok(OffsetSize::Size4),
-            _ => Err(InvalidData),
-        }
-    }
+impl Readable<'_> for OffsetSize {
+    const SIZE: usize = 1;
 
-    fn write(&self, w: &mut Writer) {
-        todo!()
+    fn read(r: &mut Reader<'_>) -> Option<Self> {
+        match r.read::<u8>()? {
+            1 => Some(OffsetSize::Size1),
+            2 => Some(OffsetSize::Size2),
+            3 => Some(OffsetSize::Size3),
+            4 => Some(OffsetSize::Size4),
+            _ => None,
+        }
     }
 }

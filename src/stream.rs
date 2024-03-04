@@ -52,18 +52,25 @@ impl<'a> Reader<'a> {
     //     self.read_bytes(len).map(LazyArray16::new)
     // }
 
-    // /// Try to skip `T` from the data.
-    // pub fn skip<T: Structure<'a>>(&mut self) -> Option<()> {
-    //     // TODO: Maybe add a skip function for each readable structure?
-    //     // For better performance
-    //     self.read::<T>().map(|_| ())
-    // }
-    //
-    // /// Jump to a specific location.
-    // pub fn jump(&mut self, offset: usize) {
-    //     self.offset = offset;
-    // }
-    //
+    /// Advances by `Readable::SIZE`.
+    #[inline]
+    pub fn skip<T: Readable<'a>>(&mut self) {
+        self.skip_bytes(T::SIZE);
+    }
+
+    pub fn at_end(&self) -> bool {
+        self.offset >= self.data.len()
+    }
+
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
+
+    /// Jump to a specific location.
+    pub fn jump(&mut self, offset: usize) {
+        self.offset = offset;
+    }
+
     /// Try to read a vector of `T` from the data.
     pub fn read_vector<T: Readable<'a>>(&mut self, count: usize) -> Option<Vec<T>> {
         let mut res = Vec::with_capacity(count);
@@ -76,8 +83,8 @@ impl<'a> Reader<'a> {
     }
 
     /// Skip the next `n` bytes from the stream.
-    pub fn skip_bytes(&mut self, n: usize) -> Option<()> {
-        self.read_bytes(n).map(|_| ())
+    pub fn skip_bytes(&mut self, n: usize) {
+        self.read_bytes(n).map(|_| ());
     }
 }
 

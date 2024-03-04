@@ -5,7 +5,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let num_h_metrics = {
         let hhea = ctx.expect_table(Tag::HHEA).ok_or(MalformedFont)?;
         let mut r = Reader::new(hhea);
-        r.skip_bytes(34).ok_or(MalformedFont)?;
+        r.skip_bytes(34);
         r.read::<u16>().ok_or(MalformedFont)?
     };
 
