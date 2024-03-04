@@ -1,4 +1,4 @@
-use crate::stream::Reader;
+use crate::stream::{Reader, StringId};
 use std::ops::Range;
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
@@ -116,6 +116,26 @@ impl<'a> DictionaryParser<'a> {
     }
 
     #[inline]
+    pub fn parse_bool(&mut self) -> Option<bool> {
+        self.parse_number().map(|n| n as u64).and_then(|n| match n {
+            0 => Some(false),
+            1 => Some(true),
+            _ => None,
+        })
+    }
+
+    #[inline]
+    pub fn parse_sid(&mut self) -> Option<StringId> {
+        self.parse_operands()?;
+        let operands = self.operands();
+        if operands.len() == 1 {
+            Some(StringId(u16::try_from(operands[0] as i64).ok()?))
+        } else {
+            None
+        }
+    }
+
+    #[inline]
     pub fn parse_offset(&mut self) -> Option<usize> {
         self.parse_operands()?;
         let operands = self.operands();
@@ -127,14 +147,14 @@ impl<'a> DictionaryParser<'a> {
     }
 
     #[inline]
-    pub fn parse_range(&mut self) -> Option<Range<usize>> {
+    pub fn parse_range(&mut self) -> Option<(usize, usize)> {
         self.parse_operands()?;
         let operands = self.operands();
         if operands.len() == 2 {
-            let len = usize::try_from(operands[0] as i32).ok()?;
-            let start = usize::try_from(operands[1] as i32).ok()?;
-            let end = start.checked_add(len)?;
-            Some(start..end)
+            Some((
+                usize::try_from(operands[0] as i32).ok()?,
+                usize::try_from(operands[1] as i32).ok()?,
+            ))
         } else {
             None
         }
