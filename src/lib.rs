@@ -39,8 +39,6 @@ resulting font is 36 KB (5 KB zipped).
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
 
-// mod cff;
-// mod cmap;
 mod cff;
 mod glyf;
 mod head;
@@ -311,7 +309,7 @@ impl<'a> Context<'a> {
         match tag {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
-            Tag::CFF => cff::subset(self)?,
+            Tag::CFF => cff::subset::subset(self)?,
             Tag::HEAD => head::subset(self)?,
             Tag::HHEA => hhea::subset(self)?,
             Tag::HMTX => hmtx::subset(self)?,

@@ -11,6 +11,59 @@ pub(crate) enum Charset<'a> {
     Format2(LazyArray16<'a, Format2Range>),
 }
 
+impl Charset<'_> {
+    // NOTE: Unlike the ttf-parser equivalent, this only returns SIDs for
+    // custom charsets
+    pub fn gid_to_sid(&self, gid: u16) -> Option<StringId> {
+        match self {
+            Charset::ISOAdobe => None,
+            Charset::Expert => None,
+            Charset::ExpertSubset => None,
+            Charset::Format0(ref array) => {
+                if gid == 0 {
+                    Some(StringId(0))
+                } else {
+                    array.get(gid - 1)
+                }
+            }
+            Charset::Format1(array) => {
+                if gid == 0 {
+                    Some(StringId(0))
+                } else {
+                    let mut sid = gid - 1;
+                    for range in *array {
+                        if sid <= u16::from(range.left) {
+                            sid = sid.checked_add(range.first.0)?;
+                            return Some(StringId(sid));
+                        }
+
+                        sid = sid.checked_sub(u16::from(range.left) + 1)?;
+                    }
+
+                    None
+                }
+            }
+            Charset::Format2(array) => {
+                if gid == 0 {
+                    Some(StringId(0))
+                } else {
+                    let mut sid = gid - 1;
+                    for range in *array {
+                        if sid <= range.left {
+                            sid = sid.checked_add(range.first.0)?;
+                            return Some(StringId(sid));
+                        }
+
+                        sid = sid.checked_sub(range.left.checked_add(1)?)?;
+                    }
+
+                    None
+                }
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Format1Range {
     first: StringId,

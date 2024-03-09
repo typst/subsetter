@@ -2,16 +2,15 @@ mod charset;
 mod dict;
 mod encoding;
 mod index;
+pub(crate) mod subset;
 
 use super::*;
 use crate::cff::charset::{parse_charset, Charset};
 use crate::cff::dict::DictionaryParser;
-use crate::cff::encoding::{parse_encoding, Encoding};
-use crate::cff::index::{parse_index, Index};
+use crate::cff::encoding::Encoding;
+use crate::cff::index::{parse_index, skip_index, Index};
 use crate::stream::StringId;
 use crate::util::LazyArray16;
-use std::num::NonZeroU16;
-use std::ops::Range;
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const MAX_OPERANDS_LEN: usize = 48;
@@ -22,15 +21,14 @@ const MAX_OPERANDS_LEN: usize = 48;
 pub struct Table<'a> {
     table_data: &'a [u8],
     header: &'a [u8],
-    names: Index<'a>,
+    names: &'a [u8],
     top_dict: TopDict,
     strings: Index<'a>,
     global_subrs: Index<'a>,
     charset: Charset<'a>,
-    // number_of_glyphs: NonZeroU16,
-    // matrix: Matrix,
-    // char_strings: Index<'a>,
-    // kind: FontKind<'a>,
+    number_of_glyphs: u16,
+    char_strings: Index<'a>,
+    kind: Option<FontKind<'a>>,
 }
 
 impl<'a> Table<'a> {
@@ -51,7 +49,9 @@ impl<'a> Table<'a> {
 
         r.jump(header_size as usize);
 
-        let names = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
+        let names_start = r.offset();
+        skip_index::<u16>(&mut r).ok_or(MalformedFont)?;
+        let names = cff.get(names_start..r.offset()).ok_or(MalformedFont)?;
         let top_dict = parse_top_dict(&mut r).ok_or(MalformedFont)?;
 
         let strings = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
@@ -83,15 +83,6 @@ impl<'a> Table<'a> {
             parse_cid_metadata(cff, &top_dict, number_of_glyphs)
         } else {
             None
-            // // Only SID fonts are allowed to have an Encoding.
-            // let encoding = match top_dict.encoding {
-            //     Some(encoding_id::STANDARD) => Encoding::new_standard(),
-            //     Some(encoding_id::EXPERT) => Encoding::new_expert(),
-            //     Some(offset) => parse_encoding(&mut Reader::new_at(cff, offset)?)?,
-            //     None => Encoding::new_standard(), // default
-            // };
-            //
-            // parse_sid_metadata(cff, top_dict, encoding)?
         };
 
         Ok(Self {
@@ -102,14 +93,11 @@ impl<'a> Table<'a> {
             strings,
             global_subrs,
             charset,
+            number_of_glyphs,
+            char_strings,
+            kind,
         })
     }
-}
-
-pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
-    let table = Table::parse(ctx)?;
-
-    Ok(())
 }
 
 pub(crate) fn discover(ctx: &mut Context) -> Result<()> {
@@ -321,6 +309,42 @@ enum FDSelect<'a> {
 impl Default for FDSelect<'_> {
     fn default() -> Self {
         FDSelect::Format0(LazyArray16::default())
+    }
+}
+
+impl FDSelect<'_> {
+    fn font_dict_index(&self, glyph_id: u16) -> Option<u8> {
+        match self {
+            FDSelect::Format0(ref array) => array.get(glyph_id),
+            FDSelect::Format3(data) => {
+                let mut r = Reader::new(data);
+                let number_of_ranges = r.read::<u16>()?;
+                if number_of_ranges == 0 {
+                    return None;
+                }
+
+                // 'A sentinel GID follows the last range element and serves
+                // to delimit the last range in the array.'
+                // So we can simply increase the number of ranges by one.
+                let number_of_ranges = number_of_ranges.checked_add(1)?;
+
+                // Range is: GlyphId + u8
+                let mut prev_first_glyph = r.read::<u16>()?;
+                let mut prev_index = r.read::<u8>()?;
+                for _ in 1..number_of_ranges {
+                    let curr_first_glyph = r.read::<u16>()?;
+                    if (prev_first_glyph..curr_first_glyph).contains(&glyph_id) {
+                        return Some(prev_index);
+                    } else {
+                        prev_index = r.read::<u8>()?;
+                    }
+
+                    prev_first_glyph = curr_first_glyph;
+                }
+
+                None
+            }
+        }
     }
 }
 

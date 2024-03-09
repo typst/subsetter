@@ -45,6 +45,32 @@ fn parse_index_impl<'a>(count: u32, r: &mut Reader<'a>) -> Option<Index<'a>> {
     }
 }
 
+#[inline]
+pub fn skip_index<T: IndexSize>(r: &mut Reader) -> Option<()> {
+    let count = r.read::<T>()?;
+    skip_index_impl(count.to_u32(), r)
+}
+
+#[inline(never)]
+fn skip_index_impl(count: u32, r: &mut Reader) -> Option<()> {
+    if count == 0 || count == core::u32::MAX {
+        return Some(());
+    }
+
+    let offset_size = r.read::<OffsetSize>()?;
+    let offsets_len = (count + 1).checked_mul(offset_size.to_u32())?;
+    let offsets = VarOffsets {
+        data: r.read_bytes(offsets_len as usize)?,
+        offset_size,
+    };
+
+    if let Some(last_offset) = offsets.last() {
+        r.skip_bytes(last_offset as usize);
+    }
+
+    Some(())
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct VarOffsets<'a> {
     pub data: &'a [u8],
