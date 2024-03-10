@@ -283,7 +283,7 @@ struct Context<'a> {
     /// Actual glyphs that are needed to subset the font correctly,
     /// including glyphs referenced indirectly through components.
     subset: HashSet<u16>,
-    // A map from old gids to new gids, and the reverse
+    /// A map from old gids to new gids, and the reverse
     mapper: InternalMapper,
     /// The kind of face.
     kind: FontKind,

@@ -2,6 +2,8 @@ use crate::cff::Table;
 use crate::stream::StringId;
 use std::collections::{HashMap, HashSet};
 
+pub type SidRemapper = HashMap<StringId, StringId>;
+
 // Collects all custom string ids that appear as part of the font.
 fn collect_custom_sids(
     table: &Table,
@@ -44,7 +46,7 @@ fn collect_custom_sids(
 pub(crate) fn get_sid_remapper(
     table: &Table,
     requested_glyphs: &HashSet<u16>,
-) -> Option<HashMap<StringId, StringId>> {
+) -> Option<SidRemapper> {
     let sids = collect_custom_sids(table, requested_glyphs);
 
     let res = sids

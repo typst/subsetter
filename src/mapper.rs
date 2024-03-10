@@ -43,6 +43,10 @@ impl InternalMapper {
         &self.backward
     }
 
+    pub fn num_gids(&self) -> u16 {
+        self.counter
+    }
+
     pub fn insert(&mut self, gid: u16) {
         self.forward.entry(gid).or_insert_with(|| {
             let value = self.counter;
