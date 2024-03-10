@@ -41,16 +41,17 @@ fn collect_custom_sids(
     sid_set
 }
 
-pub(crate) fn get_sid_remapper(table: &Table, requested_glyphs: &HashSet<u16>) {
+pub(crate) fn get_sid_remapper(
+    table: &Table,
+    requested_glyphs: &HashSet<u16>,
+) -> Option<HashMap<StringId, StringId>> {
     let sids = collect_custom_sids(table, requested_glyphs);
 
-    for sid in sids {
-        println!(
-            "{:?}",
-            table
-                .strings
-                .get((sid.0 - 391) as u32)
-                .and_then(|s| std::str::from_utf8(s).ok())
-        );
-    }
+    let res = sids
+        .into_iter()
+        .enumerate()
+        .map(|(counter, sid)| (sid, StringId(u16::try_from(counter + 391).unwrap())))
+        .collect::<HashMap<_, _>>();
+
+    Some(res)
 }

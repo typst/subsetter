@@ -1,9 +1,12 @@
+mod charset;
 mod sid;
+mod top_dict;
 
 use crate::cff::subset::sid::get_sid_remapper;
-use crate::cff::Table;
+use crate::cff::subset::top_dict::update_top_dict;
+use crate::cff::{Table, TopDict};
 use crate::stream::StringId;
-use crate::Error::MalformedFont;
+use crate::Error::{MalformedFont, SubsetError};
 use crate::{parse, Context, Tag};
 use std::collections::{HashMap, HashSet};
 
@@ -14,6 +17,7 @@ struct SubsetContext {
 struct SubsettedTable<'a> {
     header: &'a [u8],
     names: &'a [u8],
+    top_dict: TopDict,
 }
 
 pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
@@ -23,7 +27,10 @@ pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
     let header = parsed_table.header;
     let names = parsed_table.names;
 
-    get_sid_remapper(&parsed_table, &ctx.requested_glyphs);
+    let sid_remapper =
+        get_sid_remapper(&parsed_table, &ctx.requested_glyphs).ok_or(SubsetError)?;
+
+    let top_dict = update_top_dict(&parsed_table.top_dict, sid_remapper).ok_or(SubsetError)?;
 
     Ok(())
 }
