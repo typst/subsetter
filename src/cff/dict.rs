@@ -159,6 +159,12 @@ impl<'a> DictionaryParser<'a> {
             None
         }
     }
+
+    #[inline]
+    pub fn parse_delta(&mut self) -> Option<Vec<f64>> {
+        self.parse_operands()?;
+        Some(self.operands().into())
+    }
 }
 
 // One-byte CFF DICT Operators according to the

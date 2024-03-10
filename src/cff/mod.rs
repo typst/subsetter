@@ -2,6 +2,7 @@ mod charset;
 mod dict;
 mod encoding;
 mod index;
+mod private_dict;
 pub(crate) mod subset;
 
 use super::*;
@@ -9,6 +10,7 @@ use crate::cff::charset::{parse_charset, Charset};
 use crate::cff::dict::DictionaryParser;
 use crate::cff::encoding::Encoding;
 use crate::cff::index::{parse_index, skip_index, Index};
+use crate::cff::private_dict::parse_private_dict;
 use crate::stream::StringId;
 use crate::util::LazyArray16;
 
@@ -372,6 +374,10 @@ fn parse_cid_metadata<'a>(
         parse_index::<u16>(&mut r)?
     };
 
+    for el in metadata.fd_array {
+        println!("{:?}", parse_private_dict(el));
+    }
+
     metadata.fd_select = {
         let mut s = Reader::new_at(data, fd_select_offset);
         parse_fd_select(number_of_glyphs, &mut s)?
@@ -443,4 +449,27 @@ mod top_dict_operator {
     pub const FD_ARRAY: u16 = 1236;
     pub const FD_SELECT: u16 = 1237;
     pub const FONT_NAME: u16 = 1238;
+}
+
+/// Enumerates some operators defined in the Adobe Technical Note #5176,
+/// Table 23 Private DICT Operators
+mod private_dict_operator {
+    pub const BLUE_VALUES: u16 = 6;
+    pub const OTHER_BLUES: u16 = 7;
+    pub const FAMILY_BLUES: u16 = 8;
+    pub const FAMILY_OTHER_BLUES: u16 = 9;
+    pub const BLUE_SCALE: u16 = 1209;
+    pub const BLUE_SHIFT: u16 = 1210;
+    pub const BLUE_FUZZ: u16 = 1211;
+    pub const STD_HW: u16 = 10;
+    pub const STD_VW: u16 = 11;
+    pub const STEM_SNAP_H: u16 = 1212;
+    pub const STEM_SNAP_V: u16 = 1213;
+    pub const FORCE_BOLD: u16 = 1214;
+    pub const LANGUAGE_GROUP: u16 = 1217;
+    pub const EXPANSION_FACTOR: u16 = 1218;
+    pub const INITIAL_RANDOM_SEED: u16 = 1219;
+    pub const SUBRS: u16 = 19;
+    pub const DEFAULT_WIDTH_X: u16 = 20;
+    pub const NOMINAL_WIDTH_X: u16 = 21;
 }
