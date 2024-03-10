@@ -24,5 +24,7 @@ pub(crate) fn subset_charset(
         w.write::<StringId>(new_sid);
     }
 
+    // TODO: What if empty?
+
     Some(w.finish())
 }

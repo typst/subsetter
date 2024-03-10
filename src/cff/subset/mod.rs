@@ -1,3 +1,4 @@
+mod char_strings;
 mod charset;
 mod sid;
 mod top_dict;
