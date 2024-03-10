@@ -6,7 +6,7 @@ use crate::Context;
 pub(crate) fn subset_charset(
     charset: &Charset,
     ctx: &Context,
-    sid_remapper: &SidRemapper,
+    sid_remapper: &mut SidRemapper,
 ) -> Option<Vec<u8>> {
     let mut w = Writer::new();
 
@@ -16,11 +16,7 @@ pub(crate) fn subset_charset(
     for gid in 1..ctx.mapper.num_gids() {
         let old_gid = ctx.mapper.get_reverse(gid)?;
         let old_sid = charset.gid_to_sid(old_gid)?;
-        let new_sid = if old_sid >= StringId(391) {
-            sid_remapper.get(&old_sid).copied()?
-        } else {
-            old_sid
-        };
+        let new_sid = sid_remapper.remap(old_sid);
         w.write::<StringId>(new_sid);
     }
 

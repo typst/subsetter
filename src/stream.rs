@@ -264,3 +264,9 @@ impl Writeable for StringId {
         w.write::<u16>(self.0)
     }
 }
+
+impl From<u16> for StringId {
+    fn from(value: u16) -> Self {
+        Self(value)
+    }
+}
