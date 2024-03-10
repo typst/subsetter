@@ -55,6 +55,7 @@ impl<'a> Table<'a> {
         skip_index::<u16>(&mut r).ok_or(MalformedFont)?;
         let names = cff.get(names_start..r.offset()).ok_or(MalformedFont)?;
         let top_dict = parse_top_dict(&mut r).ok_or(MalformedFont)?;
+        println!("{:?}", top_dict);
 
         let strings = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
         let global_subrs = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
@@ -160,31 +161,31 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
     while let Some(operator) = dict_parser.parse_next() {
         match operator.get() {
-            top_dict_operator::VERSION => top_dict.version = dict_parser.parse_sid(),
-            top_dict_operator::NOTICE => top_dict.notice = dict_parser.parse_sid(),
-            top_dict_operator::COPYRIGHT => top_dict.copyright = dict_parser.parse_sid(),
-            top_dict_operator::FULL_NAME => top_dict.full_name = dict_parser.parse_sid(),
+            top_dict_operator::VERSION => top_dict.version = Some(dict_parser.parse_sid()?),
+            top_dict_operator::NOTICE => top_dict.notice = Some(dict_parser.parse_sid()?),
+            top_dict_operator::COPYRIGHT => top_dict.copyright = Some(dict_parser.parse_sid()?),
+            top_dict_operator::FULL_NAME => top_dict.full_name = Some(dict_parser.parse_sid()?),
             top_dict_operator::FAMILY_NAME => {
-                top_dict.family_name = dict_parser.parse_sid()
+                top_dict.family_name = Some(dict_parser.parse_sid()?)
             }
-            top_dict_operator::WEIGHT => top_dict.weight = dict_parser.parse_sid(),
+            top_dict_operator::WEIGHT => top_dict.weight = Some(dict_parser.parse_sid()?),
             top_dict_operator::IS_FIXED_PITCH => {
-                top_dict.is_fixed_pitch = dict_parser.parse_bool()
+                top_dict.is_fixed_pitch = Some(dict_parser.parse_bool()?)
             }
             top_dict_operator::ITALIC_ANGLE => {
-                top_dict.italic_angle = dict_parser.parse_number()
+                top_dict.italic_angle = Some(dict_parser.parse_number()?)
             }
             top_dict_operator::UNDERLINE_POSITION => {
-                top_dict.underline_position = dict_parser.parse_number()
+                top_dict.underline_position = Some(dict_parser.parse_number()?)
             }
             top_dict_operator::UNDERLINE_THICKNESS => {
-                top_dict.underline_thickness = dict_parser.parse_number()
+                top_dict.underline_thickness = Some(dict_parser.parse_number()?)
             }
             top_dict_operator::PAINT_TYPE => {
-                top_dict.paint_type = dict_parser.parse_number()
+                top_dict.paint_type = Some(dict_parser.parse_number()?)
             }
             top_dict_operator::CHAR_STRING_TYPE => {
-                top_dict.char_string_type = dict_parser.parse_number()
+                top_dict.char_string_type = Some(dict_parser.parse_number()?)
             }
             top_dict_operator::FONT_MATRIX => {
                 dict_parser.parse_operands()?;
@@ -199,10 +200,12 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
                         operands[4],
                         operands[5],
                     ])
+                }   else {
+                    return None;
                 }
             }
             top_dict_operator::UNIQUE_ID => {
-                top_dict.unique_id = dict_parser.parse_number()
+                top_dict.unique_id = Some(dict_parser.parse_number()?)
             }
             top_dict_operator::FONT_BBOX => {
                 dict_parser.parse_operands()?;
@@ -211,37 +214,33 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
                 if operands.len() == 4 {
                     top_dict.font_bbox =
                         Some([operands[0], operands[1], operands[2], operands[3]])
+                }   else {
+                    return None;
                 }
             }
             top_dict_operator::STROKE_WIDTH => {
-                top_dict.stroke_width = dict_parser.parse_number()
+                top_dict.stroke_width = Some(dict_parser.parse_number()?)
             }
             top_dict_operator::XUID => {
-                dict_parser.parse_operands()?;
-                let operands = dict_parser.operands();
-
-                top_dict.xuid = Some(operands.into())
+                top_dict.xuid = Some(dict_parser.parse_delta()?)
             }
-            top_dict_operator::CHARSET => top_dict.charset = dict_parser.parse_offset(),
-            top_dict_operator::ENCODING => top_dict.encoding = dict_parser.parse_offset(),
+            top_dict_operator::CHARSET => top_dict.charset = Some(dict_parser.parse_offset()?),
+            top_dict_operator::ENCODING => top_dict.encoding = Some(dict_parser.parse_offset()?),
             top_dict_operator::CHAR_STRINGS => {
-                top_dict.char_strings = dict_parser.parse_offset()
+                top_dict.char_strings = Some(dict_parser.parse_offset()?)
             }
-            top_dict_operator::PRIVATE => top_dict.private = dict_parser.parse_range(),
+            top_dict_operator::PRIVATE => top_dict.private = Some(dict_parser.parse_range()?),
             top_dict_operator::SYNTHETIC_BASE => {
-                top_dict.synthetic_base = dict_parser.parse_number()
+                top_dict.synthetic_base = Some(dict_parser.parse_number()?)
             }
             top_dict_operator::POSTSCRIPT => {
-                top_dict.postscript = dict_parser.parse_sid()
+                top_dict.postscript = Some(dict_parser.parse_sid()?)
             }
             top_dict_operator::BASE_FONT_NAME => {
-                top_dict.base_font_name = dict_parser.parse_sid()
+                top_dict.base_font_name = Some(dict_parser.parse_sid()?)
             }
             top_dict_operator::BASE_FONT_BLEND => {
-                dict_parser.parse_operands()?;
-                let operands = dict_parser.operands();
-
-                top_dict.base_font_blend = Some(operands.into())
+                top_dict.base_font_blend = Some(dict_parser.parse_delta()?)
             }
             top_dict_operator::ROS => {
                 dict_parser.parse_operands()?;
@@ -256,24 +255,27 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
                 }
             }
             top_dict_operator::CID_FONT_VERSION => {
-                top_dict.cid_font_version = dict_parser.parse_number()
+                top_dict.cid_font_version = Some(dict_parser.parse_number()?)
             }
             top_dict_operator::CID_FONT_REVISION => {
-                top_dict.cid_font_revision = dict_parser.parse_number()
+                top_dict.cid_font_revision = Some(dict_parser.parse_number()?)
             }
             top_dict_operator::CID_FONT_TYPE => {
-                top_dict.cid_font_type = dict_parser.parse_number()
+                top_dict.cid_font_type = Some(dict_parser.parse_number()?)
             }
             top_dict_operator::CID_COUNT => {
-                top_dict.cid_count = dict_parser.parse_number()
+                top_dict.cid_count = Some(dict_parser.parse_number()?)
             }
-            top_dict_operator::UID_BASE => top_dict.uid_base = dict_parser.parse_number(),
-            top_dict_operator::FD_ARRAY => top_dict.fd_array = dict_parser.parse_offset(),
+            top_dict_operator::UID_BASE => top_dict.uid_base = Some(dict_parser.parse_number()?),
+            top_dict_operator::FD_ARRAY => top_dict.fd_array = Some(dict_parser.parse_offset()?),
             top_dict_operator::FD_SELECT => {
-                top_dict.fd_select = dict_parser.parse_offset()
+                top_dict.fd_select = Some(dict_parser.parse_offset()?)
             }
-            top_dict_operator::FONT_NAME => top_dict.font_name = dict_parser.parse_sid(),
-            _ => {}
+            top_dict_operator::FONT_NAME => top_dict.font_name = Some(dict_parser.parse_sid()?),
+            _ => {
+                // Invalid operator
+                return None;
+            }
         }
     }
 

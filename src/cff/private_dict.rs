@@ -85,6 +85,7 @@ pub fn parse_private_dict(data: &[u8]) -> Option<PrivateDict> {
                 dict.nominal_width_x = Some(dict_parser.parse_number()?)
             }
             _ => {
+                // Invalid operator
                 return None;
             }
         }
