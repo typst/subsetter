@@ -147,14 +147,14 @@ impl<'a> DictionaryParser<'a> {
     }
 
     #[inline]
-    pub fn parse_range(&mut self) -> Option<(usize, usize)> {
+    pub fn parse_range(&mut self) -> Option<Range<usize>> {
         self.parse_operands()?;
         let operands = self.operands();
         if operands.len() == 2 {
-            Some((
-                usize::try_from(operands[0] as i32).ok()?,
-                usize::try_from(operands[1] as i32).ok()?,
-            ))
+            let len = usize::try_from(operands[0] as i32).ok()?;
+            let start = usize::try_from(operands[1] as i32).ok()?;
+            let end = start.checked_add(len)?;
+            Some(start..end)
         } else {
             None
         }

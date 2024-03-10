@@ -1,26 +1,26 @@
 use crate::cff::dict::DictionaryParser;
 use crate::cff::{private_dict_operator, MAX_OPERANDS_LEN};
 
-#[derive(Default, Debug)]
+#[derive(Default, Clone, Debug)]
 pub struct PrivateDict {
-    blue_values: Option<Vec<f64>>,
-    other_blues: Option<Vec<f64>>,
-    family_blues: Option<Vec<f64>>,
-    family_other_blues: Option<Vec<f64>>,
-    blue_scale: Option<f64>,
-    blue_shift: Option<f64>,
-    blue_fuzz: Option<f64>,
-    std_hw: Option<f64>,
-    std_vw: Option<f64>,
-    stem_snap_h: Option<Vec<f64>>,
-    stem_snap_v: Option<Vec<f64>>,
-    force_bold: Option<bool>,
-    language_group: Option<f64>,
-    expansion_factor: Option<f64>,
-    initial_random_seed: Option<f64>,
-    subrs: Option<usize>,
-    default_width_x: Option<f64>,
-    nominal_width_x: Option<f64>,
+    pub blue_values: Option<Vec<f64>>,
+    pub other_blues: Option<Vec<f64>>,
+    pub family_blues: Option<Vec<f64>>,
+    pub family_other_blues: Option<Vec<f64>>,
+    pub blue_scale: Option<f64>,
+    pub blue_shift: Option<f64>,
+    pub blue_fuzz: Option<f64>,
+    pub std_hw: Option<f64>,
+    pub std_vw: Option<f64>,
+    pub stem_snap_h: Option<Vec<f64>>,
+    pub stem_snap_v: Option<Vec<f64>>,
+    pub force_bold: Option<bool>,
+    pub language_group: Option<f64>,
+    pub expansion_factor: Option<f64>,
+    pub initial_random_seed: Option<f64>,
+    pub subrs: Option<usize>,
+    pub default_width_x: Option<f64>,
+    pub nominal_width_x: Option<f64>,
 }
 
 pub fn parse_private_dict(data: &[u8]) -> Option<PrivateDict> {

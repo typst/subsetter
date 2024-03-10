@@ -10,9 +10,10 @@ use crate::cff::charset::{parse_charset, Charset};
 use crate::cff::dict::DictionaryParser;
 use crate::cff::encoding::Encoding;
 use crate::cff::index::{parse_index, skip_index, Index};
-use crate::cff::private_dict::parse_private_dict;
+use crate::cff::private_dict::{parse_private_dict, PrivateDict};
 use crate::stream::StringId;
 use crate::util::LazyArray16;
+use std::ops::Range;
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const MAX_OPERANDS_LEN: usize = 48;
@@ -132,7 +133,7 @@ struct TopDict {
     charset: Option<usize>,
     encoding: Option<usize>,
     char_strings: Option<usize>,
-    private: Option<(usize, usize)>,
+    private: Option<Range<usize>>,
     synthetic_base: Option<f64>,
     postscript: Option<StringId>,
     base_font_name: Option<StringId>,
@@ -161,10 +162,16 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
     while let Some(operator) = dict_parser.parse_next() {
         match operator.get() {
-            top_dict_operator::VERSION => top_dict.version = Some(dict_parser.parse_sid()?),
+            top_dict_operator::VERSION => {
+                top_dict.version = Some(dict_parser.parse_sid()?)
+            }
             top_dict_operator::NOTICE => top_dict.notice = Some(dict_parser.parse_sid()?),
-            top_dict_operator::COPYRIGHT => top_dict.copyright = Some(dict_parser.parse_sid()?),
-            top_dict_operator::FULL_NAME => top_dict.full_name = Some(dict_parser.parse_sid()?),
+            top_dict_operator::COPYRIGHT => {
+                top_dict.copyright = Some(dict_parser.parse_sid()?)
+            }
+            top_dict_operator::FULL_NAME => {
+                top_dict.full_name = Some(dict_parser.parse_sid()?)
+            }
             top_dict_operator::FAMILY_NAME => {
                 top_dict.family_name = Some(dict_parser.parse_sid()?)
             }
@@ -200,7 +207,7 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
                         operands[4],
                         operands[5],
                     ])
-                }   else {
+                } else {
                     return None;
                 }
             }
@@ -214,22 +221,26 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
                 if operands.len() == 4 {
                     top_dict.font_bbox =
                         Some([operands[0], operands[1], operands[2], operands[3]])
-                }   else {
+                } else {
                     return None;
                 }
             }
             top_dict_operator::STROKE_WIDTH => {
                 top_dict.stroke_width = Some(dict_parser.parse_number()?)
             }
-            top_dict_operator::XUID => {
-                top_dict.xuid = Some(dict_parser.parse_delta()?)
+            top_dict_operator::XUID => top_dict.xuid = Some(dict_parser.parse_delta()?),
+            top_dict_operator::CHARSET => {
+                top_dict.charset = Some(dict_parser.parse_offset()?)
             }
-            top_dict_operator::CHARSET => top_dict.charset = Some(dict_parser.parse_offset()?),
-            top_dict_operator::ENCODING => top_dict.encoding = Some(dict_parser.parse_offset()?),
+            top_dict_operator::ENCODING => {
+                top_dict.encoding = Some(dict_parser.parse_offset()?)
+            }
             top_dict_operator::CHAR_STRINGS => {
                 top_dict.char_strings = Some(dict_parser.parse_offset()?)
             }
-            top_dict_operator::PRIVATE => top_dict.private = Some(dict_parser.parse_range()?),
+            top_dict_operator::PRIVATE => {
+                top_dict.private = Some(dict_parser.parse_range()?)
+            }
             top_dict_operator::SYNTHETIC_BASE => {
                 top_dict.synthetic_base = Some(dict_parser.parse_number()?)
             }
@@ -266,12 +277,18 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
             top_dict_operator::CID_COUNT => {
                 top_dict.cid_count = Some(dict_parser.parse_number()?)
             }
-            top_dict_operator::UID_BASE => top_dict.uid_base = Some(dict_parser.parse_number()?),
-            top_dict_operator::FD_ARRAY => top_dict.fd_array = Some(dict_parser.parse_offset()?),
+            top_dict_operator::UID_BASE => {
+                top_dict.uid_base = Some(dict_parser.parse_number()?)
+            }
+            top_dict_operator::FD_ARRAY => {
+                top_dict.fd_array = Some(dict_parser.parse_offset()?)
+            }
             top_dict_operator::FD_SELECT => {
                 top_dict.fd_select = Some(dict_parser.parse_offset()?)
             }
-            top_dict_operator::FONT_NAME => top_dict.font_name = Some(dict_parser.parse_sid()?),
+            top_dict_operator::FONT_NAME => {
+                top_dict.font_name = Some(dict_parser.parse_sid()?)
+            }
             _ => {
                 // Invalid operator
                 return None;
@@ -282,7 +299,7 @@ fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDict> {
     Some(top_dict)
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub(crate) enum FontKind<'a> {
     SID(SIDMetadata<'a>),
     CID(CIDMetadata<'a>),
@@ -298,8 +315,10 @@ pub(crate) struct SIDMetadata<'a> {
     encoding: Encoding<'a>,
 }
 
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Default, Debug)]
 pub(crate) struct CIDMetadata<'a> {
+    private_dicts: Vec<PrivateDict>,
+    local_subrs: Vec<Option<Index<'a>>>,
     fd_array: Index<'a>,
     fd_select: FDSelect<'a>,
 }
@@ -376,8 +395,10 @@ fn parse_cid_metadata<'a>(
         parse_index::<u16>(&mut r)?
     };
 
-    for el in metadata.fd_array {
-        println!("{:?}", parse_private_dict(el));
+    for font_dict_data in metadata.fd_array {
+        let (private_dict, subrs_index) = parse_cid_private_dict(data, font_dict_data)?;
+        metadata.private_dicts.push(private_dict);
+        metadata.local_subrs.push(subrs_index);
     }
 
     metadata.fd_select = {
@@ -386,6 +407,38 @@ fn parse_cid_metadata<'a>(
     };
 
     Some(FontKind::CID(metadata))
+}
+
+fn parse_cid_private_dict<'a>(
+    data: &'a [u8],
+    font_dict_data: &'a [u8],
+) -> Option<(PrivateDict, Option<Index<'a>>)> {
+    let private_dict_range = parse_font_dict(font_dict_data)?;
+    let private_dict_data = data.get(private_dict_range.clone())?;
+    let private_dict = parse_private_dict(private_dict_data)?;
+
+    let subrs_index = if let Some(subrs_offset) = private_dict.subrs {
+        let start = private_dict_range.start.checked_add(subrs_offset)?;
+        let subrs_data = data.get(start..)?;
+        let mut r = Reader::new(subrs_data);
+        Some(parse_index::<u16>(&mut r)?)
+    } else {
+        None
+    };
+
+    Some((private_dict, subrs_index))
+}
+
+fn parse_font_dict(data: &[u8]) -> Option<Range<usize>> {
+    let mut operands_buffer = [0.0; MAX_OPERANDS_LEN];
+    let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
+    while let Some(operator) = dict_parser.parse_next() {
+        if operator.get() == top_dict_operator::PRIVATE {
+            return dict_parser.parse_range();
+        }
+    }
+
+    None
 }
 
 fn parse_fd_select<'a>(
