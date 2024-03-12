@@ -1,3 +1,4 @@
+mod argstack;
 mod charset;
 mod dict;
 mod encoding;
@@ -17,6 +18,7 @@ use std::ops::Range;
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const MAX_OPERANDS_LEN: usize = 48;
+const MAX_ARGUMENTS_STACK_LEN: usize = 513;
 
 /// A [Compact Font Format Table](
 /// https://docs.microsoft.com/en-us/typography/opentype/spec/cff).
@@ -527,4 +529,11 @@ mod private_dict_operator {
     pub const SUBRS: u16 = 19;
     pub const DEFAULT_WIDTH_X: u16 = 20;
     pub const NOMINAL_WIDTH_X: u16 = 21;
+}
+
+mod operator {
+    pub const CALL_LOCAL_SUBROUTINE: u8 = 10;
+    pub const SHORT_INT: u8 = 28;
+    pub const CALL_GLOBAL_SUBROUTINE: u8 = 29;
+    pub const FIXED_16_16: u8 = 255;
 }

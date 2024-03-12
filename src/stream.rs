@@ -270,3 +270,17 @@ impl From<u16> for StringId {
         Self(value)
     }
 }
+
+/// A 32-bit signed fixed-point number (16.16).
+#[derive(Clone, Copy, Debug)]
+pub struct Fixed(pub f32);
+
+impl Readable<'_> for Fixed {
+    const SIZE: usize = 4;
+
+    #[inline]
+    fn read(r: &mut Reader<'_>) -> Option<Self> {
+        // TODO: is it safe to cast?
+        i32::read(r).map(|n| Fixed(n as f32 / 65536.0))
+    }
+}
