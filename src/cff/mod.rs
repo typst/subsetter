@@ -532,8 +532,33 @@ mod private_dict_operator {
 }
 
 mod operator {
+    pub const HORIZONTAL_STEM: u8 = 1;
+    pub const VERTICAL_STEM: u8 = 3;
+    pub const VERTICAL_MOVE_TO: u8 = 4;
+    pub const LINE_TO: u8 = 5;
+    pub const HORIZONTAL_LINE_TO: u8 = 6;
+    pub const VERTICAL_LINE_TO: u8 = 7;
+    pub const CURVE_TO: u8 = 8;
     pub const CALL_LOCAL_SUBROUTINE: u8 = 10;
+    pub const RETURN: u8 = 11;
+    pub const ENDCHAR: u8 = 14;
+    pub const HORIZONTAL_STEM_HINT_MASK: u8 = 18;
+    pub const HINT_MASK: u8 = 19;
+    pub const COUNTER_MASK: u8 = 20;
+    pub const MOVE_TO: u8 = 21;
+    pub const HORIZONTAL_MOVE_TO: u8 = 22;
+    pub const VERTICAL_STEM_HINT_MASK: u8 = 23;
+    pub const CURVE_LINE: u8 = 24;
+    pub const LINE_CURVE: u8 = 25;
+    pub const VV_CURVE_TO: u8 = 26;
+    pub const HH_CURVE_TO: u8 = 27;
     pub const SHORT_INT: u8 = 28;
     pub const CALL_GLOBAL_SUBROUTINE: u8 = 29;
+    pub const VH_CURVE_TO: u8 = 30;
+    pub const HV_CURVE_TO: u8 = 31;
+    pub const HFLEX: u8 = 34;
+    pub const FLEX: u8 = 35;
+    pub const HFLEX1: u8 = 36;
+    pub const FLEX1: u8 = 37;
     pub const FIXED_16_16: u8 = 255;
 }

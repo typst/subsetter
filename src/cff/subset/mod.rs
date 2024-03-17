@@ -1,14 +1,16 @@
+mod argstack;
 mod char_strings;
 mod charset;
 mod sid;
 mod top_dict;
 
+use crate::cff::argstack::ArgumentsStack;
 use crate::cff::subset::charset::subset_charset;
 use crate::cff::subset::sid::SidRemapper;
 use crate::cff::subset::top_dict::update_top_dict;
 use crate::cff::{operator, FDSelect, FontKind, Table, TopDict, MAX_ARGUMENTS_STACK_LEN};
 use crate::stream::{Fixed, Reader};
-use crate::Error::{MalformedFont, SubsetError};
+use crate::Error::{MalformedFont, SubsetError, Unimplemented};
 use crate::Result;
 use crate::{Context, Tag};
 use std::borrow::Cow;
@@ -112,6 +114,11 @@ pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
     Ok(())
 }
 
+struct CharStringParserContext {
+    width: Option<f32>,
+    stems_len: u32,
+}
+
 fn discover_subrs(
     gsubr: &mut HashSet<u32>,
     lsubr: &mut HashSet<u32>,
@@ -119,54 +126,98 @@ fn discover_subrs(
     num_lsubr: u32,
     char_string: &[u8],
 ) -> Result<()> {
-    let mut last_arg = None;
+    let mut stems_len = 0;
+    let mut width = None;
+
+    let mut stack = ArgumentsStack {
+        data: &mut [0.0; MAX_ARGUMENTS_STACK_LEN], // 192B
+        len: 0,
+        max_len: MAX_ARGUMENTS_STACK_LEN,
+    };
 
     let mut r = Reader::new(char_string);
-    println!("{:?}", r.tail());
+
+    let mut maybe_width = true;
 
     while !r.at_end() {
-        println!("{:?}", r.offset());
         let op = r.read::<u8>().ok_or(MalformedFont)?;
         match op {
             0 | 2 | 9 | 13 | 15 | 16 | 17 => {
                 // Reserved.
                 return Err(MalformedFont);
             }
+            operator::HORIZONTAL_STEM
+            | operator::VERTICAL_STEM
+            | operator::HORIZONTAL_STEM_HINT_MASK
+            | operator::VERTICAL_STEM_HINT_MASK => {
+                let len = if stack.len().is_odd() && width.is_none() {
+                    width = Some(stack.at(0));
+                    stack.len() - 1
+                } else {
+                    stack.len()
+                };
+
+                stems_len += len as u32 >> 1;
+
+                stack.clear();
+            }
             operator::CALL_LOCAL_SUBROUTINE => {
-                let biased_subroutine = last_arg.ok_or(MalformedFont)?;
+                let biased_subroutine = stack.pop();
                 let subroutine = conv_subroutine_index(
                     biased_subroutine,
                     calc_subroutine_bias(num_lsubr),
                 )
                 .ok_or(MalformedFont)?;
                 lsubr.insert(subroutine);
+
+                stack.clear();
             }
             operator::SHORT_INT => {
-                let n = r.read::<i16>().ok_or(MalformedFont)?;
-                last_arg = Some(f32::from(n));
+                stack.push(f32::from(r.read::<i16>().ok_or(MalformedFont)?))?;
             }
             operator::CALL_GLOBAL_SUBROUTINE => {
+                let biased_subroutine = stack.pop();
                 let subroutine = conv_subroutine_index(
-                    last_arg.ok_or(MalformedFont)?,
+                    biased_subroutine,
                     calc_subroutine_bias(num_gsubr),
                 )
                 .ok_or(MalformedFont)?;
                 gsubr.insert(subroutine);
+
+                stack.clear();
+            }
+            operator::ENDCHAR => {
+                if stack.len() == 4 {
+                    // We don't support seac.
+                    return Err(Unimplemented);
+                }
+            }
+            operator::HINT_MASK | operator::COUNTER_MASK => {
+                let mut len = stack.len();
+                stack.clear();
+
+                stems_len += len as u32 >> 1;
+
+                r.skip_bytes(((stems_len + 7) >> 3) as usize);
             }
             32..=246 => {
-                last_arg = Some(parse_int1(op)?);
+                stack.push(parse_int1(op)?)?;
             }
             247..=250 => {
-                last_arg = Some(parse_int2(op, &mut r)?);
+                stack.push(parse_int2(op, &mut r)?)?;
             }
             251..=254 => {
-                last_arg = Some(parse_int3(op, &mut r)?);
+                stack.push(parse_int3(op, &mut r)?)?;
             }
             operator::FIXED_16_16 => {
-                last_arg = Some(parse_fixed(&mut r)?);
+                stack.push(parse_fixed(&mut r)?)?;
             }
-            _ => {}
+            _ => {
+                stack.clear();
+            }
         }
+
+        maybe_width = false;
     }
 
     Ok(())
