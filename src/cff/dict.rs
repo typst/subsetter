@@ -1,297 +1,301 @@
-use std::fmt::{self, Debug, Formatter};
+use crate::stream::{Reader, StringId};
 use std::ops::Range;
 
-use crate::{Error, Reader, Result, Structure, Writer};
+// Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
+const TWO_BYTE_OPERATOR_MARK: u8 = 12;
+const FLOAT_STACK_LEN: usize = 64;
+const END_OF_FLOAT_FLAG: u8 = 0xf;
 
-/// A DICT data structure.
-#[derive(Clone)]
-pub struct Dict<'a>(Vec<Pair<'a>>);
+#[derive(Clone, Copy, Debug)]
+pub struct Operator(pub u16);
 
-impl<'a> Dict<'a> {
-    pub fn get(&self, op: Op) -> Option<&[Operand<'a>]> {
+impl Operator {
+    #[inline]
+    pub fn get(self) -> u16 {
         self.0
-            .iter()
-            .find(|pair| pair.op == op)
-            .map(|pair| pair.operands.as_slice())
-    }
-
-    pub fn get_offset(&self, op: Op) -> Option<usize> {
-        match self.get(op)? {
-            &[Operand::Int(offset)] if offset > 0 => Some(offset as usize),
-            _ => None,
-        }
-    }
-
-    pub fn get_range(&self, op: Op) -> Option<Range<usize>> {
-        match self.get(op)? {
-            &[Operand::Int(len), Operand::Int(offset)] if offset > 0 => {
-                let offset = usize::try_from(offset).ok()?;
-                let len = usize::try_from(len).ok()?;
-                Some(offset..offset + len)
-            }
-            _ => None,
-        }
-    }
-
-    pub fn retain(&mut self, ops: &[Op]) {
-        self.0.retain(|pair| ops.contains(&pair.op));
-    }
-
-    pub fn set(&mut self, op: Op, operands: Vec<Operand<'a>>) {
-        if let Some(pair) = self.0.iter_mut().find(|pair| pair.op == op) {
-            pair.operands = operands;
-        } else {
-            self.0.push(Pair { operands, op });
-        }
-    }
-
-    pub fn set_offset(&mut self, op: Op, offset: usize) {
-        self.set(op, vec![Operand::Offset(offset)]);
-    }
-
-    pub fn set_range(&mut self, op: Op, range: &Range<usize>) {
-        self.set(
-            op,
-            vec![Operand::Offset(range.end - range.start), Operand::Offset(range.start)],
-        );
     }
 }
 
-impl<'a> Structure<'a> for Dict<'a> {
-    fn read(r: &mut Reader<'a>) -> Result<Self> {
-        let mut pairs = vec![];
-        while !r.eof() {
-            pairs.push(r.read::<Pair>()?);
-        }
-        Ok(Self(pairs))
-    }
-
-    fn write(&self, w: &mut Writer) {
-        for pair in &self.0 {
-            w.write_ref::<Pair>(pair);
-        }
-    }
+pub struct DictionaryParser<'a> {
+    data: &'a [u8],
+    // The current offset.
+    offset: usize,
+    // Offset to the last operands start.
+    operands_offset: usize,
+    // Actual operands.
+    //
+    // While CFF can contain only i32 and f32 values, we have to store operands as f64
+    // since f32 cannot represent the whole i32 range.
+    // Meaning we have a choice of storing operands as f64 or as enum of i32/f32.
+    // In both cases the type size would be 8 bytes, so it's easier to simply use f64.
+    operands: &'a mut [f64],
+    // An amount of operands in the `operands` array.
+    operands_len: u16,
 }
 
-impl Debug for Dict<'_> {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.debug_list().entries(self.0.iter()).finish()
-    }
-}
-
-/// An operand-operator pair in a DICT.
-#[derive(Clone)]
-struct Pair<'a> {
-    operands: Vec<Operand<'a>>,
-    op: Op,
-}
-
-impl<'a> Structure<'a> for Pair<'a> {
-    fn read(r: &mut Reader<'a>) -> Result<Self> {
-        let mut operands = vec![];
-        loop {
-            match r.data().first().ok_or(Error::MissingData)? {
-                0..=21 => break,
-                28..=30 | 32..=254 => operands.push(r.read::<Operand>()?),
-                _ => r.skip(1)?,
-            }
-        }
-        Ok(Self { operands, op: r.read::<Op>()? })
-    }
-
-    fn write(&self, w: &mut Writer) {
-        for operand in &self.operands {
-            w.write_ref::<Operand>(operand);
-        }
-        w.write::<Op>(self.op);
-    }
-}
-
-impl Debug for Pair<'_> {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{:?}: {:?}", self.op, self.operands)
-    }
-}
-
-/// An operator in a DICT.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Op(u8, u8);
-
-impl Structure<'_> for Op {
-    fn read(r: &mut Reader) -> Result<Self> {
-        let b0 = r.read::<u8>()?;
-        match b0 {
-            12 => Ok(Self(b0, r.read::<u8>()?)),
-            0..=21 => Ok(Self(b0, 0)),
-            _ => panic!("cannot read operator here"),
+impl<'a> DictionaryParser<'a> {
+    #[inline]
+    pub fn new(data: &'a [u8], operands_buffer: &'a mut [f64]) -> Self {
+        DictionaryParser {
+            data,
+            offset: 0,
+            operands_offset: 0,
+            operands: operands_buffer,
+            operands_len: 0,
         }
     }
 
-    fn write(&self, w: &mut Writer) {
-        w.write::<u8>(self.0);
-        if self.0 == 12 {
-            w.write::<u8>(self.1);
-        }
-    }
-}
+    #[inline(never)]
+    pub fn parse_next(&mut self) -> Option<Operator> {
+        let mut r = Reader::new_at(self.data, self.offset);
+        self.operands_offset = self.offset;
+        while !r.at_end() {
+            let b = r.read::<u8>()?;
+            // 0..=21 bytes are operators.
+            if is_dict_one_byte_op(b) {
+                let mut operator = u16::from(b);
 
-/// An operand in a DICT.
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Operand<'a> {
-    Int(i32),
-    Offset(usize),
-    Real(&'a [u8]),
-}
-
-impl<'a> Structure<'a> for Operand<'a> {
-    fn read(r: &mut Reader<'a>) -> Result<Self> {
-        let b0 = i32::from(r.read::<u8>()?);
-        Ok(match b0 {
-            28 => Self::Int(i32::from(r.read::<i16>()?)),
-            29 => Self::Int(r.read::<i32>()?),
-            30 => {
-                let mut len = 0;
-                for &byte in r.data() {
-                    len += 1;
-                    if byte & 0x0f == 0x0f {
-                        break;
-                    }
+                // Check that operator is two byte long.
+                if b == TWO_BYTE_OPERATOR_MARK {
+                    // Use a 1200 'prefix' to make two byte operators more readable.
+                    // 12 3 => 1203
+                    operator = 1200 + u16::from(r.read::<u8>()?);
                 }
-                Self::Real(r.take(len)?)
+
+                self.offset = r.offset();
+                return Some(Operator(operator));
+            } else {
+                skip_number(b, &mut r)?;
             }
-            32..=246 => Self::Int(b0 - 139),
-            247..=250 => {
-                let b1 = i32::from(r.read::<u8>()?);
-                Self::Int((b0 - 247) * 256 + b1 + 108)
+        }
+
+        None
+    }
+
+    /// Parses operands of the current operator.
+    ///
+    /// In the DICT structure, operands are defined before an operator.
+    /// So we are trying to find an operator first and the we can actually parse the operands.
+    ///
+    /// Since this methods is pretty expensive and we do not care about most of the operators,
+    /// we can speed up parsing by parsing operands only for required operators.
+    ///
+    /// We still have to "skip" operands during operators search (see `skip_number()`),
+    /// but it's still faster that a naive method.
+    pub fn parse_operands(&mut self) -> Option<()> {
+        let mut r = Reader::new_at(self.data, self.operands_offset);
+        self.operands_len = 0;
+        while !r.at_end() {
+            let b = r.read::<u8>()?;
+            // 0..=21 bytes are operators.
+            if is_dict_one_byte_op(b) {
+                break;
+            } else {
+                let op = parse_number(b, &mut r)?;
+                self.operands[usize::from(self.operands_len)] = op;
+                self.operands_len += 1;
+
+                if usize::from(self.operands_len) >= self.operands.len() {
+                    break;
+                }
             }
-            251..=254 => {
-                let b1 = i32::from(r.read::<u8>()?);
-                Self::Int(-(b0 - 251) * 256 - b1 - 108)
-            }
-            _ => panic!("cannot read operand here"),
+        }
+
+        Some(())
+    }
+
+    #[inline]
+    pub fn operands(&self) -> &[f64] {
+        &self.operands[..usize::from(self.operands_len)]
+    }
+
+    #[inline]
+    pub fn parse_number(&mut self) -> Option<f64> {
+        self.parse_operands()?;
+        self.operands().get(0).cloned()
+    }
+
+    #[inline]
+    pub fn parse_bool(&mut self) -> Option<bool> {
+        self.parse_number().map(|n| n as u64).and_then(|n| match n {
+            0 => Some(false),
+            1 => Some(true),
+            _ => None,
         })
     }
 
-    fn write(&self, w: &mut Writer) {
-        match self {
-            Self::Int(int) => {
-                // TODO: Select most compact encoding.
-                w.write::<u8>(29);
-                w.write::<i32>(*int);
-            }
-            Self::Offset(offset) => {
-                w.write::<u8>(29);
-                w.write::<i32>(*offset as i32);
-            }
-            Self::Real(real) => {
-                w.write::<u8>(30);
-                w.give(real);
-            }
+    #[inline]
+    pub fn parse_sid(&mut self) -> Option<StringId> {
+        self.parse_operands()?;
+        let operands = self.operands();
+        if operands.len() == 1 {
+            Some(StringId(u16::try_from(operands[0] as i64).ok()?))
+        } else {
+            None
         }
+    }
+
+    #[inline]
+    pub fn parse_offset(&mut self) -> Option<usize> {
+        self.parse_operands()?;
+        let operands = self.operands();
+        if operands.len() == 1 {
+            usize::try_from(operands[0] as i32).ok()
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn parse_range(&mut self) -> Option<Range<usize>> {
+        self.parse_operands()?;
+        let operands = self.operands();
+        if operands.len() == 2 {
+            let len = usize::try_from(operands[0] as i32).ok()?;
+            let start = usize::try_from(operands[1] as i32).ok()?;
+            let end = start.checked_add(len)?;
+            Some(start..end)
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn parse_delta(&mut self) -> Option<Vec<f64>> {
+        self.parse_operands()?;
+        Some(self.operands().into())
     }
 }
 
-/// Top DICT operators.
-pub mod top {
-    use super::Op;
-
-    pub const KEEP: &[Op] = &[
-        ROS,
-        CID_FONT_VERSION,
-        CID_FONT_REVISION,
-        CID_FONT_TYPE,
-        CID_COUNT,
-        FONT_NAME,
-        VERSION,
-        NOTICE,
-        COPYRIGHT,
-        FULL_NAME,
-        FAMILY_NAME,
-        WEIGHT,
-        IS_FIXED_PITCH,
-        ITALIC_ANGLE,
-        UNDERLINE_POSITION,
-        UNDERLINE_THICKNESS,
-        PAINT_TYPE,
-        CHARSTRING_TYPE,
-        FONT_MATRIX,
-        FONT_BBOX,
-        STROKE_WIDTH,
-        POST_SCRIPT,
-    ];
-
-    pub const VERSION: Op = Op(0, 0);
-    pub const NOTICE: Op = Op(1, 0);
-    pub const COPYRIGHT: Op = Op(12, 0);
-    pub const FULL_NAME: Op = Op(2, 0);
-    pub const FAMILY_NAME: Op = Op(3, 0);
-    pub const WEIGHT: Op = Op(4, 0);
-    pub const IS_FIXED_PITCH: Op = Op(12, 1);
-    pub const ITALIC_ANGLE: Op = Op(12, 2);
-    pub const UNDERLINE_POSITION: Op = Op(12, 3);
-    pub const UNDERLINE_THICKNESS: Op = Op(12, 4);
-    pub const PAINT_TYPE: Op = Op(12, 5);
-    pub const CHARSTRING_TYPE: Op = Op(12, 6);
-    pub const FONT_MATRIX: Op = Op(12, 7);
-    pub const FONT_BBOX: Op = Op(5, 0);
-    pub const STROKE_WIDTH: Op = Op(12, 8);
-    pub const CHARSET: Op = Op(15, 0);
-    pub const ENCODING: Op = Op(16, 0);
-    pub const CHAR_STRINGS: Op = Op(17, 0);
-    pub const PRIVATE: Op = Op(18, 0);
-    pub const POST_SCRIPT: Op = Op(12, 21);
-
-    // CID-keyed fonts.
-    pub const ROS: Op = Op(12, 30);
-    pub const CID_FONT_VERSION: Op = Op(12, 31);
-    pub const CID_FONT_REVISION: Op = Op(12, 32);
-    pub const CID_FONT_TYPE: Op = Op(12, 33);
-    pub const CID_COUNT: Op = Op(12, 34);
-    pub const FD_ARRAY: Op = Op(12, 36);
-    pub const FD_SELECT: Op = Op(12, 37);
-    pub const FONT_NAME: Op = Op(12, 38);
+// One-byte CFF DICT Operators according to the
+// Adobe Technical Note #5176, Appendix H CFF DICT Encoding.
+pub fn is_dict_one_byte_op(b: u8) -> bool {
+    match b {
+        0..=27 => true,
+        28..=30 => false,  // numbers
+        31 => true,        // Reserved
+        32..=254 => false, // numbers
+        255 => true,       // Reserved
+    }
 }
 
-/// Private DICT operators.
-pub mod private {
-    use super::Op;
+// Adobe Technical Note #5177, Table 3 Operand Encoding
+pub fn parse_number(b0: u8, r: &mut Reader) -> Option<f64> {
+    match b0 {
+        28 => {
+            let n = i32::from(r.read::<i16>()?);
+            Some(f64::from(n))
+        }
+        29 => {
+            let n = r.read::<i32>()?;
+            Some(f64::from(n))
+        }
+        30 => parse_float(r),
+        32..=246 => {
+            let n = i32::from(b0) - 139;
+            Some(f64::from(n))
+        }
+        247..=250 => {
+            let b1 = i32::from(r.read::<u8>()?);
+            let n = (i32::from(b0) - 247) * 256 + b1 + 108;
+            Some(f64::from(n))
+        }
+        251..=254 => {
+            let b1 = i32::from(r.read::<u8>()?);
+            let n = -(i32::from(b0) - 251) * 256 - b1 - 108;
+            Some(f64::from(n))
+        }
+        _ => None,
+    }
+}
 
-    pub const KEEP: &[Op] = &[
-        BLUE_VALUES,
-        OTHER_BLUES,
-        FAMILY_BLUES,
-        FAMILY_OTHER_BLUES,
-        BLUE_SCALE,
-        BLUE_SHIFT,
-        BLUE_FUZZ,
-        STD_HW,
-        STD_VW,
-        STEM_SNAP_H,
-        STEM_SNAP_V,
-        FORCE_BOLD,
-        LANGUAGE_GROUP,
-        EXPANSION_FACTOR,
-        INITIAL_RANDOM_SEED,
-        DEFAULT_WIDTH_X,
-        NOMINAL_WIDTH_X,
-    ];
+fn parse_float(r: &mut Reader) -> Option<f64> {
+    let mut data = [0u8; FLOAT_STACK_LEN];
+    let mut idx = 0;
 
-    pub const BLUE_VALUES: Op = Op(6, 0);
-    pub const OTHER_BLUES: Op = Op(7, 0);
-    pub const FAMILY_BLUES: Op = Op(8, 0);
-    pub const FAMILY_OTHER_BLUES: Op = Op(9, 0);
-    pub const BLUE_SCALE: Op = Op(12, 9);
-    pub const BLUE_SHIFT: Op = Op(12, 10);
-    pub const BLUE_FUZZ: Op = Op(12, 11);
-    pub const STD_HW: Op = Op(10, 0);
-    pub const STD_VW: Op = Op(11, 0);
-    pub const STEM_SNAP_H: Op = Op(12, 12);
-    pub const STEM_SNAP_V: Op = Op(12, 13);
-    pub const FORCE_BOLD: Op = Op(12, 14);
-    pub const LANGUAGE_GROUP: Op = Op(12, 17);
-    pub const EXPANSION_FACTOR: Op = Op(12, 18);
-    pub const INITIAL_RANDOM_SEED: Op = Op(12, 19);
-    pub const SUBRS: Op = Op(19, 0);
-    pub const DEFAULT_WIDTH_X: Op = Op(20, 0);
-    pub const NOMINAL_WIDTH_X: Op = Op(21, 0);
+    loop {
+        let b1: u8 = r.read()?;
+        let nibble1 = b1 >> 4;
+        let nibble2 = b1 & 15;
+
+        if nibble1 == END_OF_FLOAT_FLAG {
+            break;
+        }
+
+        idx = parse_float_nibble(nibble1, idx, &mut data)?;
+
+        if nibble2 == END_OF_FLOAT_FLAG {
+            break;
+        }
+
+        idx = parse_float_nibble(nibble2, idx, &mut data)?;
+    }
+
+    let s = core::str::from_utf8(&data[..idx]).ok()?;
+    let n = s.parse().ok()?;
+    Some(n)
+}
+
+// Adobe Technical Note #5176, Table 5 Nibble Definitions
+fn parse_float_nibble(nibble: u8, mut idx: usize, data: &mut [u8]) -> Option<usize> {
+    if idx == FLOAT_STACK_LEN {
+        return None;
+    }
+
+    match nibble {
+        0..=9 => {
+            data[idx] = b'0' + nibble;
+        }
+        10 => {
+            data[idx] = b'.';
+        }
+        11 => {
+            data[idx] = b'E';
+        }
+        12 => {
+            if idx + 1 == FLOAT_STACK_LEN {
+                return None;
+            }
+
+            data[idx] = b'E';
+            idx += 1;
+            data[idx] = b'-';
+        }
+        13 => {
+            return None;
+        }
+        14 => {
+            data[idx] = b'-';
+        }
+        _ => {
+            return None;
+        }
+    }
+
+    idx += 1;
+    Some(idx)
+}
+
+// Just like `parse_number`, but doesn't actually parses the data.
+pub fn skip_number(b0: u8, r: &mut Reader) -> Option<()> {
+    match b0 {
+        28 => r.skip::<u16>(),
+        29 => r.skip::<u32>(),
+        30 => {
+            while !r.at_end() {
+                let b1 = r.read::<u8>()?;
+                let nibble1 = b1 >> 4;
+                let nibble2 = b1 & 15;
+                if nibble1 == END_OF_FLOAT_FLAG || nibble2 == END_OF_FLOAT_FLAG {
+                    break;
+                }
+            }
+        }
+        32..=246 => {}
+        247..=250 => r.skip::<u8>(),
+        251..=254 => r.skip::<u8>(),
+        _ => return None,
+    }
+
+    Some(())
 }

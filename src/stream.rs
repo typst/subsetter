@@ -1,76 +1,122 @@
-use super::{Error, Result};
+// use crate::util::LazyArray16;
 
+#[derive(Clone, Debug)]
 /// A readable stream of binary data.
-pub struct Reader<'a>(&'a [u8]);
+pub struct Reader<'a> {
+    /// The underlying data of the reader.
+    data: &'a [u8],
+    /// The current offset in bytes. Is not guaranteed to be in range.
+    offset: usize,
+}
 
 impl<'a> Reader<'a> {
     /// Create a new readable stream of binary data.
     pub fn new(data: &'a [u8]) -> Self {
-        Self(data)
+        Self { data, offset: 0 }
     }
 
-    /// The remaining data.
-    pub fn data(&self) -> &'a [u8] {
-        self.0
+    /// Create a new readable stream of binary data at a specific position.
+    pub fn new_at(data: &'a [u8], offset: usize) -> Self {
+        Self { data, offset }
     }
 
-    /// Whether there is no data remaining.
-    pub fn eof(&self) -> bool {
-        self.0.is_empty()
+    /// The remaining data from the current offset.
+    pub fn tail(&self) -> Option<&'a [u8]> {
+        self.data.get(self.offset..)
     }
+
+    // /// Returns the current offset.
+    // pub fn offset(&self) -> usize {
+    //     self.offset
+    // }
 
     /// Try to read `T` from the data.
-    pub fn read<T: Structure<'a>>(&mut self) -> Result<T> {
+    pub fn read<T: Readable<'a>>(&mut self) -> Option<T> {
         T::read(self)
     }
 
-    /// Take the first `n` bytes from the stream.
-    pub fn take(&mut self, n: usize) -> Result<&'a [u8]> {
-        if n <= self.0.len() {
-            let head = &self.0[..n];
-            self.0 = &self.0[n..];
-            Ok(head)
-        } else {
-            Err(Error::MissingData)
-        }
+    // TODO: Add skip function
+
+    /// Read a certain number of bytes.
+    pub fn read_bytes(&mut self, len: usize) -> Option<&'a [u8]> {
+        let v = self.data.get(self.offset..self.offset + len)?;
+        self.offset += len;
+        Some(v)
     }
 
-    /// Skip the first `n` bytes from the stream.
-    pub fn skip(&mut self, n: usize) -> Result<()> {
-        if n <= self.0.len() {
-            self.0 = &self.0[n..];
-            Ok(())
-        } else {
-            Err(Error::MissingData)
+    // /// Reads the next `count` types as a slice.
+    // #[inline]
+    // pub fn read_array16<T: Readable<'a>>(
+    //     &mut self,
+    //     count: u16,
+    // ) -> Option<LazyArray16<'a, T>> {
+    //     let len = usize::from(count) * T::SIZE;
+    //     self.read_bytes(len).map(LazyArray16::new)
+    // }
+
+    // /// Advances by `Readable::SIZE`.
+    // #[inline]
+    // pub fn skip<T: Readable<'a>>(&mut self) {
+    //     self.skip_bytes(T::SIZE);
+    // }
+    //
+    // pub fn at_end(&self) -> bool {
+    //     self.offset >= self.data.len()
+    // }
+    //
+    // pub fn offset(&self) -> usize {
+    //     self.offset
+    // }
+    //
+    // /// Jump to a specific location.
+    // pub fn jump(&mut self, offset: usize) {
+    //     self.offset = offset;
+    // }
+
+    /// Try to read a vector of `T` from the data.
+    pub fn read_vector<T: Readable<'a>>(&mut self, count: usize) -> Option<Vec<T>> {
+        let mut res = Vec::with_capacity(count);
+
+        for _ in 0..count {
+            res.push(self.read::<T>()?);
         }
+
+        Some(res)
+    }
+
+    /// Skip the next `n` bytes from the stream.
+    pub fn skip_bytes(&mut self, n: usize) {
+        self.read_bytes(n).map(|_| ());
     }
 }
 
 /// A writable stream of binary data.
-pub struct Writer(Vec<u8>, #[cfg(test)] usize);
+pub struct Writer(Vec<u8>);
 
 impl Writer {
     /// Create a new writable stream of binary data.
     pub fn new() -> Self {
-        Self(
-            Vec::with_capacity(1024),
-            #[cfg(test)]
-            0,
-        )
+        Self(Vec::with_capacity(1024))
+    }
+
+    /// Create a new writable stream of binary data with a capacity.
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self(Vec::with_capacity(capacity))
     }
 
     /// Write `T` into the data.
-    pub fn write<'a, T: Structure<'a>>(&mut self, data: T) {
+    pub fn write<T: Writeable>(&mut self, data: T) {
         data.write(self);
     }
 
-    /// Write `T` into the data, passing it by reference.
-    pub fn write_ref<'a, T: Structure<'a>>(&mut self, data: &T) {
-        data.write(self);
+    pub fn write_vector<T: Writeable>(&mut self, data: &Vec<T>) {
+        for el in data {
+            el.write(self);
+        }
     }
 
     /// Give bytes into the writer.
-    pub fn give(&mut self, bytes: &[u8]) {
+    pub fn extend(&mut self, bytes: &[u8]) {
         self.0.extend(bytes);
     }
 
@@ -90,91 +136,151 @@ impl Writer {
     pub fn finish(self) -> Vec<u8> {
         self.0
     }
-
-    /// Print how many bytes were written since the last inspect call.
-    pub fn inspect(&mut self, _name: &str) {
-        #[cfg(test)]
-        {
-            eprintln!("{_name} took {} bytes", self.len() - self.1);
-            self.1 = self.len();
-        }
-    }
 }
 
-/// Decode structures from a stream of binary data.
-pub trait Structure<'a>: Sized {
-    /// Try to read `Self` from the reader.
-    fn read(r: &mut Reader<'a>) -> Result<Self>;
+pub trait Readable<'a>: Sized {
+    const SIZE: usize;
 
-    /// Write `Self` into the writer.
+    fn read(r: &mut Reader<'a>) -> Option<Self>;
+}
+
+pub trait Writeable: Sized {
     fn write(&self, w: &mut Writer);
+}
 
-    /// Read self at the given offset in the binary data.
-    fn read_at(data: &'a [u8], offset: usize) -> Result<Self> {
-        if let Some(sub) = data.get(offset..) {
-            Self::read(&mut Reader::new(sub))
-        } else {
-            Err(Error::InvalidOffset)
-        }
+impl<const N: usize> Readable<'_> for [u8; N] {
+    const SIZE: usize = u8::SIZE * N;
+
+    fn read(r: &mut Reader) -> Option<Self> {
+        Some(r.read_bytes(N)?.try_into().unwrap_or([0; N]))
     }
 }
 
-impl<const N: usize> Structure<'_> for [u8; N] {
-    fn read(r: &mut Reader) -> Result<Self> {
-        Ok(r.take(N)?.try_into().unwrap_or([0; N]))
-    }
-
+impl<const N: usize> Writeable for [u8; N] {
     fn write(&self, w: &mut Writer) {
-        w.give(self)
+        w.extend(self)
     }
 }
 
-impl Structure<'_> for u8 {
-    fn read(r: &mut Reader) -> Result<Self> {
+impl Readable<'_> for u8 {
+    const SIZE: usize = 1;
+
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 1]>().map(Self::from_be_bytes)
     }
-
+}
+impl Writeable for u8 {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 1]>(self.to_be_bytes());
     }
 }
 
-impl Structure<'_> for u16 {
-    fn read(r: &mut Reader) -> Result<Self> {
+impl Readable<'_> for u16 {
+    const SIZE: usize = 2;
+
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
-
+}
+impl Writeable for u16 {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 2]>(self.to_be_bytes());
     }
 }
 
-impl Structure<'_> for i16 {
-    fn read(r: &mut Reader) -> Result<Self> {
+impl Readable<'_> for i16 {
+    const SIZE: usize = 2;
+
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
-
+}
+impl Writeable for i16 {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 2]>(self.to_be_bytes());
     }
 }
 
-impl Structure<'_> for u32 {
-    fn read(r: &mut Reader) -> Result<Self> {
+impl Readable<'_> for u32 {
+    const SIZE: usize = 4;
+
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
+}
 
+impl Writeable for u32 {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 4]>(self.to_be_bytes());
     }
 }
 
-impl Structure<'_> for i32 {
-    fn read(r: &mut Reader) -> Result<Self> {
+impl Readable<'_> for i32 {
+    const SIZE: usize = 4;
+
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
-
+}
+impl Writeable for i32 {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 4]>(self.to_be_bytes());
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct U24(pub u32);
+
+impl Readable<'_> for U24 {
+    const SIZE: usize = 3;
+
+    fn read(r: &mut Reader<'_>) -> Option<Self> {
+        let data = r.read::<[u8; 3]>()?;
+        Some(U24(u32::from_be_bytes([0, data[0], data[1], data[2]])))
+    }
+}
+
+impl Writeable for U24 {
+    fn write(&self, w: &mut Writer) {
+        let data = self.0.to_be_bytes();
+        w.write::<[u8; 3]>([data[0], data[1], data[2]]);
+    }
+}
+
+/// A type-safe wrapper for string ID.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug, Hash)]
+pub struct StringId(pub u16);
+
+impl Readable<'_> for StringId {
+    const SIZE: usize = u16::SIZE;
+
+    fn read(r: &mut Reader<'_>) -> Option<Self> {
+        Some(Self(r.read::<u16>()?))
+    }
+}
+
+impl Writeable for StringId {
+    fn write(&self, w: &mut Writer) {
+        w.write::<u16>(self.0)
+    }
+}
+
+impl From<u16> for StringId {
+    fn from(value: u16) -> Self {
+        Self(value)
+    }
+}
+
+/// A 32-bit signed fixed-point number (16.16).
+#[derive(Clone, Copy, Debug)]
+pub struct Fixed(pub f32);
+
+impl Readable<'_> for Fixed {
+    const SIZE: usize = 4;
+
+    #[inline]
+    fn read(r: &mut Reader<'_>) -> Option<Self> {
+        // TODO: is it safe to cast?
+        i32::read(r).map(|n| Fixed(n as f32 / 65536.0))
     }
 }

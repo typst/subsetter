@@ -8,3 +8,4 @@ desktop.ini
 /target
 bench/target
 Cargo.lock
+debug

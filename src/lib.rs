@@ -6,22 +6,22 @@ In the example below, we remove all glyphs except the ones with IDs 68, 69, 70.
 Those correspond to the letters 'a', 'b' and 'c'.
 
 ```
-use subsetter::{subset, Profile};
-
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-// Read the raw font data.
-let data = std::fs::read("fonts/NotoSans-Regular.ttf")?;
-
-// Keep only three glyphs and the OpenType tables
-// required for embedding the font in a PDF file.
-let glyphs = &[68, 69, 70];
-let profile = Profile::pdf(glyphs);
-let sub = subset(&data, 0, profile)?;
-
-// Write the resulting file.
-std::fs::write("target/Noto-Small.ttf", sub)?;
-# Ok(())
-# }
+// use subsetter::{subset, Profile};
+//
+// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+// // Read the raw font data.
+// let data = std::fs::read("fonts/NotoSans-Regular.ttf")?;
+//
+// // Keep only three glyphs and the OpenType tables
+// // required for embedding the font in a PDF file.
+// let glyphs = &[68, 69, 70];
+// let profile = Profile::pdf(glyphs);
+// let sub = subset(&data, 0, profile)?;
+//
+// // Write the resulting file.
+// std::fs::write("target/Noto-Small.ttf", sub)?;
+// # Ok(())
+// # }
 ```
 
 Notably, this subsetter does not really remove glyphs, just their outlines. This
@@ -34,102 +34,120 @@ it in a PDF file.
 In the above example, the original font was 375 KB (188 KB zipped) while the
 resulting font is 36 KB (5 KB zipped).
 */
+// TODO: Update code examples, README and look at documentation again.
 
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
 
-mod cff;
+//mod cff;
 mod glyf;
 mod head;
 mod hmtx;
+mod mapper;
+mod maxp;
+mod name;
 mod post;
 mod stream;
+mod util;
 
+use crate::mapper::{InternalMapper, MapperVariant};
+use crate::stream::{Readable, Reader, Writeable, Writer};
+use crate::Error::{MalformedFont, UnknownKind};
 use std::borrow::Cow;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Debug, Display, Formatter};
 
-use crate::stream::{Reader, Structure, Writer};
-
-/// Defines which things to keep in the font.
-///
-/// #### Possible Future Work
-/// - A setter for variation coordinates which would make the subsetter create a
-///   static instance of a variable font.
-/// - A profile which keeps and subsets bitmap, color and SVG tables.
-/// - A profile which takes a char set instead of a glyph set and subsets the
-///   layout tables.
-pub struct Profile<'a> {
-    glyphs: &'a [u16],
-}
-
-impl<'a> Profile<'a> {
-    /// Reduces the font to the subset needed for PDF embedding.
-    ///
-    /// Keeps only the basic required tables plus either the TrueType-related or
-    /// CFF-related tables.
-    ///
-    /// In particular, this removes:
-    /// - all text-layout related tables like GSUB and GPOS as it is expected
-    ///   that text was already mapped to glyphs.
-    /// - all non-outline glyph descriptions like bitmaps, layered color glyphs
-    ///   and SVGs.
-    ///
-    /// The subsetted font can be embedded in a PDF as a `FontFile3` with
-    /// Subtype `OpenType`. Alternatively:
-    /// - For TrueType outlines: You can embed it as a `FontFile2`.
-    /// - For CFF outlines: You can extract the CFF table and embed just the
-    ///   table as a `FontFile3` with Subtype `Type1C`
-    pub fn pdf(glyphs: &'a [u16]) -> Self {
-        Self { glyphs }
-    }
-}
+pub use crate::mapper::Mapper;
 
 /// Subset a font face to include less glyphs and tables.
 ///
 /// - The `data` must be in the OpenType font format.
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
-pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
+pub fn subset(data: &[u8], index: u32, profile: &[u16]) -> Result<(Vec<u8>, Mapper)> {
+    _subset(data, index, profile, InternalMapper::new())
+}
+
+/// Subset with a custom mapper
+/// TODO: Write preconditions
+pub fn subset_with_mapper(
+    data: &[u8],
+    index: u32,
+    profile: &[u16],
+    mapper: HashMap<u16, u16>,
+) -> Result<(Vec<u8>, Mapper)> {
+    assert_eq!(mapper.get(&0), Some(&0));
+    _subset(data, index, profile, mapper.into())
+}
+
+fn _subset(
+    data: &[u8],
+    index: u32,
+    profile: &[u16],
+    mapper: InternalMapper,
+) -> Result<(Vec<u8>, Mapper)> {
     let face = parse(data, index)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
         Some(_) => FontKind::Cff,
         None => FontKind::TrueType,
     };
 
-    let maxp = face.table(Tag::MAXP).ok_or(Error::MissingTable(Tag::MAXP))?;
-    let num_glyphs = u16::read_at(maxp, 4)?;
+    let maxp = face.table(Tag::MAXP).ok_or(MalformedFont)?;
+    let mut r = Reader::new_at(maxp, 4);
+    let num_glyphs = r.read::<u16>().ok_or(MalformedFont)?;
+
+    let mut requested_glyphs = HashSet::from_iter(profile.iter().copied());
+    // We always include the .notdef glyph.
+    requested_glyphs.insert(0);
 
     let mut ctx = Context {
         face,
         num_glyphs,
         subset: HashSet::new(),
-        profile,
+        requested_glyphs,
+        mapper,
         kind,
         tables: vec![],
         long_loca: true,
     };
 
+    // See here for the required tables:
+    // https://learn.microsoft.com/en-us/typography/opentype/spec/otff#required-tables
+    // some of those are not strictly needed according to the PDF specification,
+    // but it's still better to include them.
+
     if ctx.kind == FontKind::TrueType {
         glyf::discover(&mut ctx)?;
-        ctx.process(Tag::GLYF)?;
-        ctx.process(Tag::CVT)?;
-        ctx.process(Tag::FPGM)?;
-        ctx.process(Tag::PREP)?;
-        ctx.process(Tag::GASP)?;
     }
 
     if ctx.kind == FontKind::Cff {
-        cff::discover(&mut ctx);
+        // cff::discover(&mut ctx)?;
+    }
+
+    ctx.initialize_gid_map();
+
+    if ctx.kind == FontKind::TrueType {
+        ctx.process(Tag::GLYF)?;
+        // LOCA will be handled by GLYF
+        ctx.process(Tag::CVT)?; // won't be subsetted.
+        ctx.process(Tag::FPGM)?; // won't be subsetted.
+        ctx.process(Tag::PREP)?; // won't be subsetted.
+        ctx.process(Tag::GASP)?; // won't be subsetted.
+    }
+
+    if ctx.kind == FontKind::Cff {
         ctx.process(Tag::CFF)?;
-        ctx.process(Tag::CFF2)?;
-        ctx.process(Tag::VORG)?;
+        // Typst doesn't support CFF2 or vertical writing anyway,
+        // so we don't need those.
+        // ctx.process(Tag::CFF2)?;
+        // ctx.process(Tag::VORG)?;
     }
 
     // Required tables.
-    ctx.process(Tag::CMAP)?;
+    // CMAP tables will be encoded separately into the PDF,
+    // so not needed.
+    // ctx.process(Tag::CMAP)?;
     ctx.process(Tag::HEAD)?;
-    ctx.process(Tag::HHEA)?;
     ctx.process(Tag::HMTX)?;
     ctx.process(Tag::MAXP)?;
     ctx.process(Tag::NAME)?;
@@ -142,41 +160,67 @@ pub fn subset(data: &[u8], index: u32, profile: Profile) -> Result<Vec<u8>> {
 /// Parse a font face from OpenType data.
 fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
     let mut r = Reader::new(data);
-    let mut kind = r.read::<FontKind>()?;
+    let mut kind = r.read::<FontKind>().ok_or(UnknownKind)?;
 
     // Parse font collection header if necessary.
     if kind == FontKind::Collection {
-        let offset = u32::read_at(data, 12 + 4 * (index as usize))?;
-        let subdata = data.get(offset as usize..).ok_or(Error::InvalidOffset)?;
+        let mut r = Reader::new_at(data, 12 + 4 * (index as usize));
+        let offset = r.read::<u32>().ok_or(MalformedFont)?;
+        let subdata = data.get(offset as usize..).ok_or(MalformedFont)?;
         r = Reader::new(subdata);
-        kind = r.read::<FontKind>()?;
+        kind = r.read::<FontKind>().ok_or(MalformedFont)?;
         if kind == FontKind::Collection {
-            return Err(Error::UnknownKind);
+            return Err(UnknownKind);
         }
     }
 
     // Read number of table records.
-    let count = r.read::<u16>()?;
-    r.read::<u16>()?;
-    r.read::<u16>()?;
-    r.read::<u16>()?;
+    let count = r.read::<u16>().ok_or(MalformedFont)?;
+    r.read::<u16>().ok_or(MalformedFont)?;
+    r.read::<u16>().ok_or(MalformedFont)?;
+    r.read::<u16>().ok_or(MalformedFont)?;
 
     // Read table records.
     let mut records = vec![];
     for _ in 0..count {
-        records.push(r.read::<TableRecord>()?);
+        records.push(r.read::<TableRecord>().ok_or(MalformedFont)?);
     }
 
     Ok(Face { data, records })
 }
 
+// Taken from fonttools
+const TTF_TABLE_ORDER: [&[u8; 4]; 19] = [
+    b"head", b"hhea", b"maxp", b"OS/2", b"hmtx", b"LTSH", b"VDMX", b"hdmx", b"cmap",
+    b"fpgm", b"prep", b"cvt ", b"loca", b"glyf", b"kern", b"name", b"post", b"gasp",
+    b"PCLT",
+];
+
+const CFF_TABLE_ORDER: [&[u8; 4]; 8] =
+    [b"head", b"hhea", b"maxp", b"OS/2", b"name", b"cmap", b"post", b"CFF "];
+
 /// Construct a brand new font.
-fn construct(mut ctx: Context) -> Vec<u8> {
+fn construct(mut ctx: Context) -> (Vec<u8>, Mapper) {
+    let mut cloned = ctx.face.records.clone();
+    cloned.sort_by_key(|r| r.offset);
+
+    for record in cloned {
+        println!(
+            "{:?}: {:?}, {:?}, {:?}",
+            record.tag, record.checksum, record.offset, record.length
+        );
+    }
+
     let mut w = Writer::new();
     w.write::<FontKind>(ctx.kind);
 
-    // Tables shall be sorted by tag.
-    ctx.tables.sort_by_key(|&(tag, _)| tag);
+    if ctx.kind == FontKind::Cff {
+        ctx.tables
+            .sort_by_key(|&(tag, _)| CFF_TABLE_ORDER.iter().position(|r| tag.0 == **r));
+    } else if ctx.kind == FontKind::TrueType {
+        ctx.tables
+            .sort_by_key(|&(tag, _)| TTF_TABLE_ORDER.iter().position(|r| tag.0 == **r));
+    }
 
     // Write table directory.
     let count = ctx.tables.len() as u16;
@@ -223,7 +267,7 @@ fn construct(mut ctx: Context) -> Vec<u8> {
     // Write tables.
     for (_, data) in &ctx.tables {
         // Write data plus padding zeros to align to 4 bytes.
-        w.give(data);
+        w.extend(data);
         w.align(4);
     }
 
@@ -235,7 +279,7 @@ fn construct(mut ctx: Context) -> Vec<u8> {
         data[i..i + 4].copy_from_slice(&val.to_be_bytes());
     }
 
-    data
+    (data, Mapper(MapperVariant::HashmapMapper(ctx.mapper)))
 }
 
 /// Calculate a checksum over the sliced data as a sum of u32s. If the data
@@ -253,16 +297,17 @@ fn checksum(data: &[u8]) -> u32 {
 
 /// Subsetting context.
 struct Context<'a> {
-    /// Original fa'ce.
+    /// Original face.
     face: Face<'a>,
-    /// The number of glyphs in the original and subsetted face.
-    ///
-    /// Subsetting doesn't actually delete glyphs, just their outlines.
+    /// The number of glyphs in the original face.
     num_glyphs: u16,
-    /// The kept glyphs.
+    /// Requested glyphs to subset
+    requested_glyphs: HashSet<u16>,
+    /// Actual glyphs that are needed to subset the font correctly,
+    /// including glyphs referenced indirectly through components.
     subset: HashSet<u16>,
-    /// The subsetting profile.
-    profile: Profile<'a>,
+    /// A map from old gids to new gids, and the reverse
+    mapper: InternalMapper,
     /// The kind of face.
     kind: FontKind,
     /// Subsetted tables.
@@ -273,8 +318,8 @@ struct Context<'a> {
 
 impl<'a> Context<'a> {
     /// Expect a table.
-    fn expect_table(&self, tag: Tag) -> Result<&'a [u8]> {
-        self.face.table(tag).ok_or(Error::MissingTable(tag))
+    fn expect_table(&self, tag: Tag) -> Option<&'a [u8]> {
+        self.face.table(tag)
     }
 
     /// Process a table.
@@ -287,14 +332,36 @@ impl<'a> Context<'a> {
         match tag {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
-            Tag::CFF => cff::subset(self)?,
+            // Tag::CFF => cff::subset::subset(self)?,
             Tag::HEAD => head::subset(self)?,
+            Tag::HHEA => panic!("handled by hmtx"),
             Tag::HMTX => hmtx::subset(self)?,
             Tag::POST => post::subset(self)?,
+            // TODO: cmap can actually also be dropped for PDF since we use
+            // CID-keyed fonts.
+            // "If used with a simple font dictionary, the font
+            // program must additionally contain a “cmap” table
+            // defining one or more encodings, as discussed in
+            // “Encodings for TrueType Fonts” on page 429. If
+            // used with a CIDFont dictionary, the “cmap” table
+            // is not needed, since the mapping from character codes
+            // to glyph descriptions is provided separately.
+            // Tag::CMAP => cmap::subset(self)?,
+            Tag::MAXP => maxp::subset(self)?,
+            Tag::NAME => name::subset(self)?,
             _ => self.push(tag, data),
         }
 
         Ok(())
+    }
+
+    fn initialize_gid_map(&mut self) {
+        let mut original_gids = self.subset.iter().collect::<Vec<_>>();
+        original_gids.sort();
+
+        for gid in original_gids {
+            self.mapper.insert(*gid);
+        }
     }
 
     /// Push a subsetted table.
@@ -315,7 +382,7 @@ struct Face<'a> {
 
 impl<'a> Face<'a> {
     fn table(&self, tag: Tag) -> Option<&'a [u8]> {
-        let i = self.records.binary_search_by(|record| record.tag.cmp(&tag)).ok()?;
+        let i = self.records.iter().position(|record| record.tag == tag)?;
         let record = self.records.get(i)?;
         let start = record.offset as usize;
         let end = start + (record.length as usize);
@@ -334,16 +401,20 @@ enum FontKind {
     Collection,
 }
 
-impl Structure<'_> for FontKind {
-    fn read(r: &mut Reader) -> Result<Self> {
+impl Readable<'_> for FontKind {
+    const SIZE: usize = u32::SIZE;
+
+    fn read(r: &mut Reader) -> Option<Self> {
         match r.read::<u32>()? {
-            0x00010000 | 0x74727565 => Ok(FontKind::TrueType),
-            0x4F54544F => Ok(FontKind::Cff),
-            0x74746366 => Ok(FontKind::Collection),
-            _ => Err(Error::UnknownKind),
+            0x00010000 | 0x74727565 => Some(FontKind::TrueType),
+            0x4F54544F => Some(FontKind::Cff),
+            0x74746366 => Some(FontKind::Collection),
+            _ => None,
         }
     }
+}
 
+impl Writeable for FontKind {
     fn write(&self, w: &mut Writer) {
         w.write::<u32>(match self {
             FontKind::TrueType => 0x00010000,
@@ -394,11 +465,15 @@ impl Tag {
     const SVG: Self = Self(*b"SVG ");
 }
 
-impl Structure<'_> for Tag {
-    fn read(r: &mut Reader) -> Result<Self> {
+impl Readable<'_> for Tag {
+    const SIZE: usize = u8::SIZE * 4;
+
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self)
     }
+}
 
+impl Writeable for Tag {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 4]>(self.0)
     }
@@ -425,16 +500,20 @@ struct TableRecord {
     length: u32,
 }
 
-impl Structure<'_> for TableRecord {
-    fn read(r: &mut Reader) -> Result<Self> {
-        Ok(TableRecord {
+impl Readable<'_> for TableRecord {
+    const SIZE: usize = Tag::SIZE + u32::SIZE + u32::SIZE + u32::SIZE;
+
+    fn read(r: &mut Reader) -> Option<Self> {
+        Some(TableRecord {
             tag: r.read::<Tag>()?,
             checksum: r.read::<u32>()?,
             offset: r.read::<u32>()?,
             length: r.read::<u32>()?,
         })
     }
+}
 
+impl Writeable for TableRecord {
     fn write(&self, w: &mut Writer) {
         w.write::<Tag>(self.tag);
         w.write::<u32>(self.checksum);
@@ -446,11 +525,15 @@ impl Structure<'_> for TableRecord {
 /// A signed 16-bit fixed-point number.
 struct F2Dot14(u16);
 
-impl Structure<'_> for F2Dot14 {
-    fn read(r: &mut Reader) -> Result<Self> {
+impl Readable<'_> for F2Dot14 {
+    const SIZE: usize = u16::SIZE;
+
+    fn read(r: &mut Reader) -> Option<Self> {
         r.read::<u16>().map(Self)
     }
+}
 
+impl Writeable for F2Dot14 {
     fn write(&self, w: &mut Writer) {
         w.write::<u16>(self.0)
     }
@@ -464,152 +547,24 @@ type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     /// The file contains an unknown kind of font.
     UnknownKind,
-    /// An offset pointed outside of the data.
-    InvalidOffset,
-    /// Parsing expected more data.
-    MissingData,
-    /// Parsed data was invalid.
-    InvalidData,
-    /// A table is missing.
-    ///
-    /// Mostly, the subsetter just ignores (i.e. not subsets) tables if they are
-    /// missing (even the required ones). This error only occurs if a table
-    /// depends on another table and that one is missing, e.g., `glyf` is
-    /// present but `loca` is missing.
-    MissingTable(Tag),
+    /// The font seems to be malformed.
+    MalformedFont,
+    /// The font relies on some unimplemented feature, and thus we cannot guarantee
+    /// that the subsetted font would be correct.
+    Unimplemented,
+    /// An error occurred when subsetting the font.
+    SubsetError,
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            Self::UnknownKind => f.pad("unknown font kind"),
-            Self::InvalidOffset => f.pad("invalid offset"),
-            Self::MissingData => f.pad("missing more data"),
-            Self::InvalidData => f.pad("invalid data"),
-            Self::MissingTable(tag) => write!(f, "missing {tag} table"),
+            Self::UnknownKind => f.write_str("unknown font kind"),
+            Self::MalformedFont => f.write_str("malformed font"),
+            Self::Unimplemented => f.write_str("unsupported feature in font"),
+            Self::SubsetError => f.write_str("subsetting of font failed"),
         }
     }
 }
 
 impl std::error::Error for Error {}
-
-#[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use super::{subset, Profile};
-
-    const FEW: &str = "Hällo<.!ﬁ12";
-
-    #[test]
-    fn test_subset_truetype() {
-        test("NotoSans-Regular.ttf", FEW);
-        test("ClickerScript-Regular.ttf", FEW);
-    }
-
-    #[test]
-    fn test_subset_cff() {
-        test("LatinModernRoman-Regular.otf", FEW);
-        test("NewCMMath-Regular.otf", "1+2=3;π∫∑");
-        test("NotoSansCJKsc-Regular.otf", "ABC你好");
-    }
-
-    #[test]
-    fn test_subset_full() {
-        test_full("NotoSans-Regular.ttf");
-        test_full("ClickerScript-Regular.ttf");
-        test_full("NewCMMath-Regular.otf");
-        test_full("NotoSansCJKsc-Regular.otf");
-    }
-
-    fn test(path: &str, text: &str) {
-        test_impl(path, text, true);
-    }
-
-    fn test_full(path: &str) {
-        let data = std::fs::read(Path::new("fonts").join(path)).unwrap();
-        let ttf = ttf_parser::Face::from_slice(&data, 0).unwrap();
-        let mut text = String::new();
-        for subtable in ttf.tables().cmap.unwrap().subtables {
-            if subtable.is_unicode() {
-                subtable.codepoints(|c| text.push(char::try_from(c).unwrap()));
-            }
-        }
-        test_impl(path, &text, false);
-    }
-
-    fn test_impl(path: &str, text: &str, write: bool) {
-        eprintln!("==============================================");
-        eprintln!("Testing {path}");
-
-        let data = std::fs::read(Path::new("fonts").join(path)).unwrap();
-        let ttf = ttf_parser::Face::from_slice(&data, 0).unwrap();
-        let glyphs: Vec<_> =
-            text.chars().filter_map(|c| Some(ttf.glyph_index(c)?.0)).collect();
-
-        let profile = Profile::pdf(&glyphs);
-        let subs = subset(&data, 0, profile).unwrap();
-        let stem = Path::new(path).file_stem().unwrap().to_str().unwrap();
-        let out = Path::new("target").join(Path::new(stem)).with_extension("ttf");
-
-        if write {
-            std::fs::write(out, &subs).unwrap();
-        }
-
-        let ttfs = ttf_parser::Face::from_slice(&subs, 0).unwrap();
-        let cff = ttfs.tables().cff;
-        for c in text.chars() {
-            let id = ttf.glyph_index(c).unwrap();
-            let bbox = ttf.glyph_bounding_box(id);
-
-            if let Some(cff) = &cff {
-                if bbox.is_some() {
-                    cff.outline(id, &mut Sink::default()).unwrap();
-                }
-            }
-
-            let mut sink1 = Sink::default();
-            let mut sink2 = Sink::default();
-            ttf.outline_glyph(id, &mut sink1);
-            ttfs.outline_glyph(id, &mut sink2);
-            assert_eq!(sink1, sink2);
-            assert_eq!(ttf.glyph_hor_advance(id), ttfs.glyph_hor_advance(id));
-            assert_eq!(ttf.glyph_name(id), ttfs.glyph_name(id));
-            assert_eq!(ttf.glyph_hor_side_bearing(id), ttfs.glyph_hor_side_bearing(id));
-        }
-    }
-
-    #[derive(Debug, Default, PartialEq)]
-    struct Sink(Vec<Inst>);
-
-    #[derive(Debug, PartialEq)]
-    enum Inst {
-        MoveTo(f32, f32),
-        LineTo(f32, f32),
-        QuadTo(f32, f32, f32, f32),
-        CurveTo(f32, f32, f32, f32, f32, f32),
-        Close,
-    }
-
-    impl ttf_parser::OutlineBuilder for Sink {
-        fn move_to(&mut self, x: f32, y: f32) {
-            self.0.push(Inst::MoveTo(x, y));
-        }
-
-        fn line_to(&mut self, x: f32, y: f32) {
-            self.0.push(Inst::LineTo(x, y));
-        }
-
-        fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
-            self.0.push(Inst::QuadTo(x1, y1, x, y));
-        }
-
-        fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
-            self.0.push(Inst::CurveTo(x1, y1, x2, y2, x, y));
-        }
-
-        fn close(&mut self) {
-            self.0.push(Inst::Close);
-        }
-    }
-}
