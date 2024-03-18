@@ -94,3 +94,6 @@ use crate::{face_metrics, glyph_metrics, glyph_outlines};
 #[test] fn dejavu_sans_mono_0_face_metrics() {face_metrics("DejaVuSansMono.ttf", "*")}
 #[test] fn dejavu_sans_mono_0_glyph_metrics() {glyph_metrics("DejaVuSansMono.ttf", "*")}
 #[test] fn dejavu_sans_mono_0_glyph_outlines() {glyph_outlines("DejaVuSansMono.ttf", "*")}
+#[test] fn dejavu_sans_mono_1_face_metrics() {face_metrics("DejaVuSansMono.ttf", "209")}
+#[test] fn dejavu_sans_mono_1_glyph_metrics() {glyph_metrics("DejaVuSansMono.ttf", "209")}
+#[test] fn dejavu_sans_mono_1_glyph_outlines() {glyph_outlines("DejaVuSansMono.ttf", "209")}

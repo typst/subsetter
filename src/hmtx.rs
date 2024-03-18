@@ -57,6 +57,11 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
                 actual_length = Some(advanced_widths.len() - i + 1);
                 break;
             }
+
+            if i == advanced_widths.len() - 1 {
+                // All glyphs have the same width
+                actual_length = Some(1);
+            }
         }
     }
 

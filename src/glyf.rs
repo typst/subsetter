@@ -137,9 +137,10 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         }
     };
 
-    for old_gid in ctx.mapper.old_gids() {
+    for gid in 0..ctx.mapper.num_gids() {
+        let old_gid = ctx.mapper.get_reverse(gid).ok_or(SubsetError)?;
         write_offset(sub_glyf.len());
-        let data = table.glyph_data(*old_gid).ok_or(MalformedFont)?;
+        let data = table.glyph_data(old_gid).ok_or(MalformedFont)?;
 
         // Not contours
         if data.is_empty() {
