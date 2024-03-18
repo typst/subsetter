@@ -15,3 +15,6 @@ exclude = ["fonts/*"]
 hex = "0.4.3"
 sha2 = "0.10.8"
 ttf-parser = "0.20.0"
+
+[dependencies]
+pico-args = "0.5.0"

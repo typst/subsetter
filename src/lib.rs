@@ -39,10 +39,9 @@ resulting font is 36 KB (5 KB zipped).
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
 
-mod cff;
+//mod cff;
 mod glyf;
 mod head;
-mod hhea;
 mod hmtx;
 mod mapper;
 mod maxp;
@@ -122,7 +121,7 @@ fn _subset(
     }
 
     if ctx.kind == FontKind::Cff {
-        cff::discover(&mut ctx)?;
+        // cff::discover(&mut ctx)?;
     }
 
     ctx.initialize_gid_map();
@@ -149,7 +148,6 @@ fn _subset(
     // so not needed.
     // ctx.process(Tag::CMAP)?;
     ctx.process(Tag::HEAD)?;
-    ctx.process(Tag::HHEA)?;
     ctx.process(Tag::HMTX)?;
     ctx.process(Tag::MAXP)?;
     ctx.process(Tag::NAME)?;
@@ -191,13 +189,38 @@ fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
     Ok(Face { data, records })
 }
 
+// Taken from fonttools
+const TTF_TABLE_ORDER: [&[u8; 4]; 19] = [
+    b"head", b"hhea", b"maxp", b"OS/2", b"hmtx", b"LTSH", b"VDMX", b"hdmx", b"cmap",
+    b"fpgm", b"prep", b"cvt ", b"loca", b"glyf", b"kern", b"name", b"post", b"gasp",
+    b"PCLT",
+];
+
+const CFF_TABLE_ORDER: [&[u8; 4]; 8] =
+    [b"head", b"hhea", b"maxp", b"OS/2", b"name", b"cmap", b"post", b"CFF "];
+
 /// Construct a brand new font.
 fn construct(mut ctx: Context) -> (Vec<u8>, Mapper) {
+    let mut cloned = ctx.face.records.clone();
+    cloned.sort_by_key(|r| r.offset);
+
+    for record in cloned {
+        println!(
+            "{:?}: {:?}, {:?}, {:?}",
+            record.tag, record.checksum, record.offset, record.length
+        );
+    }
+
     let mut w = Writer::new();
     w.write::<FontKind>(ctx.kind);
 
-    // Tables shall be sorted by tag.
-    ctx.tables.sort_by_key(|&(tag, _)| tag);
+    if ctx.kind == FontKind::Cff {
+        ctx.tables
+            .sort_by_key(|&(tag, _)| CFF_TABLE_ORDER.iter().position(|r| tag.0 == **r));
+    } else if ctx.kind == FontKind::TrueType {
+        ctx.tables
+            .sort_by_key(|&(tag, _)| TTF_TABLE_ORDER.iter().position(|r| tag.0 == **r));
+    }
 
     // Write table directory.
     let count = ctx.tables.len() as u16;
@@ -309,9 +332,9 @@ impl<'a> Context<'a> {
         match tag {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
-            Tag::CFF => cff::subset::subset(self)?,
+            // Tag::CFF => cff::subset::subset(self)?,
             Tag::HEAD => head::subset(self)?,
-            Tag::HHEA => hhea::subset(self)?,
+            Tag::HHEA => panic!("handled by hmtx"),
             Tag::HMTX => hmtx::subset(self)?,
             Tag::POST => post::subset(self)?,
             // TODO: cmap can actually also be dropped for PDF since we use
@@ -359,7 +382,7 @@ struct Face<'a> {
 
 impl<'a> Face<'a> {
     fn table(&self, tag: Tag) -> Option<&'a [u8]> {
-        let i = self.records.binary_search_by(|record| record.tag.cmp(&tag)).ok()?;
+        let i = self.records.iter().position(|record| record.tag == tag)?;
         let record = self.records.get(i)?;
         let start = record.offset as usize;
         let end = start + (record.length as usize);

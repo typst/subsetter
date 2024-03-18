@@ -21,15 +21,16 @@ use std::hash::Hash;
 pub struct Remapper<T: Hash + Eq + PartialEq + From<u16>> {
     counter: u16,
     map: HashMap<T, T>,
+    reverse_map: Vec<T>
 }
 
 impl<T: Hash + Eq + PartialEq + From<u16>> Remapper<T> {
     pub fn new() -> Self {
-        Self { counter: 0, map: HashMap::new() }
+        Self { counter: 0, map: HashMap::new(), reverse_map: Vec::new() }
     }
 
     pub(crate) fn new_from(start: u16) -> Self {
-        Self { counter: start, map: HashMap::new() }
+        Self { counter: start, map: HashMap::new(), reverse_map: Vec::new() }
     }
 
     pub fn remap(&mut self, item: T) -> T
@@ -42,8 +43,13 @@ impl<T: Hash + Eq + PartialEq + From<u16>> Remapper<T> {
                 .counter
                 .checked_add(1)
                 .expect("remapper contains too many strings");
+            self.reverse_map.push(item);
             new_id.into()
         })
+    }
+
+    pub fn get_reverse(&self, index: u16) -> Option<&T> {
+        self.reverse_map.get(index as usize)
     }
 }
 
@@ -78,14 +84,15 @@ pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
         let num_gsubr = parsed_table.global_subrs.len();
 
         for gid in 0..ctx.mapper.num_gids() {
-            println!("{:?}", gid);
             let original_gid = ctx.mapper.get_reverse(gid).ok_or(SubsetError)?;
+            println!("{:?}", original_gid);
             let fd_index = cid_metadata
                 .fd_select
                 .font_dict_index(original_gid)
                 .ok_or(MalformedFont)?;
+            let new_fd = fd_remapper.remap(fd_index as u16) as usize;
             let fd_used_lsubs =
-                used_lsubs.get_mut(fd_index as usize).ok_or(SubsetError)?;
+                used_lsubs.get_mut(new_fd).ok_or(SubsetError)?;
 
             let num_lsubr = cid_metadata
                 .local_subrs
@@ -137,8 +144,6 @@ fn discover_subrs(
 
     let mut r = Reader::new(char_string);
 
-    let mut maybe_width = true;
-
     while !r.at_end() {
         let op = r.read::<u8>().ok_or(MalformedFont)?;
         match op {
@@ -150,7 +155,7 @@ fn discover_subrs(
             | operator::VERTICAL_STEM
             | operator::HORIZONTAL_STEM_HINT_MASK
             | operator::VERTICAL_STEM_HINT_MASK => {
-                let len = if stack.len().is_odd() && width.is_none() {
+                let len = if stack.len() % 2 == 1 && width.is_none() {
                     width = Some(stack.at(0));
                     stack.len() - 1
                 } else {
@@ -200,6 +205,11 @@ fn discover_subrs(
 
                 r.skip_bytes(((stems_len + 7) >> 3) as usize);
             }
+            // Two byte operator
+            12 => {
+                r.read::<u8>().ok_or(MalformedFont)?;
+                stack.clear();
+            }
             32..=246 => {
                 stack.push(parse_int1(op)?)?;
             }
@@ -216,8 +226,6 @@ fn discover_subrs(
                 stack.clear();
             }
         }
-
-        maybe_width = false;
     }
 
     Ok(())
