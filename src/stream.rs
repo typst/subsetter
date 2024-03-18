@@ -1,4 +1,4 @@
-use crate::util::LazyArray16;
+// use crate::util::LazyArray16;
 
 #[derive(Clone, Debug)]
 /// A readable stream of binary data.
@@ -44,34 +44,34 @@ impl<'a> Reader<'a> {
         Some(v)
     }
 
-    /// Reads the next `count` types as a slice.
-    #[inline]
-    pub fn read_array16<T: Readable<'a>>(
-        &mut self,
-        count: u16,
-    ) -> Option<LazyArray16<'a, T>> {
-        let len = usize::from(count) * T::SIZE;
-        self.read_bytes(len).map(LazyArray16::new)
-    }
+    // /// Reads the next `count` types as a slice.
+    // #[inline]
+    // pub fn read_array16<T: Readable<'a>>(
+    //     &mut self,
+    //     count: u16,
+    // ) -> Option<LazyArray16<'a, T>> {
+    //     let len = usize::from(count) * T::SIZE;
+    //     self.read_bytes(len).map(LazyArray16::new)
+    // }
 
-    /// Advances by `Readable::SIZE`.
-    #[inline]
-    pub fn skip<T: Readable<'a>>(&mut self) {
-        self.skip_bytes(T::SIZE);
-    }
-
-    pub fn at_end(&self) -> bool {
-        self.offset >= self.data.len()
-    }
-
-    pub fn offset(&self) -> usize {
-        self.offset
-    }
-
-    /// Jump to a specific location.
-    pub fn jump(&mut self, offset: usize) {
-        self.offset = offset;
-    }
+    // /// Advances by `Readable::SIZE`.
+    // #[inline]
+    // pub fn skip<T: Readable<'a>>(&mut self) {
+    //     self.skip_bytes(T::SIZE);
+    // }
+    //
+    // pub fn at_end(&self) -> bool {
+    //     self.offset >= self.data.len()
+    // }
+    //
+    // pub fn offset(&self) -> usize {
+    //     self.offset
+    // }
+    //
+    // /// Jump to a specific location.
+    // pub fn jump(&mut self, offset: usize) {
+    //     self.offset = offset;
+    // }
 
     /// Try to read a vector of `T` from the data.
     pub fn read_vector<T: Readable<'a>>(&mut self, count: usize) -> Option<Vec<T>> {
