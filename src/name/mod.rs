@@ -7,7 +7,6 @@ use crate::Error::{MalformedFont, SubsetError};
 
 pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let name = ctx.expect_table(Tag::NAME).ok_or(MalformedFont)?;
-    // println!("{:?}", name);
     let mut r = Reader::new(name);
 
     let version = r.read::<u16>().ok_or(MalformedFont)?;

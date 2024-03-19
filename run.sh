@@ -1,5 +1,5 @@
-FONT="fonts/ClickerScript-Regular.ttf"
-GIDS="2"
+FONT="fonts/DejaVuSansMono.ttf"
+GIDS="3"
 
 fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,cmap,hdmx \
  --gids=$GIDS --glyph-names --canonical-order --output-file=out_ft.otf \

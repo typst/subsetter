@@ -12,6 +12,8 @@ impl<'a> Table<'a> {
     fn new(ctx: &Context<'a>) -> Option<Self> {
         let loca = ctx.expect_table(Tag::LOCA)?;
         let glyf = ctx.expect_table(Tag::GLYF)?;
+        println!("{:?}", loca);
+        println!("{:?}", glyf);
         let head = ctx.expect_table(Tag::HEAD)?;
 
         let mut r = Reader::new_at(head, 50);
