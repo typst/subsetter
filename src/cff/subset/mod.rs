@@ -85,7 +85,7 @@ pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
 
         for gid in 0..ctx.mapper.num_gids() {
             let original_gid = ctx.mapper.get_reverse(gid).ok_or(SubsetError)?;
-            println!("{:?}", original_gid);
+            // println!("{:?}", original_gid);
             let fd_index = cid_metadata
                 .fd_select
                 .font_dict_index(original_gid)
@@ -112,7 +112,7 @@ pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
             )?;
         }
 
-        println!("Local: {:?}, Global: {:?}", used_lsubs, used_gsubs);
+        // println!("Local: {:?}, Global: {:?}", used_lsubs, used_gsubs);
     }
 
     let top_dict =

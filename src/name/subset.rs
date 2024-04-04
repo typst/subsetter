@@ -26,14 +26,14 @@ pub fn subset<'a>(table: &Version0Table<'a>) -> Option<SubsettedVersion0Table<'a
             (record.string_offset as usize)
                 ..((record.string_offset + record.length) as usize),
         )?;
-        let offset = name_deduplicator.entry(name).or_insert_with(|| {
+        let offset = *name_deduplicator.entry(name).or_insert_with(|| {
             storage.extend(name);
             let offset = cur_storage_offset;
             cur_storage_offset += record.length;
             offset
         });
 
-        record.string_offset = *offset;
+        record.string_offset = offset;
     }
 
     Some(SubsettedVersion0Table { names, storage: Cow::Owned(storage) })

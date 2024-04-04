@@ -202,14 +202,14 @@ const CFF_TABLE_ORDER: [&[u8; 4]; 8] =
 /// Construct a brand new font.
 fn construct(mut ctx: Context) -> (Vec<u8>, Mapper) {
     let mut cloned = ctx.face.records.clone();
-    cloned.sort_by_key(|r| r.offset);
+    cloned.sort_by_key(|r| r.tag);
 
-    for record in cloned {
-        println!(
-            "{:?}: {:?}, {:?}, {:?}",
-            record.tag, record.checksum, record.offset, record.length
-        );
-    }
+    // for record in cloned {
+    //     println!(
+    //         "{:?}: {:?}, {:?}, {:?}",
+    //         record.tag, record.checksum, record.offset, record.length
+    //     );
+    // }
 
     let mut w = Writer::new();
     w.write::<FontKind>(ctx.kind);

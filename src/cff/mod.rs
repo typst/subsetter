@@ -58,7 +58,7 @@ impl<'a> Table<'a> {
         skip_index::<u16>(&mut r).ok_or(MalformedFont)?;
         let names = cff.get(names_start..r.offset()).ok_or(MalformedFont)?;
         let top_dict = parse_top_dict(&mut r).ok_or(MalformedFont)?;
-        println!("{:?}", top_dict);
+        // println!("{:?}", top_dict);
 
         let strings = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
         let global_subrs = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
