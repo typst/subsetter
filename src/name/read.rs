@@ -9,7 +9,6 @@ pub struct Version0Table<'a> {
 
 impl<'a> Version0Table<'a> {
     pub fn parse(data: &'a [u8]) -> Option<Self> {
-        // println!("{:?}", data);
         let mut r = Reader::new(data);
 
         let version = r.read::<u16>()?;
