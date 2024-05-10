@@ -1,5 +1,5 @@
 use std::env;
-use subsetter::subset;
+use subsetter::{subset, GidMapper};
 
 fn parse_gids(gids: &str) -> Vec<u16> {
     if gids == "*" {
@@ -29,8 +29,9 @@ fn main() {
     // Read the raw font data.
     let data = std::fs::read(&args[1]).unwrap();
     let gids = parse_gids(&args.get(3).to_owned().unwrap_or(&"0-10".to_owned()));
+    let mapper = GidMapper::from_gid_set(&gids);
 
-    let (sub, _) = subset(&data, 0, &gids).unwrap();
+    let sub = subset(&data, 0, &mapper).unwrap();
 
     // Write the resulting file.
     std::fs::write(&args[2], sub).unwrap();

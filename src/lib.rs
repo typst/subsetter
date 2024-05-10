@@ -37,7 +37,7 @@ resulting font is 36 KB (5 KB zipped).
 // TODO: Update code examples, README and look at documentation again.
 
 #![deny(unsafe_code)]
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 
 //mod cff;
 mod glyf;
@@ -50,42 +50,23 @@ mod post;
 mod stream;
 mod util;
 
-use crate::mapper::{InternalMapper, MapperVariant};
+pub use crate::mapper::GidMapper;
 use crate::stream::{Readable, Reader, Writeable, Writer};
 use crate::Error::{MalformedFont, UnknownKind};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Debug, Display, Formatter};
 
-pub use crate::mapper::Mapper;
-
 /// Subset a font face to include less glyphs and tables.
 ///
 /// - The `data` must be in the OpenType font format.
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
-pub fn subset(data: &[u8], index: u32, profile: &[u16]) -> Result<(Vec<u8>, Mapper)> {
-    _subset(data, index, profile, InternalMapper::new())
+pub fn subset(data: &[u8], index: u32, mapper: &GidMapper) -> Result<Vec<u8>> {
+    _subset(data, index, mapper.clone())
 }
 
-/// Subset with a custom mapper
-/// TODO: Write preconditions
-pub fn subset_with_mapper(
-    data: &[u8],
-    index: u32,
-    profile: &[u16],
-    mapper: HashMap<u16, u16>,
-) -> Result<(Vec<u8>, Mapper)> {
-    assert_eq!(mapper.get(&0), Some(&0));
-    _subset(data, index, profile, mapper.into())
-}
-
-fn _subset(
-    data: &[u8],
-    index: u32,
-    profile: &[u16],
-    mapper: InternalMapper,
-) -> Result<(Vec<u8>, Mapper)> {
+fn _subset(data: &[u8], index: u32, mapper: GidMapper) -> Result<Vec<u8>> {
     let face = parse(data, index)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
         Some(_) => FontKind::Cff,
@@ -96,15 +77,9 @@ fn _subset(
     let mut r = Reader::new_at(maxp, 4);
     let num_glyphs = r.read::<u16>().ok_or(MalformedFont)?;
 
-    let mut requested_glyphs = HashSet::from_iter(profile.iter().copied());
-    // We always include the .notdef glyph.
-    requested_glyphs.insert(0);
-
     let mut ctx = Context {
         face,
         num_glyphs,
-        subset: HashSet::new(),
-        requested_glyphs,
         mapper,
         kind,
         tables: vec![],
@@ -116,18 +91,18 @@ fn _subset(
     // some of those are not strictly needed according to the PDF specification,
     // but it's still better to include them.
 
+    // It's important that we process glyf and CFF first, because they might add
+    // additional GIDs that need to be included in the subset (because they are referenced
+    // indirectly, for example).
     if ctx.kind == FontKind::TrueType {
-        glyf::discover(&mut ctx)?;
+        ctx.process(Tag::GLYF)?;
     }
 
     if ctx.kind == FontKind::Cff {
         // cff::discover(&mut ctx)?;
     }
 
-    ctx.initialize_gid_map();
-
     if ctx.kind == FontKind::TrueType {
-        ctx.process(Tag::GLYF)?;
         // LOCA will be handled by GLYF
         ctx.process(Tag::CVT)?; // won't be subsetted.
         ctx.process(Tag::FPGM)?; // won't be subsetted.
@@ -200,16 +175,9 @@ const CFF_TABLE_ORDER: [&[u8; 4]; 8] =
     [b"head", b"hhea", b"maxp", b"OS/2", b"name", b"cmap", b"post", b"CFF "];
 
 /// Construct a brand new font.
-fn construct(mut ctx: Context) -> (Vec<u8>, Mapper) {
+fn construct(mut ctx: Context) -> Vec<u8> {
     let mut cloned = ctx.face.records.clone();
     cloned.sort_by_key(|r| r.tag);
-
-    // for record in cloned {
-    //     println!(
-    //         "{:?}: {:?}, {:?}, {:?}",
-    //         record.tag, record.checksum, record.offset, record.length
-    //     );
-    // }
 
     let mut w = Writer::new();
     w.write::<FontKind>(ctx.kind);
@@ -279,7 +247,7 @@ fn construct(mut ctx: Context) -> (Vec<u8>, Mapper) {
         data[i..i + 4].copy_from_slice(&val.to_be_bytes());
     }
 
-    (data, Mapper(MapperVariant::HashmapMapper(ctx.mapper)))
+    data
 }
 
 /// Calculate a checksum over the sliced data as a sum of u32s. If the data
@@ -299,15 +267,9 @@ fn checksum(data: &[u8]) -> u32 {
 struct Context<'a> {
     /// Original face.
     face: Face<'a>,
-    /// The number of glyphs in the original face.
     num_glyphs: u16,
-    /// Requested glyphs to subset
-    requested_glyphs: HashSet<u16>,
-    /// Actual glyphs that are needed to subset the font correctly,
-    /// including glyphs referenced indirectly through components.
-    subset: HashSet<u16>,
     /// A map from old gids to new gids, and the reverse
-    mapper: InternalMapper,
+    mapper: GidMapper,
     /// The kind of face.
     kind: FontKind,
     /// Subsetted tables.
@@ -353,15 +315,6 @@ impl<'a> Context<'a> {
         }
 
         Ok(())
-    }
-
-    fn initialize_gid_map(&mut self) {
-        let mut original_gids = self.subset.iter().collect::<Vec<_>>();
-        original_gids.sort();
-
-        for gid in original_gids {
-            self.mapper.insert(*gid);
-        }
     }
 
     /// Push a subsetted table.

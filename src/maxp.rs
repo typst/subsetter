@@ -9,7 +9,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
     let mut sub_maxp = Writer::new();
     sub_maxp.write::<u32>(version);
-    sub_maxp.write::<u16>(ctx.subset.len() as u16);
+    sub_maxp.write::<u16>(ctx.mapper.num_gids());
 
     if version == 0x00010000 {
         sub_maxp.extend(r.tail().ok_or(MalformedFont)?);

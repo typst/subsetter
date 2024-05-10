@@ -38,7 +38,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let mut advanced_widths = Vec::new();
     let mut left_side_bearings = Vec::new();
 
-    for gid in 0..ctx.subset.len() as u16 {
+    for gid in 0..ctx.mapper.num_gids() {
         let original_gid = ctx.mapper.get_reverse(gid).ok_or(SubsetError)?;
         let entry = hmtx_map.get(&original_gid).ok_or(SubsetError)?;
         advanced_widths.push(entry.0);

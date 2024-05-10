@@ -15,7 +15,7 @@ pub fn subset<'a>(
 ) -> Option<SubsettedVersion2Table<'a>> {
     let old_names = table.names().collect::<Vec<_>>();
 
-    let num_glyphs = ctx.subset.len() as u16;
+    let num_glyphs = ctx.mapper.num_gids();
     let mut glyph_indexes = Vec::with_capacity(num_glyphs as usize);
 
     let mut names_data = Vec::new();

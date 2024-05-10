@@ -2,7 +2,7 @@ use sha2::{Digest, Sha256};
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
-use subsetter::{subset, Mapper};
+use subsetter::{subset, GidMapper};
 use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
@@ -15,7 +15,7 @@ const SAVE_SUBSETS: bool = false;
 struct TestContext {
     font: Vec<u8>,
     subset: Vec<u8>,
-    mapper: Mapper,
+    mapper: GidMapper,
     gids: Vec<u16>,
 }
 
@@ -40,8 +40,9 @@ fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
 
     let data = std::fs::read(font_path)?;
     let gids: Vec<_> = parse_gids(gids);
+    let mapper = GidMapper::from_gid_set(&gids);
 
-    let (subset, mapper) = subset(&data, 0, &gids)?;
+    let subset = subset(&data, 0, &mapper)?;
 
     if SAVE_SUBSETS {
         save_font(&subset);

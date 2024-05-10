@@ -1,83 +1,58 @@
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub(crate) struct InternalMapper {
+pub struct GidMapper {
     counter: u16,
     forward: HashMap<u16, u16>,
     backward: Vec<u16>,
 }
 
-impl From<HashMap<u16, u16>> for InternalMapper {
-    fn from(value: HashMap<u16, u16>) -> Self {
-        let mut mapper = InternalMapper::new();
-
-        let mut items = value.iter().collect::<Vec<_>>();
-        items.sort_by_key(|(_, v)| *v);
-
-        for (k, _) in items {
-            mapper.insert(*k);
-        }
-
-        mapper
-    }
-}
-
-impl InternalMapper {
+impl GidMapper {
     pub fn new() -> Self {
-        Self {
+        let mut mapper = Self {
             counter: 0,
             forward: HashMap::new(),
             backward: Vec::new(),
-        }
+        };
+
+        // Make sure 0 is always mapped to 0
+        mapper.remap(0);
+
+        mapper
     }
 
-    pub fn get(&self, gid: u16) -> Option<u16> {
-        self.forward.get(&gid).copied()
+    pub fn get(&self, old_gid: u16) -> Option<u16> {
+        self.forward.get(&old_gid).copied()
     }
 
-    pub fn get_reverse(&self, gid: u16) -> Option<u16> {
-        self.backward.get(gid as usize).copied()
+    pub fn get_reverse(&self, new_gid: u16) -> Option<u16> {
+        self.backward.get(new_gid as usize).copied()
     }
 
-    pub fn old_gids(&self) -> &Vec<u16> {
+    pub fn old_gids(&self) -> &[u16] {
         &self.backward
+    }
+
+    pub fn from_gid_set(gids: &[u16]) -> Self {
+        let mut mapper = GidMapper::new();
+
+        for gid in gids {
+            mapper.remap(*gid);
+        }
+
+        mapper
     }
 
     pub fn num_gids(&self) -> u16 {
         self.counter
     }
 
-    pub fn insert(&mut self, gid: u16) {
-        self.forward.entry(gid).or_insert_with(|| {
+    pub fn remap(&mut self, gid: u16) -> u16 {
+        *self.forward.entry(gid).or_insert_with(|| {
             let value = self.counter;
             self.backward.push(gid);
             self.counter += 1;
             value
-        });
-    }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum MapperVariant {
-    IdentityMapper,
-    HashmapMapper(InternalMapper),
-}
-
-/// A mapper that maps old gids to new ones.
-#[derive(Debug, Clone)]
-pub struct Mapper(pub(crate) MapperVariant);
-
-impl Mapper {
-    /// Create a mapper that maps each gid to itself.
-    pub fn identity_mapper() -> Self {
-        Self(MapperVariant::IdentityMapper)
-    }
-
-    /// Get the newly mapped gid for an old gid.
-    pub fn get(&self, gid: u16) -> Option<u16> {
-        match self.0 {
-            MapperVariant::IdentityMapper => Some(gid),
-            MapperVariant::HashmapMapper(ref h) => h.forward.get(&gid).copied(),
-        }
+        })
     }
 }
