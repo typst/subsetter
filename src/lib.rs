@@ -77,7 +77,7 @@ fn _subset(data: &[u8], index: u32, mapper: GidMapper) -> Result<Vec<u8>> {
     let mut r = Reader::new_at(maxp, 4);
     let num_glyphs = r.read::<u16>().ok_or(MalformedFont)?;
 
-    if mapper.num_gids() > num_glyphs {
+    if mapper.old_gids().iter().any(|g| *g >= num_glyphs) {
         return Err(InvalidGidMapper);
     }
 
@@ -225,9 +225,6 @@ fn construct(mut ctx: Context) -> Vec<u8> {
             offset: offset as u32,
             length: len as u32,
         });
-
-        #[cfg(test)]
-        eprintln!("{}: {}", tag, len);
 
         // Increase offset, plus padding zeros to align to 4 bytes.
         offset += len;
