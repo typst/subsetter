@@ -52,9 +52,9 @@ mod util;
 
 pub use crate::mapper::GidMapper;
 use crate::stream::{Readable, Reader, Writeable, Writer};
-use crate::Error::{MalformedFont, UnknownKind};
+use crate::Error::{InvalidGidMapper, MalformedFont, UnknownKind};
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::{self, Debug, Display, Formatter};
 
 /// Subset a font face to include less glyphs and tables.
@@ -76,6 +76,10 @@ fn _subset(data: &[u8], index: u32, mapper: GidMapper) -> Result<Vec<u8>> {
     let maxp = face.table(Tag::MAXP).ok_or(MalformedFont)?;
     let mut r = Reader::new_at(maxp, 4);
     let num_glyphs = r.read::<u16>().ok_or(MalformedFont)?;
+
+    if mapper.num_gids() > num_glyphs {
+        return Err(InvalidGidMapper);
+    }
 
     let mut ctx = Context {
         face,
@@ -507,6 +511,8 @@ pub enum Error {
     Unimplemented,
     /// An error occurred when subsetting the font.
     SubsetError,
+    /// Invald Mapper
+    InvalidGidMapper,
 }
 
 impl Display for Error {
@@ -516,6 +522,7 @@ impl Display for Error {
             Self::MalformedFont => f.write_str("malformed font"),
             Self::Unimplemented => f.write_str("unsupported feature in font"),
             Self::SubsetError => f.write_str("subsetting of font failed"),
+            Self::InvalidGidMapper => f.write_str("invalid gid mapper"),
         }
     }
 }

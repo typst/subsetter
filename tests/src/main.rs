@@ -39,7 +39,10 @@ fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
     font_path.push(font_file);
 
     let data = std::fs::read(font_path)?;
-    let gids: Vec<_> = parse_gids(gids);
+
+    let face = ttf_parser::Face::parse(&data, 0).unwrap();
+
+    let gids: Vec<_> = parse_gids(gids, face.number_of_glyphs());
     let mapper = GidMapper::from_gid_set(&gids);
 
     let subset = subset(&data, 0, &mapper)?;
@@ -51,9 +54,9 @@ fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
     Ok(TestContext { font: data, subset, mapper, gids })
 }
 
-fn parse_gids(gids: &str) -> Vec<u16> {
+fn parse_gids(gids: &str, max: u16) -> Vec<u16> {
     if gids == "*" {
-        return (0..u16::MAX).collect();
+        return (0..max).collect();
     }
 
     let split = gids.split(",").filter(|s| !s.is_empty()).collect::<Vec<_>>();
