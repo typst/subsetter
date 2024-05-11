@@ -26,10 +26,6 @@ impl<'a> Version0Table<'a> {
             names.push(r.read::<NameRecord>()?);
         }
 
-        // for name in &names {
-        //     println!("{:?}", name);
-        // }
-
         let storage = Cow::Borrowed(r.tail()?);
 
         Some(Self { names, storage })
