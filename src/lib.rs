@@ -83,7 +83,6 @@ fn _subset(data: &[u8], index: u32, mapper: GidMapper) -> Result<Vec<u8>> {
 
     let mut ctx = Context {
         face,
-        num_glyphs,
         mapper,
         kind,
         tables: vec![],
@@ -268,7 +267,6 @@ fn checksum(data: &[u8]) -> u32 {
 struct Context<'a> {
     /// Original face.
     face: Face<'a>,
-    num_glyphs: u16,
     /// A map from old gids to new gids, and the reverse
     mapper: GidMapper,
     /// The kind of face.
