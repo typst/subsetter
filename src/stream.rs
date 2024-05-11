@@ -1,4 +1,4 @@
-// use crate::util::LazyArray16;
+use crate::util::LazyArray16;
 
 #[derive(Clone, Debug)]
 /// A readable stream of binary data.
@@ -44,15 +44,15 @@ impl<'a> Reader<'a> {
         Some(v)
     }
 
-    // /// Reads the next `count` types as a slice.
-    // #[inline]
-    // pub fn read_array16<T: Readable<'a>>(
-    //     &mut self,
-    //     count: u16,
-    // ) -> Option<LazyArray16<'a, T>> {
-    //     let len = usize::from(count) * T::SIZE;
-    //     self.read_bytes(len).map(LazyArray16::new)
-    // }
+    /// Reads the next `count` types as a slice.
+    #[inline]
+    pub fn read_array16<T: Readable<'a>>(
+        &mut self,
+        count: u16,
+    ) -> Option<LazyArray16<'a, T>> {
+        let len = usize::from(count) * T::SIZE;
+        self.read_bytes(len).map(LazyArray16::new)
+    }
 
     // /// Advances by `Readable::SIZE`.
     // #[inline]
@@ -72,17 +72,6 @@ impl<'a> Reader<'a> {
     // pub fn jump(&mut self, offset: usize) {
     //     self.offset = offset;
     // }
-
-    /// Try to read a vector of `T` from the data.
-    pub fn read_vector<T: Readable<'a>>(&mut self, count: usize) -> Option<Vec<T>> {
-        let mut res = Vec::with_capacity(count);
-
-        for _ in 0..count {
-            res.push(self.read::<T>()?);
-        }
-
-        Some(res)
-    }
 
     /// Skip the next `n` bytes from the stream.
     pub fn skip_bytes(&mut self, n: usize) {
@@ -172,6 +161,12 @@ impl Readable<'_> for u8 {
 impl Writeable for u8 {
     fn write(&self, w: &mut Writer) {
         w.write::<[u8; 1]>(self.to_be_bytes());
+    }
+}
+
+impl Writeable for &[u8] {
+    fn write(&self, w: &mut Writer) {
+        w.extend(self);
     }
 }
 

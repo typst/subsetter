@@ -54,7 +54,6 @@ pub use crate::mapper::GidMapper;
 use crate::stream::{Readable, Reader, Writeable, Writer};
 use crate::Error::{InvalidGidMapper, MalformedFont, UnknownKind};
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::fmt::{self, Debug, Display, Formatter};
 
 /// Subset a font face to include less glyphs and tables.
