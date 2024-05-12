@@ -25,10 +25,10 @@ impl<'a> Reader<'a> {
         self.data.get(self.offset..)
     }
 
-    // /// Returns the current offset.
-    // pub fn offset(&self) -> usize {
-    //     self.offset
-    // }
+    /// Returns the current offset.
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
 
     /// Try to read `T` from the data.
     pub fn read<T: Readable<'a>>(&mut self) -> Option<T> {
@@ -54,24 +54,20 @@ impl<'a> Reader<'a> {
         self.read_bytes(len).map(LazyArray16::new)
     }
 
-    // /// Advances by `Readable::SIZE`.
-    // #[inline]
-    // pub fn skip<T: Readable<'a>>(&mut self) {
-    //     self.skip_bytes(T::SIZE);
-    // }
-    //
-    // pub fn at_end(&self) -> bool {
-    //     self.offset >= self.data.len()
-    // }
-    //
-    // pub fn offset(&self) -> usize {
-    //     self.offset
-    // }
-    //
-    // /// Jump to a specific location.
-    // pub fn jump(&mut self, offset: usize) {
-    //     self.offset = offset;
-    // }
+    /// Advances by `Readable::SIZE`.
+    #[inline]
+    pub fn skip<T: Readable<'a>>(&mut self) {
+        self.skip_bytes(T::SIZE);
+    }
+
+    pub fn at_end(&self) -> bool {
+        self.offset >= self.data.len()
+    }
+
+    /// Jump to a specific location.
+    pub fn jump(&mut self, offset: usize) {
+        self.offset = offset;
+    }
 
     /// Skip the next `n` bytes from the stream.
     pub fn skip_bytes(&mut self, n: usize) {
