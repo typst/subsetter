@@ -8,9 +8,36 @@ const FLOAT_STACK_LEN: usize = 64;
 const END_OF_FLOAT_FLAG: u8 = 0xf;
 
 /// Represents a real number. The underlying buffer is guaranteed to be a valid number.
+#[derive(Clone, Debug)]
 pub struct RealNumber<'a>(Cow<'a, [u8]>);
 /// Represents an integer number. The underlying buffer is guaranteed to be a valid number.
+#[derive(Clone, Debug)]
 pub struct IntegerNumber<'a>(Cow<'a, [u8]>, i32);
+
+// TODO: Test
+impl<'a> RealNumber<'a> {
+    pub fn parse(r: &mut Reader<'a>) -> Option<RealNumber<'a>> {
+        let mut bytes_reader = r.clone();
+        let start = r.offset();
+
+        loop {
+            let b1 = r.read::<u8>()?;
+            let nibble1 = b1 >> 4;
+            let nibble2 = b1 & 15;
+            if nibble1 == END_OF_FLOAT_FLAG || nibble2 == END_OF_FLOAT_FLAG {
+                break;
+            }
+        }
+
+        let end = r.offset();
+
+        Some(RealNumber(Cow::Borrowed(bytes_reader.read_bytes(end - start).unwrap())))
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}
 
 impl<'a> IntegerNumber<'a> {
     pub fn parse(r: &mut Reader<'a>) -> Option<IntegerNumber<'a>> {
@@ -136,9 +163,37 @@ mod tests {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum Number<'a> {
     RealNumber(RealNumber<'a>),
     IntegerNumber(IntegerNumber<'a>),
+}
+
+impl<'a> Number<'a> {
+    pub fn as_bytes(&self) -> &[u8] {
+        match self {
+            Number::RealNumber(real_num) => real_num.as_bytes(),
+            Number::IntegerNumber(int_num) => int_num.as_bytes()
+        }
+    }
+
+    pub fn parse(r: &mut Reader<'a>) -> Option<Number<'a>> {
+        match r.peak::<u8>()? {
+            30 => Some(Number::RealNumber(RealNumber::parse(r)?)),
+            _ => Some(Number::IntegerNumber(IntegerNumber::parse(r)?))
+        }
+    }
+
+    pub fn as_i32(&self) -> Option<i32> {
+        match self {
+            Number::IntegerNumber(int) => Some(int.as_i32()),
+            _ => None
+        }
+    }
+
+    pub fn as_u32(&self) -> Option<u32> {
+        u32::try_from(self.as_i32()?).ok()
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -163,14 +218,14 @@ pub struct DictionaryParser<'a> {
     // since f32 cannot represent the whole i32 range.
     // Meaning we have a choice of storing operands as f64 or as enum of i32/f32.
     // In both cases the type size would be 8 bytes, so it's easier to simply use f64.
-    operands: &'a mut [f64],
+    operands: &'a mut [Number<'a>],
     // An amount of operands in the `operands` array.
     operands_len: u16,
 }
 
 impl<'a> DictionaryParser<'a> {
     #[inline]
-    pub fn new(data: &'a [u8], operands_buffer: &'a mut [f64]) -> Self {
+    pub fn new(data: &'a [u8], operands_buffer: &'a mut [Number<'a>]) -> Self {
         DictionaryParser {
             data,
             offset: 0,
@@ -185,13 +240,14 @@ impl<'a> DictionaryParser<'a> {
         let mut r = Reader::new_at(self.data, self.offset);
         self.operands_offset = self.offset;
         while !r.at_end() {
-            let b = r.read::<u8>()?;
+            let b = r.peak::<u8>()?;
             // 0..=21 bytes are operators.
             if is_dict_one_byte_op(b) {
                 let mut operator = u16::from(b);
 
                 // Check that operator is two byte long.
                 if b == TWO_BYTE_OPERATOR_MARK {
+                    let _ = r.read::<u8>();
                     // Use a 1200 'prefix' to make two byte operators more readable.
                     // 12 3 => 1203
                     operator = 1200 + u16::from(r.read::<u8>()?);
@@ -200,7 +256,7 @@ impl<'a> DictionaryParser<'a> {
                 self.offset = r.offset();
                 return Some(Operator(operator));
             } else {
-                skip_number(b, &mut r)?;
+                let _ = Number::parse(&mut r)?;
             }
         }
 
@@ -221,12 +277,13 @@ impl<'a> DictionaryParser<'a> {
         let mut r = Reader::new_at(self.data, self.operands_offset);
         self.operands_len = 0;
         while !r.at_end() {
-            let b = r.read::<u8>()?;
+            let b = r.peak::<u8>()?;
             // 0..=21 bytes are operators.
             if is_dict_one_byte_op(b) {
+                r.read::<u8>()?;
                 break;
             } else {
-                let op = parse_number(b, &mut r)?;
+                let op = Number::parse(&mut r)?;
                 self.operands[usize::from(self.operands_len)] = op;
                 self.operands_len += 1;
 
@@ -240,19 +297,19 @@ impl<'a> DictionaryParser<'a> {
     }
 
     #[inline]
-    pub fn operands(&self) -> &[f64] {
+    pub fn operands(&self) -> &[Number] {
         &self.operands[..usize::from(self.operands_len)]
     }
 
     #[inline]
-    pub fn parse_number(&mut self) -> Option<f64> {
+    pub fn parse_number(&mut self) -> Option<Number> {
         self.parse_operands()?;
         self.operands().get(0).cloned()
     }
 
     #[inline]
     pub fn parse_bool(&mut self) -> Option<bool> {
-        self.parse_number().map(|n| n as u64).and_then(|n| match n {
+        self.parse_number().and_then(|n| n.as_i32()).and_then(|n| match n {
             0 => Some(false),
             1 => Some(true),
             _ => None,
@@ -264,7 +321,7 @@ impl<'a> DictionaryParser<'a> {
         self.parse_operands()?;
         let operands = self.operands();
         if operands.len() == 1 {
-            Some(StringId(u16::try_from(operands[0] as i64).ok()?))
+            Some(StringId(u16::try_from(operands[0].as_i32()?).ok()?))
         } else {
             None
         }
@@ -275,7 +332,7 @@ impl<'a> DictionaryParser<'a> {
         self.parse_operands()?;
         let operands = self.operands();
         if operands.len() == 1 {
-            usize::try_from(operands[0] as i32).ok()
+            usize::try_from(operands[0].as_u32()?).ok()
         } else {
             None
         }
@@ -286,8 +343,8 @@ impl<'a> DictionaryParser<'a> {
         self.parse_operands()?;
         let operands = self.operands();
         if operands.len() == 2 {
-            let len = usize::try_from(operands[0] as i32).ok()?;
-            let start = usize::try_from(operands[1] as i32).ok()?;
+            let len = usize::try_from(operands[0].as_u32()?).ok()?;
+            let start = usize::try_from(operands[1].as_u32()?).ok()?;
             let end = start.checked_add(len)?;
             Some(start..end)
         } else {
@@ -296,7 +353,7 @@ impl<'a> DictionaryParser<'a> {
     }
 
     #[inline]
-    pub fn parse_delta(&mut self) -> Option<Vec<f64>> {
+    pub fn parse_delta(&mut self) -> Option<Vec<Number>> {
         self.parse_operands()?;
         Some(self.operands().into())
     }
@@ -312,125 +369,4 @@ pub fn is_dict_one_byte_op(b: u8) -> bool {
         32..=254 => false, // numbers
         255 => true,       // Reserved
     }
-}
-
-// Adobe Technical Note #5177, Table 3 Operand Encoding
-pub fn parse_number(b0: u8, r: &mut Reader) -> Option<f64> {
-    match b0 {
-        28 => {
-            let n = i32::from(r.read::<i16>()?);
-            Some(f64::from(n))
-        }
-        29 => {
-            let n = r.read::<i32>()?;
-            Some(f64::from(n))
-        }
-        30 => parse_float(r),
-        32..=246 => {
-            let n = i32::from(b0) - 139;
-            Some(f64::from(n))
-        }
-        247..=250 => {
-            let b1 = i32::from(r.read::<u8>()?);
-            let n = (i32::from(b0) - 247) * 256 + b1 + 108;
-            Some(f64::from(n))
-        }
-        251..=254 => {
-            let b1 = i32::from(r.read::<u8>()?);
-            let n = -(i32::from(b0) - 251) * 256 - b1 - 108;
-            Some(f64::from(n))
-        }
-        _ => None,
-    }
-}
-
-fn parse_float(r: &mut Reader) -> Option<f64> {
-    let mut data = [0u8; FLOAT_STACK_LEN];
-    let mut idx = 0;
-
-    loop {
-        let b1: u8 = r.read()?;
-        let nibble1 = b1 >> 4;
-        let nibble2 = b1 & 15;
-
-        if nibble1 == END_OF_FLOAT_FLAG {
-            break;
-        }
-
-        idx = parse_float_nibble(nibble1, idx, &mut data)?;
-
-        if nibble2 == END_OF_FLOAT_FLAG {
-            break;
-        }
-
-        idx = parse_float_nibble(nibble2, idx, &mut data)?;
-    }
-
-    let s = core::str::from_utf8(&data[..idx]).ok()?;
-    let n = s.parse().ok()?;
-    Some(n)
-}
-
-// Adobe Technical Note #5176, Table 5 Nibble Definitions
-fn parse_float_nibble(nibble: u8, mut idx: usize, data: &mut [u8]) -> Option<usize> {
-    if idx == FLOAT_STACK_LEN {
-        return None;
-    }
-
-    match nibble {
-        0..=9 => {
-            data[idx] = b'0' + nibble;
-        }
-        10 => {
-            data[idx] = b'.';
-        }
-        11 => {
-            data[idx] = b'E';
-        }
-        12 => {
-            if idx + 1 == FLOAT_STACK_LEN {
-                return None;
-            }
-
-            data[idx] = b'E';
-            idx += 1;
-            data[idx] = b'-';
-        }
-        13 => {
-            return None;
-        }
-        14 => {
-            data[idx] = b'-';
-        }
-        _ => {
-            return None;
-        }
-    }
-
-    idx += 1;
-    Some(idx)
-}
-
-// Just like `parse_number`, but doesn't actually parses the data.
-pub fn skip_number(b0: u8, r: &mut Reader) -> Option<()> {
-    match b0 {
-        28 => r.skip::<u16>(),
-        29 => r.skip::<u32>(),
-        30 => {
-            while !r.at_end() {
-                let b1 = r.read::<u8>()?;
-                let nibble1 = b1 >> 4;
-                let nibble2 = b1 & 15;
-                if nibble1 == END_OF_FLOAT_FLAG || nibble2 == END_OF_FLOAT_FLAG {
-                    break;
-                }
-            }
-        }
-        32..=246 => {}
-        247..=250 => r.skip::<u8>(),
-        251..=254 => r.skip::<u8>(),
-        _ => return None,
-    }
-
-    Some(())
 }
