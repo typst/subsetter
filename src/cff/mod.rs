@@ -12,14 +12,15 @@ mod top_dict;
 
 use super::*;
 use crate::cff::charset::{parse_charset, Charset};
-use crate::cff::dict::DictionaryParser;
+use crate::cff::dict::{DictionaryParser, Number};
 use crate::cff::encoding::Encoding;
 use crate::cff::index::{parse_index, skip_index, Index};
-use crate::cff::private_dict::{parse_private_dict, PrivateDict};
+use crate::cff::private_dict::parse_subr_offset;
 use crate::util::LazyArray16;
+use std::array;
 use std::collections::HashMap;
 use std::ops::Range;
-use top_dict::{top_dict_operator, TopDict};
+use top_dict::{top_dict_operator, TopDictData};
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const MAX_OPERANDS_LEN: usize = 48;
@@ -32,7 +33,7 @@ pub struct Table<'a> {
     table_data: &'a [u8],
     header: &'a [u8],
     names: &'a [u8],
-    top_dict: TopDict,
+    top_dict_data: TopDictData,
     strings: Index<'a>,
     global_subrs: Index<'a>,
     charset: Charset<'a>,
@@ -99,12 +100,12 @@ impl<'a> Table<'a> {
         let names_start = r.offset();
         skip_index::<u16>(&mut r).ok_or(MalformedFont)?;
         let names = cff.get(names_start..r.offset()).ok_or(MalformedFont)?;
-        let top_dict = top_dict::parse_top_dict(&mut r).ok_or(MalformedFont)?;
+        let top_dict_data = top_dict::parse_top_dict(&mut r).ok_or(MalformedFont)?;
 
         let strings = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
         let global_subrs = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
 
-        let char_strings_offset = top_dict.char_strings.ok_or(MalformedFont)?;
+        let char_strings_offset = top_dict_data.char_strings.ok_or(MalformedFont)?;
         let char_strings = {
             let mut r = Reader::new_at(cff, char_strings_offset);
             parse_index::<u16>(&mut r).ok_or(MalformedFont)?
@@ -115,7 +116,7 @@ impl<'a> Table<'a> {
             .filter(|n| *n > 0)
             .ok_or(MalformedFont)?;
 
-        let charset = match top_dict.charset {
+        let charset = match top_dict_data.charset {
             Some(charset_id::ISO_ADOBE) => Charset::ISOAdobe,
             Some(charset_id::EXPERT) => Charset::Expert,
             Some(charset_id::EXPERT_SUBSET) => Charset::ExpertSubset,
@@ -126,8 +127,8 @@ impl<'a> Table<'a> {
             None => Charset::ISOAdobe, // default
         };
 
-        let kind = if top_dict.ros.is_some() {
-            parse_cid_metadata(cff, &top_dict, number_of_glyphs)
+        let kind = if top_dict_data.has_ros {
+            parse_cid_metadata(cff, &top_dict_data, number_of_glyphs)
         } else {
             None
         };
@@ -136,7 +137,7 @@ impl<'a> Table<'a> {
             table_data: cff,
             header,
             names,
-            top_dict,
+            top_dict_data,
             strings,
             global_subrs,
             charset,
@@ -165,7 +166,6 @@ pub(crate) struct SIDMetadata<'a> {
 
 #[derive(Clone, Default, Debug)]
 pub(crate) struct CIDMetadata<'a> {
-    private_dicts: Vec<PrivateDict>,
     local_subrs: Vec<Option<Index<'a>>>,
     fd_array: Index<'a>,
     fd_select: FDSelect<'a>,
@@ -221,7 +221,7 @@ impl FDSelect<'_> {
 
 fn parse_cid_metadata<'a>(
     data: &'a [u8],
-    top_dict: &TopDict,
+    top_dict: &TopDictData,
     number_of_glyphs: u16,
 ) -> Option<FontKind<'a>> {
     let (charset_offset, fd_array_offset, fd_select_offset) =
@@ -244,9 +244,9 @@ fn parse_cid_metadata<'a>(
     };
 
     for font_dict_data in metadata.fd_array {
-        let (private_dict, subrs_index) = parse_cid_private_dict(data, font_dict_data)?;
-        metadata.private_dicts.push(private_dict);
-        metadata.local_subrs.push(subrs_index);
+        metadata
+            .local_subrs
+            .push(parse_cid_private_dict(data, font_dict_data));
     }
 
     metadata.fd_select = {
@@ -260,25 +260,19 @@ fn parse_cid_metadata<'a>(
 fn parse_cid_private_dict<'a>(
     data: &'a [u8],
     font_dict_data: &'a [u8],
-) -> Option<(PrivateDict, Option<Index<'a>>)> {
+) -> Option<Index<'a>> {
     let private_dict_range = parse_font_dict(font_dict_data)?;
     let private_dict_data = data.get(private_dict_range.clone())?;
-    let private_dict = parse_private_dict(private_dict_data)?;
+    let subrs_offset = parse_subr_offset(private_dict_data)?;
 
-    let subrs_index = if let Some(subrs_offset) = private_dict.subrs {
-        let start = private_dict_range.start.checked_add(subrs_offset)?;
-        let subrs_data = data.get(start..)?;
-        let mut r = Reader::new(subrs_data);
-        Some(parse_index::<u16>(&mut r)?)
-    } else {
-        None
-    };
-
-    Some((private_dict, subrs_index))
+    let start = private_dict_range.start.checked_add(subrs_offset)?;
+    let subrs_data = data.get(start..)?;
+    let mut r = Reader::new(subrs_data);
+    parse_index::<u16>(&mut r)
 }
 
 fn parse_font_dict(data: &[u8]) -> Option<Range<usize>> {
-    let mut operands_buffer = [0.0; MAX_OPERANDS_LEN];
+    let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
     while let Some(operator) = dict_parser.parse_next() {
         if operator.get() == top_dict_operator::PRIVATE {

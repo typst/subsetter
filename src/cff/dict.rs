@@ -173,21 +173,25 @@ impl<'a> Number<'a> {
     pub fn as_bytes(&self) -> &[u8] {
         match self {
             Number::RealNumber(real_num) => real_num.as_bytes(),
-            Number::IntegerNumber(int_num) => int_num.as_bytes()
+            Number::IntegerNumber(int_num) => int_num.as_bytes(),
         }
     }
 
     pub fn parse(r: &mut Reader<'a>) -> Option<Number<'a>> {
         match r.peak::<u8>()? {
             30 => Some(Number::RealNumber(RealNumber::parse(r)?)),
-            _ => Some(Number::IntegerNumber(IntegerNumber::parse(r)?))
+            _ => Some(Number::IntegerNumber(IntegerNumber::parse(r)?)),
         }
+    }
+
+    pub fn zero() -> Self {
+        Number::IntegerNumber(IntegerNumber::from_i32(0))
     }
 
     pub fn as_i32(&self) -> Option<i32> {
         match self {
             Number::IntegerNumber(int) => Some(int.as_i32()),
-            _ => None
+            _ => None,
         }
     }
 
