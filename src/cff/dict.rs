@@ -65,10 +65,12 @@ impl<'a> IntegerNumber<'a> {
             let b0 = u8::try_from(temp / 256 + 251).unwrap();
             let b1 = u8::try_from(temp % 256).unwrap();
             Self(Cow::Owned(vec![b0, b1]), num)
-        } else if num >= -32768 && num <= 32768 {
-            Self(Cow::Owned(i16::try_from(num).unwrap().to_be_bytes().to_vec()), num)
+        } else if num >= -32768 && num <= 32767 {
+            let bytes = i16::try_from(num).unwrap().to_be_bytes();
+            Self(Cow::Owned(vec![28, bytes[0], bytes[1]]), num)
         } else {
-            Self(Cow::Owned(num.to_be_bytes().to_vec()), num)
+            let bytes = num.to_be_bytes();
+            Self(Cow::Owned(vec![29, bytes[0], bytes[1], bytes[2], bytes[3]]), num)
         }
     }
 }
@@ -107,14 +109,28 @@ mod tests {
 
     #[test]
     fn size3_roundtrip() {
-        let nums = [1132, -1132, 1032, -1032, 2450, -2450, 4096, -4096, 8965, -8965];
+        let nums = [1132, -1132, 2450, -2450, 4096, -4096, 8965, -8965, 32767, -32768];
 
         for num in nums {
             let integer = IntegerNumber::from_i32(num);
             let bytes = integer.as_bytes();
             let mut reader = Reader::new(bytes);
             let reparsed = IntegerNumber::parse(&mut reader).unwrap();
-            assert_eq!(reparsed.as_bytes().len(), 2);
+            assert_eq!(reparsed.as_bytes().len(), 3);
+            assert_eq!(reparsed.as_i32(), num);
+        }
+    }
+
+    #[test]
+    fn size5_roundtrip() {
+        let nums = [32768, -32769, i32::MAX, i32::MIN];
+
+        for num in nums {
+            let integer = IntegerNumber::from_i32(num);
+            let bytes = integer.as_bytes();
+            let mut reader = Reader::new(bytes);
+            let reparsed = IntegerNumber::parse(&mut reader).unwrap();
+            assert_eq!(reparsed.as_bytes().len(), 5);
             assert_eq!(reparsed.as_i32(), num);
         }
     }
