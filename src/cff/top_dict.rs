@@ -1,6 +1,5 @@
-use crate::cff::dict::{DictionaryParser, IntegerNumber, Number};
+use crate::cff::dict::{DictionaryParser, Number};
 use crate::cff::index::parse_index;
-use crate::cff::MAX_OPERANDS_LEN;
 use crate::stream::{Reader, StringId};
 use std::array;
 use std::collections::HashSet;
@@ -43,7 +42,8 @@ pub fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDictData> {
         match operator.get() {
             VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
             | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {
-                top_dict.used_sids.insert(dict_parser.parse_sid()?);
+                let sid = dict_parser.parse_sid()?;
+                top_dict.used_sids.insert(sid);
             }
             CHARSET => top_dict.charset = Some(dict_parser.parse_offset()?),
             ENCODING => top_dict.encoding = Some(dict_parser.parse_offset()?),

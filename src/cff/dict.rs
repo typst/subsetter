@@ -244,14 +244,13 @@ impl<'a> DictionaryParser<'a> {
         let mut r = Reader::new_at(self.data, self.offset);
         self.operands_offset = self.offset;
         while !r.at_end() {
-            let b = r.peak::<u8>()?;
             // 0..=21 bytes are operators.
-            if is_dict_one_byte_op(b) {
+            if is_dict_one_byte_op(r.peak::<u8>()?) {
+                let b = r.read::<u8>()?;
                 let mut operator = u16::from(b);
 
                 // Check that operator is two byte long.
                 if b == TWO_BYTE_OPERATOR_MARK {
-                    let _ = r.read::<u8>();
                     // Use a 1200 'prefix' to make two byte operators more readable.
                     // 12 3 => 1203
                     operator = 1200 + u16::from(r.read::<u8>()?);

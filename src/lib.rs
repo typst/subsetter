@@ -102,7 +102,7 @@ fn _subset(data: &[u8], index: u32, mapper: GidMapper) -> Result<Vec<u8>> {
     }
 
     if ctx.kind == FontKind::Cff {
-        cff::Table::parse(&mut ctx);
+        cff::subset(&mut ctx);
         // cff::discover(&mut ctx)?;
     }
 
