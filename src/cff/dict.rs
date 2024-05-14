@@ -9,7 +9,7 @@ const END_OF_FLOAT_FLAG: u8 = 0xf;
 
 /// Represents a real number. The underlying buffer is guaranteed to be a valid number.
 #[derive(Clone, Debug)]
-pub struct RealNumber<'a>(Cow<'a, [u8]>);
+pub struct RealNumber<'a>(Cow<'a, [u8]>, f32);
 /// Represents an integer number. The underlying buffer is guaranteed to be a valid number.
 #[derive(Clone, Debug)]
 pub struct IntegerNumber<'a>(Cow<'a, [u8]>, i32);
@@ -20,18 +20,32 @@ impl<'a> RealNumber<'a> {
         let mut bytes_reader = r.clone();
         let start = r.offset();
 
+        let mut data = [0u8; FLOAT_STACK_LEN];
+        let mut idx = 0;
+
         loop {
-            let b1 = r.read::<u8>()?;
+            let b1: u8 = r.read()?;
             let nibble1 = b1 >> 4;
             let nibble2 = b1 & 15;
-            if nibble1 == END_OF_FLOAT_FLAG || nibble2 == END_OF_FLOAT_FLAG {
+
+            if nibble1 == END_OF_FLOAT_FLAG {
                 break;
             }
+
+            idx = parse_float_nibble(nibble1, idx, &mut data)?;
+
+            if nibble2 == END_OF_FLOAT_FLAG {
+                break;
+            }
+
+            idx = parse_float_nibble(nibble2, idx, &mut data)?;
         }
 
+        let s = core::str::from_utf8(&data[..idx]).ok()?;
+        let n = s.parse().ok()?;
         let end = r.offset();
 
-        Some(RealNumber(Cow::Borrowed(bytes_reader.read_bytes(end - start).unwrap())))
+        Some(RealNumber(Cow::Borrowed(bytes_reader.read_bytes(end - start).unwrap()), n))
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -102,8 +116,9 @@ impl<'a> IntegerNumber<'a> {
     }
 }
 
+#[cfg(test)]
 mod tests {
-    use crate::cff::dict::IntegerNumber;
+    use crate::cff::dict::{IntegerNumber, RealNumber};
     use crate::stream::Reader;
 
     #[test]
@@ -161,6 +176,14 @@ mod tests {
             assert_eq!(reparsed.as_i32(), num);
         }
     }
+
+    #[test]
+    fn parse_float() {
+        let num = [0xE2, 0x49, 0x32, 0xA1, 0x2C, 0x2F];
+        let mut r = Reader::new(&num);
+        let real = RealNumber::parse(&mut r).unwrap();
+        assert_eq!(-249.3212, real.1)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -191,7 +214,13 @@ impl<'a> Number<'a> {
     pub fn as_i32(&self) -> Option<i32> {
         match self {
             Number::IntegerNumber(int) => Some(int.as_i32()),
-            _ => None,
+            Number::RealNumber(rn) => {
+                if rn.1.fract() == 0.0 {
+                    Some(rn.1 as i32)
+                } else {
+                    None
+                }
+            },
         }
     }
 
@@ -372,4 +401,44 @@ pub fn is_dict_one_byte_op(b: u8) -> bool {
         32..=254 => false, // numbers
         255 => true,       // Reserved
     }
+}
+
+// Adobe Technical Note #5176, Table 5 Nibble Definitions
+fn parse_float_nibble(nibble: u8, mut idx: usize, data: &mut [u8]) -> Option<usize> {
+    if idx == FLOAT_STACK_LEN {
+        return None;
+    }
+
+    match nibble {
+        0..=9 => {
+            data[idx] = b'0' + nibble;
+        }
+        10 => {
+            data[idx] = b'.';
+        }
+        11 => {
+            data[idx] = b'E';
+        }
+        12 => {
+            if idx + 1 == FLOAT_STACK_LEN {
+                return None;
+            }
+
+            data[idx] = b'E';
+            idx += 1;
+            data[idx] = b'-';
+        }
+        13 => {
+            return None;
+        }
+        14 => {
+            data[idx] = b'-';
+        }
+        _ => {
+            return None;
+        }
+    }
+
+    idx += 1;
+    Some(idx)
 }
