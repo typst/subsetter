@@ -40,6 +40,7 @@ resulting font is 36 KB (5 KB zipped).
 // #![deny(missing_docs)]
 
 //mod cff;
+mod cff;
 mod glyf;
 mod head;
 mod hmtx;
@@ -49,7 +50,6 @@ mod name;
 mod post;
 mod stream;
 mod util;
-mod cff;
 
 pub use crate::mapper::GidMapper;
 use crate::stream::{Readable, Reader, Writeable, Writer};

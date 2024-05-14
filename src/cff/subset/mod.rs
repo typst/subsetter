@@ -1,8 +1,5 @@
 mod argstack;
-mod char_strings;
-mod charset;
-mod sid;
-mod top_dict;
+
 
 use crate::cff::argstack::ArgumentsStack;
 use crate::cff::subset::charset::subset_charset;
@@ -16,110 +13,6 @@ use crate::{Context, Tag};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
-
-#[derive(Clone)]
-pub struct Remapper<T: Hash + Eq + PartialEq + From<u16>> {
-    counter: u16,
-    map: HashMap<T, T>,
-    reverse_map: Vec<T>
-}
-
-impl<T: Hash + Eq + PartialEq + From<u16>> Remapper<T> {
-    pub fn new() -> Self {
-        Self { counter: 0, map: HashMap::new(), reverse_map: Vec::new() }
-    }
-
-    pub(crate) fn new_from(start: u16) -> Self {
-        Self { counter: start, map: HashMap::new(), reverse_map: Vec::new() }
-    }
-
-    pub fn remap(&mut self, item: T) -> T
-    where
-        T: Copy,
-    {
-        *self.map.entry(item).or_insert_with(|| {
-            let new_id = self.counter;
-            self.counter = self
-                .counter
-                .checked_add(1)
-                .expect("remapper contains too many strings");
-            self.reverse_map.push(item);
-            new_id.into()
-        })
-    }
-
-    pub fn get_reverse(&self, index: u16) -> Option<&T> {
-        self.reverse_map.get(index as usize)
-    }
-}
-
-struct SubsettedTable<'a> {
-    header: &'a [u8],
-    names: &'a [u8],
-    top_dict: TopDict,
-}
-
-pub(crate) fn subset(ctx: &mut Context) -> crate::Result<()> {
-    let name = ctx.expect_table(Tag::CFF).ok_or(MalformedFont)?;
-    let parsed_table = Table::parse(ctx)?;
-
-    let header = parsed_table.header;
-    let names = parsed_table.names;
-
-    let mut sid_remapper = SidRemapper::new();
-
-    let charset = subset_charset(&parsed_table.charset, ctx, &mut sid_remapper)
-        .ok_or(SubsetError)?;
-
-    if let Some(FontKind::CID(cid_metadata)) = &parsed_table.kind {
-        let mut fd_remapper =
-            remap_font_dicts(ctx, &cid_metadata.fd_select).ok_or(MalformedFont)?;
-        let mut used_gsubs = HashSet::new();
-        let mut used_lsubs: Vec<HashSet<u32>> = [HashSet::new()]
-            .into_iter()
-            .cycle()
-            .take(fd_remapper.counter as usize)
-            .collect();
-
-        let num_gsubr = parsed_table.global_subrs.len();
-
-        for gid in 0..ctx.mapper.num_gids() {
-            let original_gid = ctx.mapper.get_reverse(gid).ok_or(SubsetError)?;
-            // println!("{:?}", original_gid);
-            let fd_index = cid_metadata
-                .fd_select
-                .font_dict_index(original_gid)
-                .ok_or(MalformedFont)?;
-            let new_fd = fd_remapper.remap(fd_index as u16) as usize;
-            let fd_used_lsubs =
-                used_lsubs.get_mut(new_fd).ok_or(SubsetError)?;
-
-            let num_lsubr = cid_metadata
-                .local_subrs
-                .get(fd_index as usize)
-                .and_then(|i| i.map(|i| i.len()))
-                .unwrap_or(0);
-
-            discover_subrs(
-                &mut used_gsubs,
-                fd_used_lsubs,
-                num_gsubr,
-                num_lsubr,
-                parsed_table
-                    .char_strings
-                    .get(original_gid as u32)
-                    .ok_or(MalformedFont)?,
-            )?;
-        }
-
-        // println!("Local: {:?}, Global: {:?}", used_lsubs, used_gsubs);
-    }
-
-    let top_dict =
-        update_top_dict(&parsed_table.top_dict, &mut sid_remapper).ok_or(SubsetError)?;
-
-    Ok(())
-}
 
 struct CharStringParserContext {
     width: Option<f32>,

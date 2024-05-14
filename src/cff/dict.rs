@@ -1,10 +1,129 @@
 use crate::stream::{Reader, StringId};
+use std::borrow::Cow;
 use std::ops::Range;
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const TWO_BYTE_OPERATOR_MARK: u8 = 12;
 const FLOAT_STACK_LEN: usize = 64;
 const END_OF_FLOAT_FLAG: u8 = 0xf;
+
+/// Represents a real number. The underlying buffer is guaranteed to be a valid number.
+pub struct RealNumber<'a>(Cow<'a, [u8]>);
+/// Represents an integer number. The underlying buffer is guaranteed to be a valid number.
+pub struct IntegerNumber<'a>(Cow<'a, [u8]>, i32);
+
+impl<'a> IntegerNumber<'a> {
+    pub fn parse(r: &mut Reader<'a>) -> Option<IntegerNumber<'a>> {
+        let mut byte_reader = r.clone();
+        let b0 = r.read::<u8>()?;
+        match b0 {
+            28 => Some(IntegerNumber(
+                Cow::Borrowed(byte_reader.read_bytes(3)?),
+                i32::from(r.read::<i16>()?),
+            )),
+            29 => Some(IntegerNumber(
+                Cow::Borrowed(byte_reader.read_bytes(5)?),
+                i32::from(r.read::<i32>()?),
+            )),
+            32..=246 => {
+                let n = i32::from(b0) - 139;
+                Some(IntegerNumber(Cow::Borrowed(byte_reader.read_bytes(1)?), n))
+            }
+            247..=250 => {
+                let b1 = i32::from(r.read::<u8>()?);
+                let n = (i32::from(b0) - 247) * 256 + b1 + 108;
+                Some(IntegerNumber(Cow::Borrowed(byte_reader.read_bytes(2)?), n))
+            }
+            251..=254 => {
+                let b1 = i32::from(r.read::<u8>()?);
+                let n = -(i32::from(b0) - 251) * 256 - b1 - 108;
+                Some(IntegerNumber(Cow::Borrowed(byte_reader.read_bytes(2)?), n))
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_i32(&self) -> i32 {
+        self.1
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+
+    pub fn from_i32(num: i32) -> Self {
+        if num >= -107 && num <= 107 {
+            let b0 = u8::try_from(num + 139).unwrap();
+            Self(Cow::Owned(vec![b0]), num)
+        } else if num >= 108 && num <= 1131 {
+            let temp = num - 108;
+            let b0 = u8::try_from(temp / 256 + 247).unwrap();
+            let b1 = u8::try_from(temp % 256).unwrap();
+            Self(Cow::Owned(vec![b0, b1]), num)
+        } else if num >= -1131 && num <= -108 {
+            let temp = -num - 108;
+            let b0 = u8::try_from(temp / 256 + 251).unwrap();
+            let b1 = u8::try_from(temp % 256).unwrap();
+            Self(Cow::Owned(vec![b0, b1]), num)
+        } else if num >= -32768 && num <= 32768 {
+            Self(Cow::Owned(i16::try_from(num).unwrap().to_be_bytes().to_vec()), num)
+        } else {
+            Self(Cow::Owned(num.to_be_bytes().to_vec()), num)
+        }
+    }
+}
+
+mod tests {
+    use crate::cff::dict::IntegerNumber;
+    use crate::stream::Reader;
+
+    #[test]
+    fn size1_roundtrip() {
+        let nums = [0, 1, -1, 93, 107, -107];
+
+        for num in nums {
+            let integer = IntegerNumber::from_i32(num);
+            let bytes = integer.as_bytes();
+            let mut reader = Reader::new(bytes);
+            let reparsed = IntegerNumber::parse(&mut reader).unwrap();
+            assert_eq!(reparsed.as_bytes().len(), 1);
+            assert_eq!(reparsed.as_i32(), num);
+        }
+    }
+
+    #[test]
+    fn size2_roundtrip() {
+        let nums = [108, -108, 255, -255, 349, -349, 845, -845, 1131, -1131];
+
+        for num in nums {
+            let integer = IntegerNumber::from_i32(num);
+            let bytes = integer.as_bytes();
+            let mut reader = Reader::new(bytes);
+            let reparsed = IntegerNumber::parse(&mut reader).unwrap();
+            assert_eq!(reparsed.as_bytes().len(), 2);
+            assert_eq!(reparsed.as_i32(), num);
+        }
+    }
+
+    #[test]
+    fn size3_roundtrip() {
+        let nums = [1132, -1132, 1032, -1032, 2450, -2450, 4096, -4096, 8965, -8965];
+
+        for num in nums {
+            let integer = IntegerNumber::from_i32(num);
+            let bytes = integer.as_bytes();
+            let mut reader = Reader::new(bytes);
+            let reparsed = IntegerNumber::parse(&mut reader).unwrap();
+            assert_eq!(reparsed.as_bytes().len(), 2);
+            assert_eq!(reparsed.as_i32(), num);
+        }
+    }
+}
+
+pub enum Number<'a> {
+    RealNumber(RealNumber<'a>),
+    IntegerNumber(IntegerNumber<'a>),
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Operator(pub u16);

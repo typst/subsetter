@@ -1,8 +1,8 @@
-use std::ops::Range;
 use crate::cff::dict::DictionaryParser;
 use crate::cff::index::parse_index;
 use crate::cff::MAX_OPERANDS_LEN;
 use crate::stream::{Reader, StringId};
+use std::ops::Range;
 
 #[derive(Default, Debug, Clone)]
 pub struct TopDict {

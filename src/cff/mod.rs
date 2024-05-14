@@ -8,15 +8,16 @@ mod encoding;
 mod index;
 mod private_dict;
 mod top_dict;
-// pub(crate) mod subset;
+// mod subset;
 
 use super::*;
-use crate::cff::charset::{Charset, parse_charset};
+use crate::cff::charset::{parse_charset, Charset};
 use crate::cff::dict::DictionaryParser;
 use crate::cff::encoding::Encoding;
-use crate::cff::index::{Index, parse_index, skip_index};
+use crate::cff::index::{parse_index, skip_index, Index};
 use crate::cff::private_dict::{parse_private_dict, PrivateDict};
 use crate::util::LazyArray16;
+use std::collections::HashMap;
 use std::ops::Range;
 use top_dict::{top_dict_operator, TopDict};
 
@@ -38,6 +39,43 @@ pub struct Table<'a> {
     number_of_glyphs: u16,
     char_strings: Index<'a>,
     kind: Option<FontKind<'a>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Remapper {
+    counter: u16,
+    forward: HashMap<u16, u16>,
+}
+
+impl Remapper {
+    pub fn new() -> Self {
+        let mut mapper = Self { counter: 0, forward: HashMap::new() };
+
+        mapper
+    }
+
+    pub fn get(&self, old_gid: u16) -> Option<u16> {
+        self.forward.get(&old_gid).copied()
+    }
+
+    pub fn remap(&mut self, gid: u16) -> u16 {
+        *self.forward.entry(gid).or_insert_with(|| {
+            let value = self.counter;
+            self.counter += 1;
+            value
+        })
+    }
+}
+
+pub fn subset<'a>(ctx: &mut Context<'a>) {
+    let table = Table::parse(ctx).unwrap();
+
+    let Some(FontKind::CID(kind)) = table.kind else {
+        return;
+    };
+
+    let mut gsubr_remapper = Remapper::new();
+    let mut lsubr_remapper = vec![Remapper::new(); kind.local_subrs.len()];
 }
 
 impl<'a> Table<'a> {

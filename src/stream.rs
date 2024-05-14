@@ -35,6 +35,12 @@ impl<'a> Reader<'a> {
         T::read(self)
     }
 
+    /// Try to read `T` from the data.
+    pub fn peak<T: Readable<'a>>(&mut self) -> Option<T> {
+        let mut r = self.clone();
+        T::read(&mut r)
+    }
+
     // TODO: Add skip function
 
     /// Read a certain number of bytes.
