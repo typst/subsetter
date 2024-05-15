@@ -1,5 +1,6 @@
 use crate::stream::{Reader, StringId};
 use std::borrow::Cow;
+use std::fmt::{Debug, Formatter};
 use std::ops::Range;
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
@@ -8,11 +9,23 @@ const FLOAT_STACK_LEN: usize = 64;
 const END_OF_FLOAT_FLAG: u8 = 0xf;
 
 /// Represents a real number. The underlying buffer is guaranteed to be a valid number.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct RealNumber<'a>(Cow<'a, [u8]>, f32);
+
+impl Debug for RealNumber<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.1)
+    }
+}
 /// Represents an integer number. The underlying buffer is guaranteed to be a valid number.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct IntegerNumber<'a>(Cow<'a, [u8]>, i32);
+
+impl Debug for IntegerNumber<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.1)
+    }
+}
 
 // TODO: Test
 impl<'a> RealNumber<'a> {
@@ -22,6 +35,9 @@ impl<'a> RealNumber<'a> {
 
         let mut data = [0u8; FLOAT_STACK_LEN];
         let mut idx = 0;
+
+        // Skip the prefix
+        r.read::<u8>()?;
 
         loop {
             let b1: u8 = r.read()?;

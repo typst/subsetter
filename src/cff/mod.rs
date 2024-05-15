@@ -13,14 +13,17 @@ mod charstring;
 
 use super::*;
 use crate::cff::charset::{parse_charset, Charset};
+use crate::cff::charstring::{CharString, Decompiler};
 use crate::cff::dict::{DictionaryParser, Number};
 use crate::cff::encoding::Encoding;
 use crate::cff::index::{parse_index, skip_index, Index};
 use crate::cff::private_dict::parse_subr_offset;
 use crate::util::LazyArray16;
 use std::array;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Range;
+use std::rc::Rc;
 use top_dict::{top_dict_operator, TopDictData};
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
@@ -76,8 +79,34 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         return;
     };
 
-    let mut gsubr_remapper = Remapper::new();
-    let mut lsubr_remapper = vec![Remapper::new(); kind.local_subrs.len()];
+    let gsubrs = table
+        .global_subrs
+        .into_iter()
+        .map(|g| Rc::new(RefCell::new(CharString::new(g))))
+        .collect::<Vec<_>>();
+    let lsubrs = kind
+        .local_subrs
+        .into_iter()
+        .map(|index| {
+            index
+                .into_iter()
+                .map(|g| Rc::new(RefCell::new(CharString::new(g))))
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    for i in 0..1 {
+        let fd_index = kind.fd_select.font_dict_index(i).unwrap();
+        let lsubrs = lsubrs.get(fd_index as usize).unwrap();
+
+        let mut decompiler = Decompiler::new(&lsubrs, &gsubrs);
+        let mut charstring = CharString::new(table.char_strings.get(i as u32).unwrap());
+        charstring.decompile(&mut decompiler).unwrap();
+        println!("{:?}", charstring.decompiled);
+    }
+
+    // let mut gsubr_remapper = Remapper::new();
+    // let mut lsubr_remapper = vec![Remapper::new(); kind.local_subrs.len()];
 }
 
 impl<'a> Table<'a> {
@@ -167,7 +196,7 @@ pub(crate) struct SIDMetadata<'a> {
 
 #[derive(Clone, Default, Debug)]
 pub(crate) struct CIDMetadata<'a> {
-    local_subrs: Vec<Option<Index<'a>>>,
+    local_subrs: Vec<Index<'a>>,
     fd_array: Index<'a>,
     fd_select: FDSelect<'a>,
 }
@@ -247,7 +276,7 @@ fn parse_cid_metadata<'a>(
     for font_dict_data in metadata.fd_array {
         metadata
             .local_subrs
-            .push(parse_cid_private_dict(data, font_dict_data));
+            .push(parse_cid_private_dict(data, font_dict_data).unwrap_or_default());
     }
 
     metadata.fd_select = {

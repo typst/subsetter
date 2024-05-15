@@ -10,38 +10,67 @@ use std::rc::Rc;
 
 type SharedCharString<'a> = Rc<RefCell<CharString<'a>>>;
 
-struct Decompiler<'a> {
-    lsubrs: Vec<SharedCharString<'a>>,
+pub struct Decompiler<'a, 'b> {
+    lsubrs: &'b [SharedCharString<'a>],
     lsubrs_bias: u16,
-    gsubrs: Vec<SharedCharString<'a>>,
+    gsubrs: &'b [SharedCharString<'a>],
     gsubrs_bias: u16,
     stack: ArgumentsStack<'a>,
     hint_count: u16,
     hint_mask_bytes: u16,
 }
 
-impl Decompiler<'_> {
+impl<'a, 'b> Decompiler<'a, 'b> {
+    pub fn new(
+        lsubrs: &'b [SharedCharString<'a>],
+        gsubrs: &'b [SharedCharString<'a>],
+    ) -> Self {
+        Self {
+            lsubrs,
+            gsubrs,
+            lsubrs_bias: calc_subroutine_bias(lsubrs.len() as u32),
+            gsubrs_bias: calc_subroutine_bias(gsubrs.len() as u32),
+            stack: ArgumentsStack::new(),
+            hint_count: 0,
+            hint_mask_bytes: 0,
+        }
+    }
+
     fn count_hints(&mut self) {
         let elements = self.stack.pop_all();
         self.hint_count += elements.len() as u16 / 2;
     }
 }
 
-enum Instruction<'a> {
+#[derive(Debug)]
+pub enum Instruction<'a> {
     Operand(Number<'a>),
     Operator(u8),
 }
 
-struct CharString<'a> {
+pub struct CharString<'a> {
     bytecode: &'a [u8],
-    decompiled: Vec<Instruction<'a>>,
-    used_lsubs: Vec<u16>,
-    used_gsubs: Vec<u16>,
+    pub decompiled: Vec<Instruction<'a>>,
+    used_lsubs: Vec<u32>,
+    used_gsubs: Vec<u32>,
     referenced_glyphs: Vec<u16>,
 }
 
 impl<'a> CharString<'a> {
-    fn decompile(&mut self, decompiler: &mut Decompiler<'a>) -> Result<&[Instruction]> {
+    pub fn new(data: &'a [u8]) -> Self {
+        Self {
+            bytecode: data,
+            decompiled: vec![],
+            used_gsubs: vec![],
+            used_lsubs: vec![],
+            referenced_glyphs: vec![],
+        }
+    }
+
+    pub fn decompile(
+        &mut self,
+        decompiler: &mut Decompiler<'a, '_>,
+    ) -> Result<&[Instruction]> {
         if self.decompiled.len() > 0 {
             return Ok(self.decompiled.as_ref());
         }
@@ -95,6 +124,9 @@ impl<'a> CharString<'a> {
                 }
                 operator::CALL_GLOBAL_SUBROUTINE => {
                     r.read::<u8>();
+                    instructions.push(Operator(op));
+                    // TODO: Add depth limit
+                    // TODO: Recursion detector
                     let biased_index = decompiler
                         .stack
                         .pop()
@@ -109,11 +141,42 @@ impl<'a> CharString<'a> {
                         .ok_or(MalformedFont)?
                         .clone();
                     gsubr.borrow_mut().decompile(decompiler)?;
+                    self.used_gsubs.push(gsubr_index);
+                }
+                operator::CALL_LOCAL_SUBROUTINE => {
+                    r.read::<u8>();
+                    instructions.push(Operator(op));
+                    // TODO: Add depth limit
+                    // TODO: Recursion detector
+                    let biased_index = decompiler
+                        .stack
+                        .pop()
+                        .and_then(|n| n.as_i32())
+                        .ok_or(MalformedFont)?;
+                    let lsubr_index =
+                        conv_subroutine_index(biased_index, decompiler.lsubrs_bias)
+                            .ok_or(MalformedFont)?;
+                    let lsubr = decompiler
+                        .lsubrs
+                        .get(lsubr_index as usize)
+                        .ok_or(MalformedFont)?
+                        .clone();
+                    lsubr.borrow_mut().decompile(decompiler)?;
+                    self.used_lsubs.push(lsubr_index);
+                }
+                operator::HINT_MASK | operator::COUNTER_MASK => {
+                    r.read::<u8>();
+                    instructions.push(Operator(op));
+                    if decompiler.hint_mask_bytes == 0 {
+                        decompiler.count_hints();
+                        decompiler.hint_mask_bytes = (decompiler.hint_count + 7) / 8;
+                    }
+                }
+                operator::ENDCHAR => {
+                    // TODO: Add seac
+                    r.read::<u8>();
                     instructions.push(Operator(op));
                 }
-                operator::CALL_LOCAL_SUBROUTINE => {}
-                operator::HINT_MASK | operator::COUNTER_MASK => {}
-                operator::ENDCHAR => {}
                 operator::FIXED_16_16 => unimplemented!(),
             }
         }

@@ -39,6 +39,7 @@ pub fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDictData> {
     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
 
     while let Some(operator) = dict_parser.parse_next() {
+        println!("{:?}", operator.get());
         match operator.get() {
             VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
             | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {

@@ -9,6 +9,10 @@ pub struct ArgumentsStack<'a> {
 }
 
 impl<'a> ArgumentsStack<'a> {
+    pub fn new() -> Self {
+        Self { data: vec![] }
+    }
+
     #[inline]
     pub fn len(&self) -> usize {
         self.data.len()
