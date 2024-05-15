@@ -95,7 +95,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         })
         .collect::<Vec<_>>();
 
-    for i in 0..1 {
+    for i in 0..10 {
         let fd_index = kind.fd_select.font_dict_index(i).unwrap();
         let lsubrs = lsubrs.get(fd_index as usize).unwrap();
 

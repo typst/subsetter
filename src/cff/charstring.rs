@@ -181,6 +181,8 @@ impl<'a> CharString<'a> {
             }
         }
 
+        self.decompiled = instructions;
+
         Ok(self.decompiled.as_ref())
     }
 }
