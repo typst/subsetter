@@ -2,21 +2,42 @@ mod argstack;
 
 
 use crate::cff::argstack::ArgumentsStack;
-use crate::cff::subset::charset::subset_charset;
-use crate::cff::subset::sid::SidRemapper;
-use crate::cff::subset::top_dict::update_top_dict;
-use crate::cff::{operator, FDSelect, FontKind, Table, TopDict, MAX_ARGUMENTS_STACK_LEN};
+use crate::cff::{operator, FDSelect, Table, MAX_ARGUMENTS_STACK_LEN, Remapper};
 use crate::stream::{Fixed, Reader};
-use crate::Error::{MalformedFont, SubsetError, Unimplemented};
+use crate::Error::{MalformedFont, Unimplemented};
 use crate::Result;
-use crate::{Context, Tag};
-use std::borrow::Cow;
+use crate::{Context};
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
 struct CharStringParserContext {
     width: Option<f32>,
     stems_len: u32,
+}
+
+pub(crate) fn subset_charstrings(
+    ctx: &mut Context,
+    table: &Table,
+    gsubr_remapper: &mut Remapper,
+    lsubr_remapper: Vec<&mut Remapper>
+) -> Result<Vec<u8>> {
+    let mut subsetted_char_strings = vec![];
+
+    for charstring in table.char_strings {
+        subsetted_char_strings.push(subset_charstring(ctx, table, gsubr_remapper, &lsubr_remapper, charstring)?);
+    }
+
+    Ok(subsetted_char_strings)
+}
+
+fn subset_charstring(
+    ctx: &mut Context,
+    table: &Table,
+    gsubr_remapper: &mut Remapper,
+    lsubr_remapper: &[&mut Remapper],
+    charstring: &[u8]
+) {
+
 }
 
 fn discover_subrs(
@@ -152,7 +173,7 @@ pub fn parse_fixed(r: &mut Reader) -> Result<f32> {
     Ok(n.0)
 }
 
-fn remap_font_dicts(ctx: &Context, fd_select: &FDSelect) -> Option<Remapper<u16>> {
+fn remap_font_dicts(ctx: &Context, fd_select: &FDSelect) -> Option<Remapper> {
     let mut fds = HashSet::new();
 
     for glyph in &ctx.requested_glyphs {

@@ -9,6 +9,7 @@ mod index;
 mod private_dict;
 mod top_dict;
 // mod subset;
+mod charstring;
 
 use super::*;
 use crate::cff::charset::{parse_charset, Charset};
