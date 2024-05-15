@@ -220,12 +220,16 @@ impl<'a> Number<'a> {
                 } else {
                     None
                 }
-            },
+            }
         }
     }
 
     pub fn as_u32(&self) -> Option<u32> {
         u32::try_from(self.as_i32()?).ok()
+    }
+
+    pub fn as_u16(&self) -> Option<u16> {
+        u16::try_from(self.as_i32()?).ok()
     }
 }
 

@@ -342,6 +342,7 @@ mod operator {
     pub const CURVE_TO: u8 = 8;
     pub const CALL_LOCAL_SUBROUTINE: u8 = 10;
     pub const RETURN: u8 = 11;
+    pub const TWO_BYTE_OPERATOR_MARK: u8 = 12;
     pub const ENDCHAR: u8 = 14;
     pub const HORIZONTAL_STEM_HINT_MASK: u8 = 18;
     pub const HINT_MASK: u8 = 19;
