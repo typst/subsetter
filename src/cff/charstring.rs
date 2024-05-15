@@ -1,5 +1,5 @@
 use crate::cff::argstack::ArgumentsStack;
-use crate::cff::charstring::Instruction::Operator;
+use crate::cff::charstring::Instruction::{DoubleByteOperator, SingleByteOperator};
 use crate::cff::dict::Number;
 use crate::cff::operator;
 use crate::stream::Reader;
@@ -45,7 +45,9 @@ impl<'a, 'b> Decompiler<'a, 'b> {
 #[derive(Debug)]
 pub enum Instruction<'a> {
     Operand(Number<'a>),
-    Operator(u8),
+    SingleByteOperator(u8),
+    // Needs to be encoded with 12 in the beginning when serializing.
+    DoubleByteOperator(u8),
 }
 
 pub struct CharString<'a> {
@@ -89,14 +91,25 @@ impl<'a> CharString<'a> {
                     // Reserved.
                     return Err(Error::MalformedFont);
                 }
-                operator::TWO_BYTE_OPERATOR_MARK => unimplemented!(),
+                operator::TWO_BYTE_OPERATOR_MARK => {
+                    r.read::<u8>();
+                    let op2 = r.read::<u8>().ok_or(MalformedFont)?;
+
+                    match op2 {
+                        operator::HFLEX | operator::FLEX | operator::HFLEX1 | operator::FLEX1 => {
+                            decompiler.stack.pop_all();
+                            instructions.push(DoubleByteOperator(op2));
+                        }
+                        _ => return Err(MalformedFont)
+                    }
+                },
                 operator::HORIZONTAL_STEM
                 | operator::VERTICAL_STEM
                 | operator::HORIZONTAL_STEM_HINT_MASK
                 | operator::VERTICAL_STEM_HINT_MASK => {
                     r.read::<u8>();
                     decompiler.count_hints();
-                    instructions.push(Operator(op));
+                    instructions.push(SingleByteOperator(op));
                 }
                 operator::VERTICAL_MOVE_TO
                 | operator::HORIZONTAL_MOVE_TO
@@ -115,7 +128,7 @@ impl<'a> CharString<'a> {
                 | operator::RETURN => {
                     r.read::<u8>();
                     decompiler.stack.pop_all();
-                    instructions.push(Instruction::Operator(op))
+                    instructions.push(Instruction::SingleByteOperator(op))
                 }
                 28 | 32..=254 => {
                     let number = Number::parse(&mut r).ok_or(MalformedFont)?;
@@ -124,7 +137,7 @@ impl<'a> CharString<'a> {
                 }
                 operator::CALL_GLOBAL_SUBROUTINE => {
                     r.read::<u8>();
-                    instructions.push(Operator(op));
+                    instructions.push(SingleByteOperator(op));
                     // TODO: Add depth limit
                     // TODO: Recursion detector
                     let biased_index = decompiler
@@ -145,7 +158,7 @@ impl<'a> CharString<'a> {
                 }
                 operator::CALL_LOCAL_SUBROUTINE => {
                     r.read::<u8>();
-                    instructions.push(Operator(op));
+                    instructions.push(SingleByteOperator(op));
                     // TODO: Add depth limit
                     // TODO: Recursion detector
                     let biased_index = decompiler
@@ -166,7 +179,7 @@ impl<'a> CharString<'a> {
                 }
                 operator::HINT_MASK | operator::COUNTER_MASK => {
                     r.read::<u8>();
-                    instructions.push(Operator(op));
+                    instructions.push(SingleByteOperator(op));
                     if decompiler.hint_mask_bytes == 0 {
                         decompiler.count_hints();
                         decompiler.hint_mask_bytes = (decompiler.hint_count + 7) / 8;
@@ -175,7 +188,7 @@ impl<'a> CharString<'a> {
                 operator::ENDCHAR => {
                     // TODO: Add seac
                     r.read::<u8>();
-                    instructions.push(Operator(op));
+                    instructions.push(SingleByteOperator(op));
                 }
                 operator::FIXED_16_16 => unimplemented!(),
             }
