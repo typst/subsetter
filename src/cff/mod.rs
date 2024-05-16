@@ -152,10 +152,33 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         // GSUBRS
         w.extend(&write_gsubrs(&gsubr_remapper, gsubr_bias, &gsubrs).unwrap());
 
+        font_write_context.charset_offset = Number::from_i32(w.len() as i32);
+        w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
+
         subsetted_font = w.finish();
         font_write_context.char_strings_offset = Number::from_i32(1);
     }
     ttf_parser::cff::Table::parse(&subsetted_font);
+}
+
+fn write_charset(
+    sid_remapper: &SidRemapper,
+    charset: &Charset,
+    gid_mapper: &GidMapper,
+) -> Result<Vec<u8>> {
+    // TODO: Explore using Format 1/2
+    let mut w = Writer::new();
+    // Format 0
+    w.write::<u8>(0);
+
+    for gid in 1..gid_mapper.num_gids() {
+        let old_gid = gid_mapper.get_reverse(gid).unwrap();
+        let sid = charset.gid_to_sid(old_gid).unwrap();
+        // TODO: need to remap SID in SID-keyed fonts.
+        w.write(sid)
+    }
+
+    Ok(w.finish())
 }
 
 fn write_gsubrs(
