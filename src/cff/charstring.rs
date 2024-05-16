@@ -4,10 +4,11 @@ use crate::cff::charstring::Instruction::{
 };
 use crate::cff::dict::{Number, RealNumber};
 use crate::cff::operator;
-use crate::stream::{Readable, Reader};
+use crate::stream::{Readable, Reader, Writer};
 use crate::Error::MalformedFont;
 use crate::{Error, Result};
 use std::cell::RefCell;
+use std::collections::BTreeSet;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
@@ -138,6 +139,26 @@ impl<'a> Program<'a> {
         self.0.push(instruction);
     }
 
+    pub fn compile(&self, writer: &mut Writer) {
+        for instr in &self.0 {
+            match instr {
+                Instruction::Operand(op) => {
+                    writer.extend(op.as_bytes());
+                }
+                SingleByteOperator(sbo) => {
+                    writer.write(*sbo);
+                }
+                DoubleByteOperator(dbo) => {
+                    writer.write::<u8>(12);
+                    writer.write(*dbo);
+                }
+                HintMask(hm) => {
+                    writer.extend(*hm);
+                }
+            }
+        }
+    }
+
     pub fn len(&self) -> usize {
         self.0.len()
     }
@@ -146,8 +167,8 @@ impl<'a> Program<'a> {
 pub struct CharString<'a> {
     bytecode: &'a [u8],
     pub program: Program<'a>,
-    used_lsubs: Vec<u32>,
-    used_gsubs: Vec<u32>,
+    pub used_lsubs: BTreeSet<u32>,
+    pub used_gsubs: BTreeSet<u32>,
     referenced_glyphs: Vec<u16>,
 }
 
@@ -156,8 +177,8 @@ impl<'a> CharString<'a> {
         Self {
             bytecode: data,
             program: Program::default(),
-            used_gsubs: vec![],
-            used_lsubs: vec![],
+            used_gsubs: BTreeSet::new(),
+            used_lsubs: BTreeSet::new(),
             referenced_glyphs: vec![],
         }
     }
@@ -166,13 +187,21 @@ impl<'a> CharString<'a> {
         &mut self,
         decompiler: &mut Decompiler<'a, '_>,
     ) -> Result<&[Instruction]> {
-        if self.program.len() > 0 {
-            return Ok(self.program.instructions());
-        }
-
         let mut r = Reader::new(self.bytecode);
+        let needs_decompilation = self.program.len() == 0;
 
         while !r.at_end() {
+            // We always need to execute the subroutine, because a subroutine
+            // has an effect on the state of the stack, hinting, etc., meaning
+            // that if we don't execute it, the result will be wrong. However, we
+            // only need to decompile the program (= push instructions to the program)
+            // if it's empty.
+            let mut push_instr: Box<dyn FnMut(_) -> ()> = if needs_decompilation {
+                Box::new(|instr| self.program.push(instr))
+            } else {
+                Box::new(|_| {})
+            };
+
             // We need to peak instead of read because parsing a number requires
             // access to the whole buffer. This means that for each operator, we need
             // to add another read manually.
@@ -193,7 +222,7 @@ impl<'a> CharString<'a> {
                         | operator::HFLEX1
                         | operator::FLEX1 => {
                             decompiler.stack.pop_all();
-                            self.program.push(DoubleByteOperator(op2));
+                            push_instr(DoubleByteOperator(op2));
                         }
                         _ => return Err(MalformedFont),
                     }
@@ -204,7 +233,7 @@ impl<'a> CharString<'a> {
                 | operator::VERTICAL_STEM_HINT_MASK => {
                     r.read::<u8>();
                     decompiler.count_hints();
-                    self.program.push(SingleByteOperator(op));
+                    push_instr(SingleByteOperator(op));
                 }
                 operator::VERTICAL_MOVE_TO
                 | operator::HORIZONTAL_MOVE_TO
@@ -219,20 +248,23 @@ impl<'a> CharString<'a> {
                 | operator::VH_CURVE_TO
                 | operator::HH_CURVE_TO
                 | operator::HV_CURVE_TO
-                | operator::CURVE_TO
-                | operator::RETURN => {
+                | operator::CURVE_TO => {
                     r.read::<u8>();
                     decompiler.stack.pop_all();
-                    self.program.push(Instruction::SingleByteOperator(op))
+                    push_instr(Instruction::SingleByteOperator(op))
+                }
+                operator::RETURN => {
+                    r.read::<u8>();
+                    push_instr(Instruction::SingleByteOperator(op))
                 }
                 28 | 32..=254 => {
                     let number = Number::parse(&mut r).ok_or(MalformedFont)?;
                     decompiler.stack.push(number.clone())?;
-                    self.program.push(Instruction::Operand(number));
+                    push_instr(Instruction::Operand(number));
                 }
                 operator::CALL_GLOBAL_SUBROUTINE => {
                     r.read::<u8>();
-                    self.program.push(SingleByteOperator(op));
+                    push_instr(SingleByteOperator(op));
                     // TODO: Add depth limit
                     // TODO: Recursion detector
                     let biased_index = decompiler
@@ -249,11 +281,11 @@ impl<'a> CharString<'a> {
                         .ok_or(MalformedFont)?
                         .clone();
                     gsubr.borrow_mut().decompile(decompiler)?;
-                    self.used_gsubs.push(gsubr_index);
+                    self.used_gsubs.insert(gsubr_index);
                 }
                 operator::CALL_LOCAL_SUBROUTINE => {
                     r.read::<u8>();
-                    self.program.push(SingleByteOperator(op));
+                    push_instr(SingleByteOperator(op));
                     // TODO: Add depth limit
                     // TODO: Recursion detector
                     let biased_index = decompiler
@@ -270,11 +302,11 @@ impl<'a> CharString<'a> {
                         .ok_or(MalformedFont)?
                         .clone();
                     lsubr.borrow_mut().decompile(decompiler)?;
-                    self.used_lsubs.push(lsubr_index);
+                    self.used_lsubs.insert(lsubr_index);
                 }
                 operator::HINT_MASK | operator::COUNTER_MASK => {
                     r.read::<u8>();
-                    self.program.push(SingleByteOperator(op));
+                    push_instr(SingleByteOperator(op));
                     if decompiler.hint_mask_bytes == 0 {
                         decompiler.count_hints();
                         decompiler.hint_mask_bytes = (decompiler.hint_count + 7) / 8;
@@ -284,21 +316,22 @@ impl<'a> CharString<'a> {
                     let hint_bytes = r
                         .read_bytes(decompiler.hint_mask_bytes as usize)
                         .ok_or(MalformedFont)?;
-                    self.program.push(HintMask(hint_bytes));
+                    push_instr(HintMask(hint_bytes));
                 }
                 operator::ENDCHAR => {
                     // TODO: Add seac
                     r.read::<u8>();
-                    self.program.push(SingleByteOperator(op));
+                    push_instr(SingleByteOperator(op));
                 }
                 operator::FIXED_16_16 => {
                     let num =
                         Number::FixedNumber(r.read::<Fixed>().ok_or(MalformedFont)?);
                     decompiler.stack.push(num.clone())?;
-                    self.program.push(Instruction::Operand(num));
+                    push_instr(Instruction::Operand(num));
                 }
             }
         }
+
         Ok(self.program.instructions())
     }
 }

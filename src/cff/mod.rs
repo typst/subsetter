@@ -95,15 +95,21 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         })
         .collect::<Vec<_>>();
 
-    for i in 0..10 {
+    for i in 0..table.char_strings.len() as u16 {
+        // println!("GID: {:?}", i);
         let fd_index = kind.fd_select.font_dict_index(i).unwrap();
         let lsubrs = lsubrs.get(fd_index as usize).unwrap();
 
         let mut decompiler = Decompiler::new(&lsubrs, &gsubrs);
-        let mut charstring = CharString::new(table.char_strings.get(i as u32).unwrap());
+        let raw_charstring = table.char_strings.get(i as u32).unwrap();
+        let mut charstring = CharString::new(raw_charstring);
         charstring.decompile(&mut decompiler).unwrap();
-        println!("GID: {:?}", i);
-        println!("{:?}", charstring.program);
+
+        let mut w = Writer::new();
+        charstring.program.compile(&mut w);
+        let compiled = w.finish();
+
+        assert_eq!(compiled, raw_charstring);
     }
 
     // let mut gsubr_remapper = Remapper::new();
