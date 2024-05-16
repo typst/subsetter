@@ -27,7 +27,7 @@ use crate::stream::{StringId, U24};
 use crate::util::LazyArray16;
 use std::array;
 use std::cell::RefCell;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::hash::Hash;
 use std::ops::{Add, Range};
 use top_dict::{top_dict_operator, TopDictData};
@@ -54,16 +54,18 @@ pub struct Table<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Remapper<T: Hash + Eq> {
+pub struct Remapper<T: Ord> {
     counter: T,
-    forward: HashMap<T, T>,
+    forward: BTreeMap<T, T>,
 }
 
-impl<T: Hash + Eq + PartialEq + From<u8> + Add<T, Output = T> + Default + Copy>
-    Remapper<T>
-{
+impl<T: Ord + PartialEq + From<u8> + Add<T, Output = T> + Default + Copy> Remapper<T> {
     pub fn new() -> Self {
-        let mut mapper = Self { counter: T::default(), forward: HashMap::new() };
+        Remapper::new_with_count(T::default())
+    }
+
+    pub fn new_with_count(count: T) -> Self {
+        let mut mapper = Self { counter: count, forward: BTreeMap::new() };
         mapper
     }
 
@@ -78,6 +80,26 @@ impl<T: Hash + Eq + PartialEq + From<u8> + Add<T, Output = T> + Default + Copy>
             value
         })
     }
+
+    // Add a method to return the iterator
+    pub fn iter(&self) -> RemapperIterator<T> {
+        RemapperIterator { inner_iter: self.forward.iter() }
+    }
+}
+
+impl<'a, T> Iterator for RemapperIterator<'a, T>
+where
+    T: Ord + PartialEq + From<u8> + Add<T, Output = T> + Default + Copy,
+{
+    type Item = (&'a T, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner_iter.next()
+    }
+}
+
+struct RemapperIterator<'a, T> {
+    inner_iter: std::collections::btree_map::Iter<'a, T, T>,
 }
 
 #[derive(Default)]
@@ -156,15 +178,34 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         w.write(table.header);
         // NAME INDEX
         w.write(table.names);
-        let top_dict =
-            write_top_dict(table.raw_top_dict, &mut font_write_context, &sid_remapper)
-                .unwrap();
-
-        let mut r = Reader::new(&top_dict);
-        parse_top_dict(&mut r);
+        // TOP DICT
+        w.extend(
+            &write_top_dict(table.raw_top_dict, &mut font_write_context, &sid_remapper)
+                .unwrap(),
+        );
+        // STRINGS
+        w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
 
         subsetted_font = w.finish();
     }
+}
+
+fn write_sids(sid_remapper: &Remapper<u16>, strings: Index) -> Result<Vec<u8>> {
+    let mut new_strings = vec![];
+    for (_, old) in sid_remapper.iter() {
+        new_strings
+            .push(strings.get(old.checked_sub(391).unwrap() as u32).unwrap().to_vec());
+    }
+
+    println!(
+        "{:?}",
+        new_strings
+            .iter()
+            .map(|s| std::str::from_utf8(s).unwrap())
+            .collect::<Vec<_>>()
+    );
+
+    create_index(new_strings)
 }
 
 fn write_top_dict(
@@ -312,7 +353,8 @@ fn create_index(data: Vec<Vec<u8>>) -> Result<Vec<u8>> {
 
 fn get_sid_remapper(ctx: &Context, used_sids: &BTreeSet<StringId>) -> Remapper<u16> {
     // SIDs can appear in the top dict and charset
-    let mut sid_remapper = Remapper::new();
+    // There are 391 standard strings, so we need to start from 392
+    let mut sid_remapper = Remapper::new_with_count(392);
     for sid in used_sids {
         sid_remapper.remap(sid.0);
     }
