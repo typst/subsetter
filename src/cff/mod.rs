@@ -21,9 +21,9 @@ use crate::cff::private_dict::parse_subr_offset;
 use crate::util::LazyArray16;
 use std::array;
 use std::cell::RefCell;
-use std::collections::HashMap;
-use std::ops::Range;
-use std::rc::Rc;
+use std::collections::{BTreeSet, HashMap};
+use std::hash::Hash;
+use std::ops::{Add, Range};
 use top_dict::{top_dict_operator, TopDictData};
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
@@ -47,26 +47,27 @@ pub struct Table<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Remapper {
-    counter: u16,
-    forward: HashMap<u16, u16>,
+pub struct Remapper<T: Hash + Eq> {
+    counter: T,
+    forward: HashMap<T, T>,
 }
 
-impl Remapper {
+impl<T: Hash + Eq + PartialEq + From<u8> + Add<T, Output = T> + Default + Copy>
+    Remapper<T>
+{
     pub fn new() -> Self {
-        let mut mapper = Self { counter: 0, forward: HashMap::new() };
-
+        let mut mapper = Self { counter: T::default(), forward: HashMap::new() };
         mapper
     }
 
-    pub fn get(&self, old_gid: u16) -> Option<u16> {
-        self.forward.get(&old_gid).copied()
+    pub fn get(&self, old: T) -> Option<T> {
+        self.forward.get(&old).copied()
     }
 
-    pub fn remap(&mut self, gid: u16) -> u16 {
-        *self.forward.entry(gid).or_insert_with(|| {
+    pub fn remap(&mut self, old: T) -> T {
+        *self.forward.entry(old).or_insert_with(|| {
             let value = self.counter;
-            self.counter += 1;
+            self.counter = self.counter + T::from(1);
             value
         })
     }
@@ -95,7 +96,10 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         })
         .collect::<Vec<_>>();
 
-    for i in 0..50000 as u16 {
+    let mut mapped_gsubrs = Remapper::new();
+    let mut mapped_lsubrs = vec![Remapper::new(); lsubrs.len()];
+
+    for i in 0..3000 as u16 {
         // println!("GID: {:?}", i);
         let fd_index = kind.fd_select.font_dict_index(i).unwrap();
         let lsubrs = lsubrs.get(fd_index as usize).unwrap();
@@ -108,6 +112,16 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         let mut w = Writer::new();
         charstring.program.compile(&mut w);
         let compiled = w.finish();
+
+        charstring.used_gsubs().unwrap().iter().for_each(|n| {
+            mapped_gsubrs.remap(*n);
+        });
+
+        let mapped_lsubrs = mapped_lsubrs.get_mut(fd_index as usize).unwrap();
+
+        charstring.used_lsubs().unwrap().iter().for_each(|n| {
+            mapped_lsubrs.remap(*n);
+        });
 
         assert_eq!(compiled, raw_charstring);
     }

@@ -167,8 +167,8 @@ impl<'a> Program<'a> {
 pub struct CharString<'a> {
     bytecode: &'a [u8],
     pub program: Program<'a>,
-    pub used_lsubs: BTreeSet<u32>,
-    pub used_gsubs: BTreeSet<u32>,
+    used_lsubs: BTreeSet<u32>,
+    used_gsubs: BTreeSet<u32>,
     referenced_glyphs: Vec<u16>,
 }
 
@@ -180,6 +180,22 @@ impl<'a> CharString<'a> {
             used_gsubs: BTreeSet::new(),
             used_lsubs: BTreeSet::new(),
             referenced_glyphs: vec![],
+        }
+    }
+
+    pub fn used_lsubs(&self) -> Option<&BTreeSet<u32>> {
+        if self.program.len() == 0 {
+            None
+        } else {
+            Some(&self.used_lsubs)
+        }
+    }
+
+    pub fn used_gsubs(&self) -> Option<&BTreeSet<u32>> {
+        if self.program.len() == 0 {
+            None
+        } else {
+            Some(&self.used_gsubs)
         }
     }
 
@@ -281,6 +297,9 @@ impl<'a> CharString<'a> {
                         .ok_or(MalformedFont)?;
                     gsubr.borrow_mut().decompile(decompiler)?;
                     self.used_gsubs.insert(gsubr_index);
+                    // Make sure used lsubs and gsubs are propagated transitively.
+                    self.used_lsubs.extend(&gsubr.borrow().used_lsubs);
+                    self.used_gsubs.extend(&gsubr.borrow().used_gsubs);
                 }
                 operator::CALL_LOCAL_SUBROUTINE => {
                     r.read::<u8>();
@@ -301,6 +320,9 @@ impl<'a> CharString<'a> {
                         .ok_or(MalformedFont)?;
                     lsubr.borrow_mut().decompile(decompiler)?;
                     self.used_lsubs.insert(lsubr_index);
+                    // Make sure used lsubs and gsubs are propagated transitively.
+                    self.used_lsubs.extend(&lsubr.borrow().used_lsubs);
+                    self.used_gsubs.extend(&lsubr.borrow().used_gsubs);
                 }
                 operator::HINT_MASK | operator::COUNTER_MASK => {
                     r.read::<u8>();
