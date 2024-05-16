@@ -12,7 +12,7 @@ use std::collections::BTreeSet;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
-type SharedCharString<'a> = Rc<RefCell<CharString<'a>>>;
+type SharedCharString<'a> = RefCell<CharString<'a>>;
 
 #[derive(Clone, Copy)]
 pub struct Fixed<'a>(i32, &'a [u8]);
@@ -278,8 +278,7 @@ impl<'a> CharString<'a> {
                     let gsubr = decompiler
                         .gsubrs
                         .get(gsubr_index as usize)
-                        .ok_or(MalformedFont)?
-                        .clone();
+                        .ok_or(MalformedFont)?;
                     gsubr.borrow_mut().decompile(decompiler)?;
                     self.used_gsubs.insert(gsubr_index);
                 }
@@ -299,8 +298,7 @@ impl<'a> CharString<'a> {
                     let lsubr = decompiler
                         .lsubrs
                         .get(lsubr_index as usize)
-                        .ok_or(MalformedFont)?
-                        .clone();
+                        .ok_or(MalformedFont)?;
                     lsubr.borrow_mut().decompile(decompiler)?;
                     self.used_lsubs.insert(lsubr_index);
                 }

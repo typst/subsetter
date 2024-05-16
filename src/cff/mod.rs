@@ -82,7 +82,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
     let gsubrs = table
         .global_subrs
         .into_iter()
-        .map(|g| Rc::new(RefCell::new(CharString::new(g))))
+        .map(|g| RefCell::new(CharString::new(g)))
         .collect::<Vec<_>>();
     let lsubrs = kind
         .local_subrs
@@ -90,12 +90,12 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         .map(|index| {
             index
                 .into_iter()
-                .map(|g| Rc::new(RefCell::new(CharString::new(g))))
+                .map(|g| RefCell::new(CharString::new(g)))
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
 
-    for i in 0..table.char_strings.len() as u16 {
+    for i in 0..50000 as u16 {
         // println!("GID: {:?}", i);
         let fd_index = kind.fd_select.font_dict_index(i).unwrap();
         let lsubrs = lsubrs.get(fd_index as usize).unwrap();
