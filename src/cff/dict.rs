@@ -1,8 +1,8 @@
+use crate::cff::charstring::Fixed;
 use crate::stream::{Reader, StringId};
 use std::borrow::Cow;
 use std::fmt::{Debug, Formatter};
 use std::ops::Range;
-use crate::cff::charstring::Fixed;
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const TWO_BYTE_OPERATOR_MARK: u8 = 12;
@@ -207,7 +207,7 @@ mod tests {
 pub enum Number<'a> {
     RealNumber(RealNumber<'a>),
     IntegerNumber(IntegerNumber<'a>),
-    FixedNumber(Fixed<'a>)
+    FixedNumber(Fixed<'a>),
 }
 
 impl Debug for Number<'_> {
@@ -221,7 +221,7 @@ impl<'a> Number<'a> {
         match self {
             Number::RealNumber(real_num) => real_num.as_bytes(),
             Number::IntegerNumber(int_num) => int_num.as_bytes(),
-            Number::FixedNumber(fixed_num) => fixed_num.as_bytes()
+            Number::FixedNumber(fixed_num) => fixed_num.as_bytes(),
         }
     }
 
@@ -260,7 +260,7 @@ impl<'a> Number<'a> {
                 let num = fixn.as_f32();
                 if num.fract() == 0.0 {
                     Some(num as i32)
-                }   else {
+                } else {
                     None
                 }
             }

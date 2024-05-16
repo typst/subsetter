@@ -1,5 +1,7 @@
 use crate::cff::argstack::ArgumentsStack;
-use crate::cff::charstring::Instruction::{DoubleByteOperator, HintMask, SingleByteOperator};
+use crate::cff::charstring::Instruction::{
+    DoubleByteOperator, HintMask, SingleByteOperator,
+};
 use crate::cff::dict::{Number, RealNumber};
 use crate::cff::operator;
 use crate::stream::{Readable, Reader};
@@ -44,7 +46,6 @@ impl<'a> Readable<'a> for Fixed<'a> {
     }
 }
 
-
 pub struct Decompiler<'a, 'b> {
     lsubrs: &'b [SharedCharString<'a>],
     lsubrs_bias: u16,
@@ -83,12 +84,68 @@ pub enum Instruction<'a> {
     SingleByteOperator(u8),
     // Needs to be encoded with 12 in the beginning when serializing.
     DoubleByteOperator(u8),
-    HintMask(&'a [u8])
+    HintMask(&'a [u8]),
+}
+
+#[derive(Default)]
+pub struct Program<'a>(Vec<Instruction<'a>>);
+
+impl Debug for Program<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut formatted_strings = vec![];
+        let mut str_buffer = vec![];
+
+        for instr in &self.0 {
+            match instr {
+                Instruction::Operand(op) => str_buffer.push(format!("{}", op.as_f64())),
+                Instruction::SingleByteOperator(op) => {
+                    str_buffer.push(format!("op({})", op));
+
+                    if *op != operator::HINT_MASK && *op != operator::COUNTER_MASK {
+                        formatted_strings.push(str_buffer.join(" "));
+                        str_buffer.clear();
+                    }
+                }
+                Instruction::DoubleByteOperator(op) => {
+                    str_buffer.push(format!("op({})", 1200 + *op as u16));
+                    formatted_strings.push(str_buffer.join(" "));
+                    str_buffer.clear();
+                }
+                Instruction::HintMask(bytes) => {
+                    let mut byte_string = String::new();
+
+                    for byte in *bytes {
+                        byte_string.push_str(&format!("{:08b}", *byte));
+                    }
+
+                    str_buffer.push(byte_string);
+                    formatted_strings.push(str_buffer.join(" "));
+                    str_buffer.clear();
+                }
+            }
+        }
+
+        write!(f, "{}", formatted_strings.join("\n"))
+    }
+}
+
+impl<'a> Program<'a> {
+    pub fn instructions(&self) -> &[Instruction<'a>] {
+        self.0.as_ref()
+    }
+
+    pub fn push(&mut self, instruction: Instruction<'a>) {
+        self.0.push(instruction);
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 pub struct CharString<'a> {
     bytecode: &'a [u8],
-    pub decompiled: Vec<Instruction<'a>>,
+    pub program: Program<'a>,
     used_lsubs: Vec<u32>,
     used_gsubs: Vec<u32>,
     referenced_glyphs: Vec<u16>,
@@ -98,7 +155,7 @@ impl<'a> CharString<'a> {
     pub fn new(data: &'a [u8]) -> Self {
         Self {
             bytecode: data,
-            decompiled: vec![],
+            program: Program::default(),
             used_gsubs: vec![],
             used_lsubs: vec![],
             referenced_glyphs: vec![],
@@ -109,11 +166,10 @@ impl<'a> CharString<'a> {
         &mut self,
         decompiler: &mut Decompiler<'a, '_>,
     ) -> Result<&[Instruction]> {
-        if self.decompiled.len() > 0 {
-            return Ok(self.decompiled.as_ref());
+        if self.program.len() > 0 {
+            return Ok(self.program.instructions());
         }
 
-        let mut instructions = vec![];
         let mut r = Reader::new(self.bytecode);
 
         while !r.at_end() {
@@ -132,20 +188,23 @@ impl<'a> CharString<'a> {
                     let op2 = r.read::<u8>().ok_or(MalformedFont)?;
 
                     match op2 {
-                        operator::HFLEX | operator::FLEX | operator::HFLEX1 | operator::FLEX1 => {
+                        operator::HFLEX
+                        | operator::FLEX
+                        | operator::HFLEX1
+                        | operator::FLEX1 => {
                             decompiler.stack.pop_all();
-                            instructions.push(DoubleByteOperator(op2));
+                            self.program.push(DoubleByteOperator(op2));
                         }
-                        _ => return Err(MalformedFont)
+                        _ => return Err(MalformedFont),
                     }
-                },
+                }
                 operator::HORIZONTAL_STEM
                 | operator::VERTICAL_STEM
                 | operator::HORIZONTAL_STEM_HINT_MASK
                 | operator::VERTICAL_STEM_HINT_MASK => {
                     r.read::<u8>();
                     decompiler.count_hints();
-                    instructions.push(SingleByteOperator(op));
+                    self.program.push(SingleByteOperator(op));
                 }
                 operator::VERTICAL_MOVE_TO
                 | operator::HORIZONTAL_MOVE_TO
@@ -164,16 +223,16 @@ impl<'a> CharString<'a> {
                 | operator::RETURN => {
                     r.read::<u8>();
                     decompiler.stack.pop_all();
-                    instructions.push(Instruction::SingleByteOperator(op))
+                    self.program.push(Instruction::SingleByteOperator(op))
                 }
                 28 | 32..=254 => {
                     let number = Number::parse(&mut r).ok_or(MalformedFont)?;
                     decompiler.stack.push(number.clone())?;
-                    instructions.push(Instruction::Operand(number));
+                    self.program.push(Instruction::Operand(number));
                 }
                 operator::CALL_GLOBAL_SUBROUTINE => {
                     r.read::<u8>();
-                    instructions.push(SingleByteOperator(op));
+                    self.program.push(SingleByteOperator(op));
                     // TODO: Add depth limit
                     // TODO: Recursion detector
                     let biased_index = decompiler
@@ -194,7 +253,7 @@ impl<'a> CharString<'a> {
                 }
                 operator::CALL_LOCAL_SUBROUTINE => {
                     r.read::<u8>();
-                    instructions.push(SingleByteOperator(op));
+                    self.program.push(SingleByteOperator(op));
                     // TODO: Add depth limit
                     // TODO: Recursion detector
                     let biased_index = decompiler
@@ -215,32 +274,32 @@ impl<'a> CharString<'a> {
                 }
                 operator::HINT_MASK | operator::COUNTER_MASK => {
                     r.read::<u8>();
-                    instructions.push(SingleByteOperator(op));
+                    self.program.push(SingleByteOperator(op));
                     if decompiler.hint_mask_bytes == 0 {
                         decompiler.count_hints();
                         decompiler.hint_mask_bytes = (decompiler.hint_count + 7) / 8;
                         // TODO: Continue
                     }
 
-                    let hint_bytes = r.read_bytes(decompiler.hint_mask_bytes as usize).ok_or(MalformedFont)?;
-                    instructions.push(HintMask(hint_bytes));
+                    let hint_bytes = r
+                        .read_bytes(decompiler.hint_mask_bytes as usize)
+                        .ok_or(MalformedFont)?;
+                    self.program.push(HintMask(hint_bytes));
                 }
                 operator::ENDCHAR => {
                     // TODO: Add seac
                     r.read::<u8>();
-                    instructions.push(SingleByteOperator(op));
+                    self.program.push(SingleByteOperator(op));
                 }
                 operator::FIXED_16_16 => {
-                    let num = Number::FixedNumber(r.read::<Fixed>().ok_or(MalformedFont)?);
+                    let num =
+                        Number::FixedNumber(r.read::<Fixed>().ok_or(MalformedFont)?);
                     decompiler.stack.push(num.clone())?;
-                    instructions.push(Instruction::Operand(num));
-                },
+                    self.program.push(Instruction::Operand(num));
+                }
             }
         }
-
-        self.decompiled = instructions;
-
-        Ok(self.decompiled.as_ref())
+        Ok(self.program.instructions())
     }
 }
 

@@ -102,7 +102,8 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         let mut decompiler = Decompiler::new(&lsubrs, &gsubrs);
         let mut charstring = CharString::new(table.char_strings.get(i as u32).unwrap());
         charstring.decompile(&mut decompiler).unwrap();
-        println!("{:?}", charstring.decompiled);
+        println!("GID: {:?}", i);
+        println!("{:?}", charstring.program);
     }
 
     // let mut gsubr_remapper = Remapper::new();
