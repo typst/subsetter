@@ -228,6 +228,10 @@ impl Writeable for i32 {
 #[derive(Clone, Copy, Debug)]
 pub struct U24(pub u32);
 
+impl U24 {
+    pub const MAX: u32 = 16777215;
+}
+
 impl Readable<'_> for U24 {
     const SIZE: usize = 3;
 
@@ -245,7 +249,7 @@ impl Writeable for U24 {
 }
 
 /// A type-safe wrapper for string ID.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug, Hash, Ord)]
 pub struct StringId(pub u16);
 
 impl Readable<'_> for StringId {

@@ -2,12 +2,12 @@ use crate::cff::dict::{DictionaryParser, Number};
 use crate::cff::index::parse_index;
 use crate::stream::{Reader, StringId};
 use std::array;
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::ops::Range;
 
 #[derive(Default, Debug, Clone)]
 pub struct TopDictData {
-    pub(crate) used_sids: HashSet<StringId>,
+    pub(crate) used_sids: BTreeSet<StringId>,
     // pub(crate) version: Option<StringId>,
     // pub(crate) notice: Option<StringId>,
     // pub(crate) copyright: Option<StringId>,
@@ -39,6 +39,7 @@ pub fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDictData> {
     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
 
     while let Some(operator) = dict_parser.parse_next() {
+        println!("{:?}", operator.get());
         match operator.get() {
             VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
             | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {

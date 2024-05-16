@@ -330,7 +330,6 @@ impl<'a> CharString<'a> {
                     if decompiler.hint_mask_bytes == 0 {
                         decompiler.count_hints();
                         decompiler.hint_mask_bytes = (decompiler.hint_count + 7) / 8;
-                        // TODO: Continue
                     }
 
                     let hint_bytes = r
@@ -339,7 +338,7 @@ impl<'a> CharString<'a> {
                     push_instr(HintMask(hint_bytes));
                 }
                 operator::ENDCHAR => {
-                    // TODO: Add seac
+                    // TODO: Add seac!
                     r.read::<u8>();
                     push_instr(SingleByteOperator(op));
                 }

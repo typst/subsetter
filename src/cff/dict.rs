@@ -210,6 +210,12 @@ pub enum Number<'a> {
     FixedNumber(Fixed<'a>),
 }
 
+impl Default for Number<'_> {
+    fn default() -> Self {
+        Number::zero()
+    }
+}
+
 impl Debug for Number<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_f64())
@@ -232,6 +238,10 @@ impl<'a> Number<'a> {
             30 => Some(Number::RealNumber(RealNumber::parse(r)?)),
             _ => Some(Number::IntegerNumber(IntegerNumber::parse(r)?)),
         }
+    }
+
+    pub fn from_i32(num: i32) -> Self {
+        Number::IntegerNumber(IntegerNumber::from_i32(num))
     }
 
     pub fn zero() -> Self {
