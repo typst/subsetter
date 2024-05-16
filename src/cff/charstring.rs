@@ -1,14 +1,49 @@
 use crate::cff::argstack::ArgumentsStack;
-use crate::cff::charstring::Instruction::{DoubleByteOperator, SingleByteOperator};
-use crate::cff::dict::Number;
+use crate::cff::charstring::Instruction::{DoubleByteOperator, HintMask, SingleByteOperator};
+use crate::cff::dict::{Number, RealNumber};
 use crate::cff::operator;
-use crate::stream::Reader;
+use crate::stream::{Readable, Reader};
 use crate::Error::MalformedFont;
 use crate::{Error, Result};
 use std::cell::RefCell;
+use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
 type SharedCharString<'a> = Rc<RefCell<CharString<'a>>>;
+
+#[derive(Clone, Copy)]
+pub struct Fixed<'a>(i32, &'a [u8]);
+
+impl Debug for Fixed<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl<'a> Fixed<'a> {
+    pub fn as_f32(&self) -> f32 {
+        self.0 as f32 / 65536.0
+    }
+
+    pub fn as_bytes(&self) -> &'a [u8] {
+        self.1
+    }
+}
+
+impl<'a> Readable<'a> for Fixed<'a> {
+    const SIZE: usize = 5;
+
+    fn read(r: &mut Reader<'a>) -> Option<Self> {
+        // TODO: Improve
+        let bytes = r.read_bytes(5)?;
+        let mut r = Reader::new(bytes);
+        // Skip 255
+        r.read::<u8>();
+        let num = r.read::<i32>()?;
+        Some(Fixed(num, bytes))
+    }
+}
+
 
 pub struct Decompiler<'a, 'b> {
     lsubrs: &'b [SharedCharString<'a>],
@@ -48,6 +83,7 @@ pub enum Instruction<'a> {
     SingleByteOperator(u8),
     // Needs to be encoded with 12 in the beginning when serializing.
     DoubleByteOperator(u8),
+    HintMask(&'a [u8])
 }
 
 pub struct CharString<'a> {
@@ -183,14 +219,22 @@ impl<'a> CharString<'a> {
                     if decompiler.hint_mask_bytes == 0 {
                         decompiler.count_hints();
                         decompiler.hint_mask_bytes = (decompiler.hint_count + 7) / 8;
+                        // TODO: Continue
                     }
+
+                    let hint_bytes = r.read_bytes(decompiler.hint_mask_bytes as usize).ok_or(MalformedFont)?;
+                    instructions.push(HintMask(hint_bytes));
                 }
                 operator::ENDCHAR => {
                     // TODO: Add seac
                     r.read::<u8>();
                     instructions.push(SingleByteOperator(op));
                 }
-                operator::FIXED_16_16 => unimplemented!(),
+                operator::FIXED_16_16 => {
+                    let num = Number::FixedNumber(r.read::<Fixed>().ok_or(MalformedFont)?);
+                    decompiler.stack.push(num.clone())?;
+                    instructions.push(Instruction::Operand(num));
+                },
             }
         }
 

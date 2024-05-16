@@ -2,6 +2,7 @@ use crate::stream::{Reader, StringId};
 use std::borrow::Cow;
 use std::fmt::{Debug, Formatter};
 use std::ops::Range;
+use crate::cff::charstring::Fixed;
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const TWO_BYTE_OPERATOR_MARK: u8 = 12;
@@ -202,10 +203,17 @@ mod tests {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Number<'a> {
     RealNumber(RealNumber<'a>),
     IntegerNumber(IntegerNumber<'a>),
+    FixedNumber(Fixed<'a>)
+}
+
+impl Debug for Number<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_f64())
+    }
 }
 
 impl<'a> Number<'a> {
@@ -213,9 +221,12 @@ impl<'a> Number<'a> {
         match self {
             Number::RealNumber(real_num) => real_num.as_bytes(),
             Number::IntegerNumber(int_num) => int_num.as_bytes(),
+            Number::FixedNumber(fixed_num) => fixed_num.as_bytes()
         }
     }
 
+    // IMPORTANT: This will not parse fixed number from charstrings. Only numbers
+    // from the CFF spec.
     pub fn parse(r: &mut Reader<'a>) -> Option<Number<'a>> {
         match r.peak::<u8>()? {
             30 => Some(Number::RealNumber(RealNumber::parse(r)?)),
@@ -227,6 +238,14 @@ impl<'a> Number<'a> {
         Number::IntegerNumber(IntegerNumber::from_i32(0))
     }
 
+    pub fn as_f64(&self) -> f64 {
+        match self {
+            Number::IntegerNumber(int) => int.as_i32() as f64,
+            Number::RealNumber(real) => real.1 as f64,
+            Number::FixedNumber(fixed) => fixed.as_f32() as f64,
+        }
+    }
+
     pub fn as_i32(&self) -> Option<i32> {
         match self {
             Number::IntegerNumber(int) => Some(int.as_i32()),
@@ -234,6 +253,14 @@ impl<'a> Number<'a> {
                 if rn.1.fract() == 0.0 {
                     Some(rn.1 as i32)
                 } else {
+                    None
+                }
+            }
+            Number::FixedNumber(fixn) => {
+                let num = fixn.as_f32();
+                if num.fract() == 0.0 {
+                    Some(num as i32)
+                }   else {
                     None
                 }
             }
