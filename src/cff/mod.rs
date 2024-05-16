@@ -10,24 +10,30 @@ mod private_dict;
 mod top_dict;
 // mod subset;
 mod charstring;
+mod remapper;
 
 use super::*;
 use crate::cff::charset::{parse_charset, Charset};
-use crate::cff::charstring::{CharString, Decompiler};
+use crate::cff::charstring::{
+    apply_bias, calc_subroutine_bias, CharString, Decompiler, Instruction, Program,
+    SharedCharString,
+};
 use crate::cff::dict::{DictionaryParser, Number};
 use crate::cff::encoding::Encoding;
 use crate::cff::index::{parse_index, skip_index, Index, OffsetSize};
+use crate::cff::operator::CALL_GLOBAL_SUBROUTINE;
 use crate::cff::private_dict::parse_subr_offset;
-use crate::cff::top_dict::parse_top_dict;
+use crate::cff::remapper::SidRemapper;
 use crate::cff::top_dict::top_dict_operator::{
     BASE_FONT_BLEND, BASE_FONT_NAME, COPYRIGHT, FAMILY_NAME, FONT_NAME, FULL_NAME,
     NOTICE, POSTSCRIPT, ROS, VERSION, WEIGHT,
 };
 use crate::stream::{StringId, U24};
 use crate::util::LazyArray16;
+use remapper::Remapper;
 use std::array;
 use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::BTreeSet;
 use std::hash::Hash;
 use std::ops::{Add, Range};
 use top_dict::{top_dict_operator, TopDictData};
@@ -35,6 +41,7 @@ use top_dict::{top_dict_operator, TopDictData};
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const MAX_OPERANDS_LEN: usize = 48;
 const MAX_ARGUMENTS_STACK_LEN: usize = 513;
+const CUSTOM_SID: u16 = 392;
 
 /// A [Compact Font Format Table](
 /// https://docs.microsoft.com/en-us/typography/opentype/spec/cff).
@@ -51,55 +58,6 @@ pub struct Table<'a> {
     number_of_glyphs: u16,
     char_strings: Index<'a>,
     kind: Option<FontKind<'a>>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Remapper<T: Ord> {
-    counter: T,
-    forward: BTreeMap<T, T>,
-}
-
-impl<T: Ord + PartialEq + From<u8> + Add<T, Output = T> + Default + Copy> Remapper<T> {
-    pub fn new() -> Self {
-        Remapper::new_with_count(T::default())
-    }
-
-    pub fn new_with_count(count: T) -> Self {
-        let mut mapper = Self { counter: count, forward: BTreeMap::new() };
-        mapper
-    }
-
-    pub fn get(&self, old: T) -> Option<T> {
-        self.forward.get(&old).copied()
-    }
-
-    pub fn remap(&mut self, old: T) -> T {
-        *self.forward.entry(old).or_insert_with(|| {
-            let value = self.counter;
-            self.counter = self.counter + T::from(1);
-            value
-        })
-    }
-
-    // Add a method to return the iterator
-    pub fn iter(&self) -> RemapperIterator<T> {
-        RemapperIterator { inner_iter: self.forward.iter() }
-    }
-}
-
-impl<'a, T> Iterator for RemapperIterator<'a, T>
-where
-    T: Ord + PartialEq + From<u8> + Add<T, Output = T> + Default + Copy,
-{
-    type Item = (&'a T, &'a T);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner_iter.next()
-    }
-}
-
-struct RemapperIterator<'a, T> {
-    inner_iter: std::collections::btree_map::Iter<'a, T, T>,
 }
 
 #[derive(Default)]
@@ -169,6 +127,12 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         assert_eq!(compiled, raw_charstring);
     }
 
+    let gsubr_bias = calc_subroutine_bias(gsubr_remapper.len());
+    let lsubrs_bias = lsubr_remapper
+        .iter()
+        .map(|r| calc_subroutine_bias(r.len()))
+        .collect::<Vec<_>>();
+
     let mut font_write_context = FontWriteContext::default();
     let mut subsetted_font = vec![];
 
@@ -185,25 +149,70 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         );
         // STRINGS
         w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
+        // GSUBRS
+        w.extend(&write_gsubrs(&gsubr_remapper, gsubr_bias, &gsubrs).unwrap());
 
         subsetted_font = w.finish();
+        font_write_context.char_strings_offset = Number::from_i32(1);
     }
+    ttf_parser::cff::Table::parse(&subsetted_font);
 }
 
-fn write_sids(sid_remapper: &Remapper<u16>, strings: Index) -> Result<Vec<u8>> {
+fn write_gsubrs(
+    gsubr_remapper: &Remapper<u32>,
+    gsubr_bias: u16,
+    gsubrs: &[SharedCharString],
+) -> Result<Vec<u8>> {
+    let mut new_gsubrs = vec![];
+
+    for (new, old) in gsubr_remapper.sorted().iter().enumerate() {
+        let new = new as u32;
+        let mut new_program = Program::default();
+        let program = &gsubrs.get(*old as usize).unwrap().borrow().program;
+
+        let mut iter = program.instructions().iter().peekable();
+
+        while let Some(instruction) = iter.next() {
+            match instruction {
+                Instruction::HintMask(mask) => {
+                    new_program.push(Instruction::HintMask(*mask))
+                }
+                Instruction::Operand(num) => {
+                    if let Some(Instruction::SingleByteOperator(op)) = iter.peek() {
+                        if *op == CALL_GLOBAL_SUBROUTINE {
+                            let new_gsubr = apply_bias(new as i32, gsubr_bias).unwrap();
+                            new_program
+                                .push(Instruction::Operand(Number::from_i32(new_gsubr)));
+                            continue;
+                        }
+                    }
+
+                    new_program.push(Instruction::Operand(num.clone()))
+                }
+                // TODO: What if two gsubr/lsubr next to each other>
+                Instruction::DoubleByteOperator(op) => {
+                    new_program.push(Instruction::DoubleByteOperator(*op))
+                }
+                Instruction::SingleByteOperator(op) => {
+                    new_program.push(Instruction::SingleByteOperator(*op))
+                }
+            }
+        }
+
+        let mut w = Writer::new();
+        new_program.compile(&mut w);
+        new_gsubrs.push(w.finish());
+    }
+
+    create_index(new_gsubrs)
+}
+
+fn write_sids(sid_remapper: &SidRemapper, strings: Index) -> Result<Vec<u8>> {
     let mut new_strings = vec![];
-    for (_, old) in sid_remapper.iter() {
+    for (_, old) in sid_remapper.sorted().iter().enumerate() {
         new_strings
             .push(strings.get(old.checked_sub(391).unwrap() as u32).unwrap().to_vec());
     }
-
-    println!(
-        "{:?}",
-        new_strings
-            .iter()
-            .map(|s| std::str::from_utf8(s).unwrap())
-            .collect::<Vec<_>>()
-    );
 
     create_index(new_strings)
 }
@@ -211,7 +220,7 @@ fn write_sids(sid_remapper: &Remapper<u16>, strings: Index) -> Result<Vec<u8>> {
 fn write_top_dict(
     raw_top_dict: &[u8],
     font_write_context: &mut FontWriteContext,
-    sid_remapper: &Remapper<u16>,
+    sid_remapper: &SidRemapper,
 ) -> Result<Vec<u8>> {
     use top_dict_operator::*;
 
@@ -303,6 +312,11 @@ fn create_index(data: Vec<Vec<u8>>) -> Result<Vec<u8>> {
     // + 1 Since we start counting from the preceding byte.
     let offsize = data.iter().map(|v| v.len() as u32).sum::<u32>() + 1;
 
+    // Empty Index only contains the count field
+    if count == 0 {
+        return Ok(vec![0, 0]);
+    }
+
     let offset_size = if offsize <= u8::MAX as u32 {
         OffsetSize::Size1
     } else if offsize <= u16::MAX as u32 {
@@ -315,10 +329,13 @@ fn create_index(data: Vec<Vec<u8>>) -> Result<Vec<u8>> {
 
     let mut w = Writer::new();
     w.write(count);
+    w.write(offset_size as u8);
 
-    let mut cur_offset: u32 = 1;
+    let mut cur_offset: u32 = 0;
 
     let mut write_offset = |len| {
+        cur_offset += len;
+
         match offset_size {
             OffsetSize::Size1 => {
                 let num = u8::try_from(cur_offset).map_err(|_| MalformedFont)?;
@@ -335,7 +352,6 @@ fn create_index(data: Vec<Vec<u8>>) -> Result<Vec<u8>> {
             OffsetSize::Size4 => w.write(cur_offset),
         }
 
-        cur_offset += len as u32;
         Ok(())
     };
 
@@ -351,10 +367,10 @@ fn create_index(data: Vec<Vec<u8>>) -> Result<Vec<u8>> {
     Ok(w.finish())
 }
 
-fn get_sid_remapper(ctx: &Context, used_sids: &BTreeSet<StringId>) -> Remapper<u16> {
+fn get_sid_remapper(ctx: &Context, used_sids: &BTreeSet<StringId>) -> SidRemapper {
     // SIDs can appear in the top dict and charset
     // There are 391 standard strings, so we need to start from 392
-    let mut sid_remapper = Remapper::new_with_count(392);
+    let mut sid_remapper = SidRemapper::new();
     for sid in used_sids {
         sid_remapper.remap(sid.0);
     }

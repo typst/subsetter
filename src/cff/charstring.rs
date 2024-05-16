@@ -10,9 +10,8 @@ use crate::{Error, Result};
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::fmt::{Debug, Formatter};
-use std::rc::Rc;
 
-type SharedCharString<'a> = RefCell<CharString<'a>>;
+pub type SharedCharString<'a> = RefCell<CharString<'a>>;
 
 #[derive(Clone, Copy)]
 pub struct Fixed<'a>(i32, &'a [u8]);
@@ -288,14 +287,18 @@ impl<'a> CharString<'a> {
                         .pop()
                         .and_then(|n| n.as_i32())
                         .ok_or(MalformedFont)?;
-                    let gsubr_index =
-                        conv_subroutine_index(biased_index, decompiler.gsubrs_bias)
-                            .ok_or(MalformedFont)?;
+                    let gsubr_index = unapply_bias(biased_index, decompiler.gsubrs_bias)
+                        .ok_or(MalformedFont)?;
                     let gsubr = decompiler
                         .gsubrs
                         .get(gsubr_index as usize)
                         .ok_or(MalformedFont)?;
                     gsubr.borrow_mut().decompile(decompiler)?;
+                    println!(
+                        "index: {:?}, len: {:?}",
+                        gsubr_index,
+                        gsubr.borrow().program.len()
+                    );
                     self.used_gsubs.insert(gsubr_index);
                     // Make sure used lsubs and gsubs are propagated transitively.
                     self.used_lsubs.extend(&gsubr.borrow().used_lsubs);
@@ -311,9 +314,8 @@ impl<'a> CharString<'a> {
                         .pop()
                         .and_then(|n| n.as_i32())
                         .ok_or(MalformedFont)?;
-                    let lsubr_index =
-                        conv_subroutine_index(biased_index, decompiler.lsubrs_bias)
-                            .ok_or(MalformedFont)?;
+                    let lsubr_index = unapply_bias(biased_index, decompiler.lsubrs_bias)
+                        .ok_or(MalformedFont)?;
                     let lsubr = decompiler
                         .lsubrs
                         .get(lsubr_index as usize)
@@ -365,9 +367,15 @@ pub fn calc_subroutine_bias(len: u32) -> u16 {
     }
 }
 
-fn conv_subroutine_index(index: i32, bias: u16) -> Option<u32> {
+pub fn unapply_bias(index: i32, bias: u16) -> Option<u32> {
     let bias = i32::from(bias);
 
     let index = index.checked_add(bias)?;
     u32::try_from(index).ok()
+}
+
+pub fn apply_bias(index: i32, bias: u16) -> Option<i32> {
+    let bias = i32::from(bias);
+
+    index.checked_sub(bias)
 }
