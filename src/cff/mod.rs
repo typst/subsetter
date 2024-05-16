@@ -15,13 +15,13 @@ mod remapper;
 use super::*;
 use crate::cff::charset::{parse_charset, Charset};
 use crate::cff::charstring::{
-    apply_bias, calc_subroutine_bias, CharString, Decompiler, Instruction, Program,
-    SharedCharString,
+    apply_bias, calc_subroutine_bias, unapply_bias, CharString, Decompiler, Instruction,
+    Program, SharedCharString,
 };
 use crate::cff::dict::{DictionaryParser, Number};
 use crate::cff::encoding::Encoding;
 use crate::cff::index::{parse_index, skip_index, Index, OffsetSize};
-use crate::cff::operator::CALL_GLOBAL_SUBROUTINE;
+use crate::cff::operator::{CALL_GLOBAL_SUBROUTINE, CALL_LOCAL_SUBROUTINE};
 use crate::cff::private_dict::parse_subr_offset;
 use crate::cff::remapper::SidRemapper;
 use crate::cff::top_dict::top_dict_operator::{
@@ -98,6 +98,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
     let mut lsubr_remapper = vec![Remapper::new(); lsubrs.len()];
     let mut fd_remapper = Remapper::new();
     let sid_remapper = get_sid_remapper(ctx, &table.top_dict_data.used_sids);
+    let mut char_strings = vec![];
 
     for i in 0..ctx.mapper.num_gids() {
         let original_gid = ctx.mapper.get_reverse(i).unwrap();
@@ -110,10 +111,6 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         let mut charstring = CharString::new(raw_charstring);
         charstring.decompile(&mut decompiler).unwrap();
 
-        let mut w = Writer::new();
-        charstring.program.compile(&mut w);
-        let compiled = w.finish();
-
         charstring.used_gsubs().unwrap().iter().for_each(|n| {
             gsubr_remapper.remap(*n);
         });
@@ -124,14 +121,8 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
             mapped_lsubrs.remap(*n);
         });
 
-        assert_eq!(compiled, raw_charstring);
+        char_strings.push(RefCell::new(charstring))
     }
-
-    let gsubr_bias = calc_subroutine_bias(gsubr_remapper.len());
-    let lsubrs_bias = lsubr_remapper
-        .iter()
-        .map(|r| calc_subroutine_bias(r.len()))
-        .collect::<Vec<_>>();
 
     let mut font_write_context = FontWriteContext::default();
     let mut subsetted_font = vec![];
@@ -150,10 +141,24 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         // STRINGS
         w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
         // GSUBRS
-        w.extend(&write_gsubrs(&gsubr_remapper, gsubr_bias, &gsubrs).unwrap());
+        w.extend(&write_gsubrs(&gsubr_remapper, &gsubrs).unwrap());
 
         font_write_context.charset_offset = Number::from_i32(w.len() as i32);
         w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
+
+        font_write_context.char_strings_offset = Number::from_i32(w.len() as i32);
+        w.extend(
+            &write_char_strings(
+                &ctx.mapper,
+                &char_strings,
+                &gsubr_remapper,
+                &gsubrs,
+                kind.fd_select,
+                &lsubr_remapper,
+                &lsubrs,
+            )
+            .unwrap(),
+        );
 
         subsetted_font = w.finish();
         font_write_context.char_strings_offset = Number::from_i32(1);
@@ -183,7 +188,6 @@ fn write_charset(
 
 fn write_gsubrs(
     gsubr_remapper: &Remapper<u32>,
-    gsubr_bias: u16,
     gsubrs: &[SharedCharString],
 ) -> Result<Vec<u8>> {
     let mut new_gsubrs = vec![];
@@ -203,7 +207,14 @@ fn write_gsubrs(
                 Instruction::Operand(num) => {
                     if let Some(Instruction::SingleByteOperator(op)) = iter.peek() {
                         if *op == CALL_GLOBAL_SUBROUTINE {
-                            let new_gsubr = apply_bias(new as i32, gsubr_bias).unwrap();
+                            let old_gsubr =
+                                unapply_bias(num.as_i32().unwrap(), gsubrs.len() as u16)
+                                    .unwrap();
+                            let new_gsubr = apply_bias(
+                                gsubr_remapper.get(old_gsubr).unwrap() as i32,
+                                gsubr_remapper.len() as u16,
+                            )
+                            .unwrap();
                             new_program
                                 .push(Instruction::Operand(Number::from_i32(new_gsubr)));
                             continue;
@@ -228,6 +239,88 @@ fn write_gsubrs(
     }
 
     create_index(new_gsubrs)
+}
+
+fn write_char_strings(
+    gid_mapper: &GidMapper,
+    char_strings: &[SharedCharString],
+    gsubr_remapper: &Remapper<u32>,
+    gsubrs: &[SharedCharString],
+    fd_select: FDSelect,
+    lsubr_remappers: &Vec<Remapper<u32>>,
+    lsubrs: &[Vec<SharedCharString>],
+) -> Result<Vec<u8>> {
+    let mut new_char_strings = vec![];
+
+    for i in 0..gid_mapper.num_gids() {
+        let old = gid_mapper.get_reverse(i).unwrap();
+        let mut new_program = Program::default();
+        println!("{:?}", char_strings.get(i as usize).unwrap().borrow().used_lsubs().);
+        let program = &char_strings.get(i as usize).unwrap().borrow().program;
+
+        let mut iter = program.instructions().iter().peekable();
+
+        while let Some(instruction) = iter.next() {
+            match instruction {
+                Instruction::HintMask(mask) => {
+                    new_program.push(Instruction::HintMask(*mask))
+                }
+                Instruction::Operand(num) => {
+                    if let Some(Instruction::SingleByteOperator(op)) = iter.peek() {
+                        if *op == CALL_GLOBAL_SUBROUTINE {
+                            let old_gsubr =
+                                unapply_bias(num.as_i32().unwrap(), gsubrs.len() as u16)
+                                    .unwrap();
+                            let new_gsubr = apply_bias(
+                                gsubr_remapper.get(old_gsubr).unwrap() as i32,
+                                gsubr_remapper.len() as u16,
+                            )
+                            .unwrap();
+                            new_program
+                                .push(Instruction::Operand(Number::from_i32(new_gsubr)));
+                            continue;
+                        } else if *op == CALL_LOCAL_SUBROUTINE {
+                            let fd_index = fd_select.font_dict_index(old).unwrap();
+
+                            let lsubr_remapper =
+                                lsubr_remappers.get(fd_index as usize).unwrap();
+                            let lsubrs = lsubrs.get(fd_index as usize).unwrap();
+                            let old_lsubr =
+                                unapply_bias(num.as_i32().unwrap(), lsubrs.len() as u16)
+                                    .unwrap();
+                            let new_lsubr = apply_bias(
+                                lsubr_remapper.get(old_lsubr).unwrap() as i32,
+                                gsubr_remapper.len() as u16,
+                            )
+                            .unwrap();
+
+                            let new_lsubr =
+                                apply_bias(new_lsubr, lsubr_remapper.len() as u16)
+                                    .unwrap();
+                            new_program
+                                .push(Instruction::Operand(Number::from_i32(new_lsubr)));
+                            continue;
+                        }
+                    }
+
+                    new_program.push(Instruction::Operand(num.clone()))
+                }
+                // TODO: What if two gsubr/lsubr next to each other>
+                Instruction::DoubleByteOperator(op) => {
+                    new_program.push(Instruction::DoubleByteOperator(*op))
+                }
+                Instruction::SingleByteOperator(op) => {
+                    new_program.push(Instruction::SingleByteOperator(*op))
+                }
+            }
+        }
+
+        let mut w = Writer::new();
+        new_program.compile(&mut w);
+        new_char_strings.push(w.finish());
+    }
+
+    create_index(new_char_strings)
 }
 
 fn write_sids(sid_remapper: &SidRemapper, strings: Index) -> Result<Vec<u8>> {

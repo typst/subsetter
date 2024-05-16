@@ -134,7 +134,7 @@ pub(crate) fn parse_charset<'a>(
                 let mut s = r.clone();
                 let mut total_left = number_of_glyphs - 1;
                 while total_left > 0 {
-                    let first = s.read::<StringId>(); // first
+                    s.skip::<StringId>(); // first
                     let left = s.read::<u16>()?.checked_add(1)?;
                     total_left = total_left.checked_sub(left)?;
                     count += 1;

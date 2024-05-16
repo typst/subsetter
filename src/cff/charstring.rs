@@ -293,12 +293,6 @@ impl<'a> CharString<'a> {
                         .gsubrs
                         .get(gsubr_index as usize)
                         .ok_or(MalformedFont)?;
-                    gsubr.borrow_mut().decompile(decompiler)?;
-                    println!(
-                        "index: {:?}, len: {:?}",
-                        gsubr_index,
-                        gsubr.borrow().program.len()
-                    );
                     self.used_gsubs.insert(gsubr_index);
                     // Make sure used lsubs and gsubs are propagated transitively.
                     self.used_lsubs.extend(&gsubr.borrow().used_lsubs);
