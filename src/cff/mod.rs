@@ -8,7 +8,6 @@ mod encoding;
 mod index;
 mod private_dict;
 mod top_dict;
-// mod subset;
 mod charstring;
 mod remapper;
 

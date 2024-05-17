@@ -41,8 +41,6 @@ impl<'a> Reader<'a> {
         T::read(&mut r)
     }
 
-    // TODO: Add skip function
-
     /// Read a certain number of bytes.
     pub fn read_bytes(&mut self, len: usize) -> Option<&'a [u8]> {
         let v = self.data.get(self.offset..self.offset + len)?;

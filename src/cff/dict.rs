@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn parse_float() {
-        let num = [0xE2, 0x49, 0x32, 0xA1, 0x2C, 0x2F];
+        let num = [0x1E, 0xE2, 0x49, 0x32, 0xA1, 0x2C, 0x2F];
         let mut r = Reader::new(&num);
         let real = RealNumber::parse(&mut r).unwrap();
         assert_eq!(-249.3212, real.1)
