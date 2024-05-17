@@ -303,9 +303,9 @@ fn parse_float_nibble(nibble: u8, mut idx: usize, data: &mut [u8]) -> Option<usi
 pub struct StringId(pub u16);
 
 impl StringId {
-    const CUSTOM_SID: u16 = 392;
+    pub const CUSTOM_SID: u16 = 392;
 
-    fn is_standard_string(&self) -> bool {
+    pub fn is_standard_string(&self) -> bool {
         self.0 < Self::CUSTOM_SID
     }
 }

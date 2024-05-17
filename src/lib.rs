@@ -39,7 +39,7 @@ resulting font is 36 KB (5 KB zipped).
 #![deny(unsafe_code)]
 // #![deny(missing_docs)]
 
-// mod cff;
+mod cff;
 mod glyf;
 mod head;
 mod hmtx;
@@ -75,10 +75,10 @@ fn prepare_context<'a>(
     mapper: &'a mut GidMapper,
 ) -> Result<Context<'a>> {
     let face = parse(data, index)?;
-    let kind = match (face.table(Tag::GLYF), face.table(Tag::CFF)){
+    let kind = match (face.table(Tag::GLYF), face.table(Tag::CFF)) {
         (Some(_), _) => FontKind::TrueType,
         (_, Some(_)) => FontKind::Cff,
-        _ => return Err(UnknownKind)
+        _ => return Err(UnknownKind),
     };
 
     let maxp = face.table(Tag::MAXP).ok_or(MalformedFont)?;

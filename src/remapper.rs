@@ -65,8 +65,8 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
         self.counter
     }
 
-    pub fn iter(&self) -> Enumerate<Iter<T>> {
-        self.backward.iter().enumerate()
+    pub fn sequential_iter(&self) -> impl Iterator<Item = T> + '_ {
+        self.backward.iter().copied()
     }
 }
 
