@@ -4,7 +4,7 @@ use crate::cff::dict::top_dict::TopDictData;
 use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{parse_index, Index};
 use crate::cff::types::Number;
-use crate::cff::{dict, FontKind};
+use crate::cff::{dict};
 use crate::read::{LazyArray16, Reader};
 use std::array;
 use std::ops::Range;
