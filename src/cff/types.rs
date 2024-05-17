@@ -299,7 +299,7 @@ fn parse_float_nibble(nibble: u8, mut idx: usize, data: &mut [u8]) -> Option<usi
 
 #[cfg(test)]
 mod tests {
-    use crate::cff::number::*;
+    use crate::cff::types::*;
     use crate::stream::Reader;
 
     #[test]

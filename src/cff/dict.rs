@@ -1,4 +1,4 @@
-use crate::cff::number::Number;
+use crate::cff::types::Number;
 use crate::stream::{Reader, StringId};
 use std::fmt::Debug;
 use std::ops::Range;

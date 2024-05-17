@@ -2,8 +2,8 @@ use crate::cff::argstack::ArgumentsStack;
 use crate::cff::charstring::Instruction::{
     DoubleByteOperator, HintMask, SingleByteOperator,
 };
-use crate::cff::number::Number;
 use crate::cff::operator;
+use crate::cff::types::Number;
 use crate::stream::{Readable, Reader, Writer};
 use crate::Error::MalformedFont;
 use crate::{Error, Result};

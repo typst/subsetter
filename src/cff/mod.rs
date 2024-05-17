@@ -7,10 +7,10 @@ mod charstring;
 mod dict;
 mod encoding;
 mod index;
-mod number;
 mod private_dict;
 mod remapper;
 mod top_dict;
+mod types;
 
 use super::*;
 use crate::cff::charset::{parse_charset, Charset};
@@ -30,7 +30,6 @@ use crate::cff::top_dict::top_dict_operator::{
 };
 use crate::stream::{StringId, U24};
 use crate::util::LazyArray16;
-use number::{IntegerNumber, Number};
 use remapper::Remapper;
 use std::array;
 use std::cell::RefCell;
@@ -38,6 +37,7 @@ use std::collections::BTreeSet;
 use std::hash::Hash;
 use std::ops::{Add, Range};
 use top_dict::{top_dict_operator, TopDictData};
+use types::{IntegerNumber, Number};
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const MAX_OPERANDS_LEN: usize = 48;
