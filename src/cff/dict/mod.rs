@@ -5,34 +5,7 @@ use crate::cff::types::{Number, StringId};
 use crate::read::Reader;
 use std::fmt::Debug;
 use std::ops::Range;
-
-const TWO_BYTE_OPERATOR_MARK: u8 = 12;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum OperatorType {
-    OneByteOperator([u8; 1]),
-    TwoByteOperator([u8; 2]),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Operator(OperatorType);
-
-impl Operator {
-    fn from_one_byte(b: u8) -> Self {
-        Self(OperatorType::OneByteOperator([b]))
-    }
-
-    fn from_two_byte(b: u8) -> Self {
-        Self(OperatorType::TwoByteOperator([TWO_BYTE_OPERATOR_MARK, b]))
-    }
-
-    fn as_bytes(&self) -> &[u8] {
-        match &self.0 {
-            OperatorType::OneByteOperator(b) => b,
-            OperatorType::TwoByteOperator(b) => b,
-        }
-    }
-}
+use crate::cff::operator::{Operator, TWO_BYTE_OPERATOR_MARK};
 
 pub struct DictionaryParser<'a> {
     data: &'a [u8],
@@ -200,7 +173,7 @@ fn is_dict_one_byte_op(b: u8) -> bool {
 
 #[allow(dead_code)]
 mod operators {
-    use crate::cff::dict::{Operator, OperatorType, TWO_BYTE_OPERATOR_MARK};
+    use crate::cff::operator::{Operator, OperatorType, TWO_BYTE_OPERATOR_MARK};
 
     // TOP DICT OPERATORS
     pub const VERSION: Operator = Operator(OperatorType::OneByteOperator([0]));

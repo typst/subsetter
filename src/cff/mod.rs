@@ -2,7 +2,7 @@
 
 // mod argstack;
 // mod charset;
-// mod charstring;
+// pub(crate) mod charstring;
 mod dict;
 // mod encoding;
 mod index;
@@ -10,6 +10,8 @@ mod index;
 mod remapper;
 // mod top_dict;
 mod types;
+mod subroutines;
+mod operator;
 
 // use super::*;
 // use crate::cff::charset::{parse_charset, Charset};
