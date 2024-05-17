@@ -14,6 +14,12 @@ pub(crate) trait CheckedAdd: Sized + Add<Self, Output = Self> {
     fn checked_add(&self, v: &Self) -> Option<Self>;
 }
 
+impl CheckedAdd for u8 {
+    fn checked_add(&self, v: &Self) -> Option<Self> {
+        u8::checked_add(*self, *v)
+    }
+}
+
 impl CheckedAdd for u16 {
     fn checked_add(&self, v: &Self) -> Option<Self> {
         u16::checked_add(*self, *v)

@@ -172,7 +172,7 @@ fn is_dict_one_byte_op(b: u8) -> bool {
 
 #[allow(dead_code)]
 // TODO: Use constructor
-mod operators {
+pub(crate) mod operators {
     use crate::cff::operator::{Operator, OperatorType, TWO_BYTE_OPERATOR_MARK};
 
     // TOP DICT OPERATORS

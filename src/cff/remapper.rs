@@ -1,7 +1,8 @@
 use crate::cff::types::StringId;
 use crate::remapper::Remapper;
 
-pub type SubroutineMapper = Remapper<u32, u32>;
+pub type SubroutineRemapper = Remapper<u32, u32>;
+pub type FontDictRemapper = Remapper<u8, u8>;
 
 pub struct SidRemapper(Remapper<u16, u16>);
 

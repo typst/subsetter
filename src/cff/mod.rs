@@ -1,185 +1,185 @@
 // TODO: Add acknowledgements
 
 mod argstack;
-// mod charset;
+mod charset;
 pub(crate) mod charstring;
 mod dict;
-// mod encoding;
+mod encoding;
 mod index;
 // mod private_dict;
 mod remapper;
 // mod top_dict;
+mod cid_font;
 mod operator;
 mod subroutines;
 mod types;
 
-// use super::*;
-// use crate::cff::charset::{parse_charset, Charset};
-// use crate::cff::charstring::{
-//     apply_bias, calc_subroutine_bias, unapply_bias, CharString, Decompiler, Instruction,
-//     Program, SharedCharString,
-// };
-// use crate::cff::dict::DictionaryParser;
-// use crate::cff::encoding::Encoding;
-// use crate::cff::index::{parse_index, skip_index, Index, OffsetSize};
-// use crate::cff::operator::{CALL_GLOBAL_SUBROUTINE, CALL_LOCAL_SUBROUTINE};
-// use crate::cff::private_dict::parse_subr_offset;
-// use crate::cff::top_dict::top_dict_operator::{
-//     BASE_FONT_BLEND, BASE_FONT_NAME, COPYRIGHT, FAMILY_NAME, FONT_NAME, FULL_NAME,
-//     NOTICE, POSTSCRIPT, ROS, VERSION, WEIGHT,
-// };
-// use crate::read::LazyArray16;
-// use remapper::Remapper;
-// use std::array;
-// use std::cell::RefCell;
-// use std::collections::BTreeSet;
-// use std::hash::Hash;
-// use std::ops::{Add, Range};
-// use top_dict::{top_dict_operator, TopDictData};
-// use types::U24;
-// use types::{IntegerNumber, Number, StringId};
-//
-// // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
-// const MAX_OPERANDS_LEN: usize = 48;
-// const MAX_ARGUMENTS_STACK_LEN: usize = 513;
-//
-// /// A [Compact Font Format Table](
-// /// https://docs.microsoft.com/en-us/typography/opentype/spec/cff).
-// #[derive(Clone)]
-// pub struct Table<'a> {
-//     table_data: &'a [u8],
-//     header: &'a [u8],
-//     names: &'a [u8],
-//     raw_top_dict: &'a [u8],
-//     top_dict_data: TopDictData,
-//     strings: Index<'a>,
-//     global_subrs: Index<'a>,
-//     charset: Charset<'a>,
-//     number_of_glyphs: u16,
-//     char_strings: Index<'a>,
-//     kind: Option<FontKind<'a>>,
-// }
-//
-// struct FontWriteContext<'a> {
-//     // TOP DICT DATA
-//     charset_offset: Number<'a>,
-//     encoding_offset: Number<'a>,
-//     char_strings_offset: Number<'a>,
-//     // pub(crate) private: Option<Range<usize>>,
-//     fd_array_offset: Number<'a>,
-//     fd_select_offset: Number<'a>,
-// }
-//
-// impl Default for FontWriteContext<'_> {
-//     fn default() -> Self {
-//         Self {
-//             char_strings_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(
-//                 0,
-//             )),
-//             encoding_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
-//             charset_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
-//             fd_select_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
-//             fd_array_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
-//         }
-//     }
-// }
-//
-// pub fn subset<'a>(ctx: &mut Context<'a>) {
-//     let table = Table::parse(ctx).unwrap();
-//
-//     let Some(FontKind::CID(kind)) = table.kind else {
-//         return;
-//     };
-//
-//     let gsubrs = table
-//         .global_subrs
-//         .into_iter()
-//         .map(|g| RefCell::new(CharString::new(g)))
-//         .collect::<Vec<_>>();
-//     let lsubrs = kind
-//         .local_subrs
-//         .into_iter()
-//         .map(|index| {
-//             index
-//                 .into_iter()
-//                 .map(|g| RefCell::new(CharString::new(g)))
-//                 .collect::<Vec<_>>()
-//         })
-//         .collect::<Vec<_>>();
-//
-//     let mut gsubr_remapper = Remapper::new();
-//     let mut lsubr_remapper = vec![Remapper::new(); lsubrs.len()];
-//     let mut fd_remapper = Remapper::new();
-//     let sid_remapper = get_sid_remapper(ctx, &table.top_dict_data.used_sids);
-//     let mut char_strings = vec![];
-//
-//     for i in 0..ctx.mapper.num_gids() {
-//         let original_gid = ctx.mapper.get_reverse(i).unwrap();
-//         let fd_index = kind.fd_select.font_dict_index(original_gid).unwrap();
-//         fd_remapper.remap(fd_index);
-//         let lsubrs = lsubrs.get(fd_index as usize).unwrap();
-//
-//         let mut decompiler = Decompiler::new(&lsubrs, &gsubrs);
-//         let raw_charstring = table.char_strings.get(original_gid as u32).unwrap();
-//         let mut charstring = CharString::new(raw_charstring);
-//         charstring.decompile(&mut decompiler).unwrap();
-//
-//         charstring.used_gsubs().unwrap().iter().for_each(|n| {
-//             gsubr_remapper.remap(*n);
-//         });
-//
-//         let mapped_lsubrs = lsubr_remapper.get_mut(fd_index as usize).unwrap();
-//
-//         charstring.used_lsubs().unwrap().iter().for_each(|n| {
-//             mapped_lsubrs.remap(*n);
-//         });
-//
-//         char_strings.push(RefCell::new(charstring))
-//     }
-//
-//     let mut font_write_context = FontWriteContext::default();
-//     let mut subsetted_font = vec![];
-//
-//     for i in 0..2 {
-//         let mut w = Writer::new();
-//         // HEADER
-//         w.write(table.header);
-//         // NAME INDEX
-//         w.write(table.names);
-//         // TOP DICT
-//         w.extend(
-//             &write_top_dict(table.raw_top_dict, &mut font_write_context, &sid_remapper)
-//                 .unwrap(),
-//         );
-//         // STRINGS
-//         w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
-//         // GSUBRS
-//         w.extend(&write_gsubrs(&gsubr_remapper, &gsubrs).unwrap());
-//
-//         font_write_context.charset_offset =
-//             Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
-//         w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
-//
-//         font_write_context.char_strings_offset =
-//             Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
-//         w.extend(
-//             &write_char_strings(
-//                 &ctx.mapper,
-//                 &char_strings,
-//                 &gsubr_remapper,
-//                 &gsubrs,
-//                 kind.fd_select,
-//                 &lsubr_remapper,
-//                 &lsubrs,
-//             )
-//             .unwrap(),
-//         );
-//
-//         subsetted_font = w.finish();
-//     }
-//     ttf_parser::cff::Table::parse(&subsetted_font);
-// }
-//
+use super::*;
+use crate::cff::charset::{parse_charset, Charset};
+use crate::cff::charstring::{CharString, Decompiler};
+use crate::cff::dict::top_dict::{parse_top_dict, TopDictData};
+use crate::cff::encoding::Encoding;
+use crate::cff::index::{parse_index, skip_index, Index};
+use crate::cff::remapper::{FontDictRemapper, SidRemapper, SubroutineRemapper};
+use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
+use crate::read::LazyArray16;
+use std::cell::RefCell;
+use std::collections::BTreeSet;
+use std::rc::Rc;
+use types::{IntegerNumber, Number, StringId};
+
+// Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
+const MAX_OPERANDS_LEN: usize = 48;
+const MAX_ARGUMENTS_STACK_LEN: usize = 513;
+
+/// A [Compact Font Format Table](
+/// https://docs.microsoft.com/en-us/typography/opentype/spec/cff).
+#[derive(Clone)]
+pub struct Table<'a> {
+    table_data: &'a [u8],
+    header: &'a [u8],
+    names: &'a [u8],
+    raw_top_dict: &'a [u8],
+    top_dict_data: TopDictData,
+    strings: Index<'a>,
+    global_subrs: Index<'a>,
+    charset: Charset<'a>,
+    number_of_glyphs: u16,
+    char_strings: Index<'a>,
+    kind: Option<FontKind<'a>>,
+}
+
+struct FontWriteContext<'a> {
+    // TOP DICT DATA
+    charset_offset: Number<'a>,
+    encoding_offset: Number<'a>,
+    char_strings_offset: Number<'a>,
+    // pub(crate) private: Option<Range<usize>>,
+    fd_array_offset: Number<'a>,
+    fd_select_offset: Number<'a>,
+}
+
+impl Default for FontWriteContext<'_> {
+    fn default() -> Self {
+        Self {
+            char_strings_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(
+                0,
+            )),
+            encoding_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
+            charset_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
+            fd_select_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
+            fd_array_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
+        }
+    }
+}
+
+pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
+    let table = Table::parse(ctx).unwrap();
+
+    let Some(FontKind::CID(kind)) = table.kind else {
+        unimplemented!();
+    };
+
+    let gsubrs = {
+        let subroutines = table
+            .global_subrs
+            .into_iter()
+            .map(|g| Rc::new(RefCell::new(CharString::new(g))))
+            .collect::<Vec<_>>();
+        SubroutineContainer::new(subroutines)
+    };
+
+    let lsubrs = {
+        let subroutines = kind
+            .local_subrs
+            .into_iter()
+            .map(|index| {
+                index
+                    .into_iter()
+                    .map(|g| Rc::new(RefCell::new(CharString::new(g))))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        SubroutineCollection::new(subroutines)
+    };
+
+    let mut gsubr_remapper = SubroutineRemapper::new();
+    let mut lsubr_remapper =
+        vec![SubroutineRemapper::new(); lsubrs.num_entries() as usize];
+    let mut fd_remapper = FontDictRemapper::new();
+    let sid_remapper = get_sid_remapper(ctx, &table.top_dict_data.used_sids);
+    let mut char_strings = vec![];
+
+    for old_gid in ctx.mapper.old_gids() {
+        let fd_index = kind.fd_select.font_dict_index(old_gid).unwrap();
+        fd_remapper.remap(fd_index);
+
+        let mut decompiler = Decompiler::new(
+            lsubrs.get_handler(fd_index).ok_or(MalformedFont)?,
+            gsubrs.get_handler(),
+        );
+        let raw_charstring = table.char_strings.get(old_gid as u32).unwrap();
+        let mut charstring = CharString::new(raw_charstring);
+        charstring.decompile(&mut decompiler).unwrap();
+
+        charstring.used_gsubs().unwrap().iter().for_each(|n| {
+            gsubr_remapper.remap(*n);
+        });
+
+        let mapped_lsubrs = lsubr_remapper.get_mut(fd_index as usize).unwrap();
+
+        charstring.used_lsubs().unwrap().iter().for_each(|n| {
+            mapped_lsubrs.remap(*n);
+        });
+
+        char_strings.push(RefCell::new(charstring))
+    }
+
+    // let mut font_write_context = FontWriteContext::default();
+    // let mut subsetted_font = vec![];
+    //
+    // for i in 0..2 {
+    //     let mut w = Writer::new();
+    //     // HEADER
+    //     w.write(table.header);
+    //     // NAME INDEX
+    //     w.write(table.names);
+    //     // TOP DICT
+    //     w.extend(
+    //         &write_top_dict(table.raw_top_dict, &mut font_write_context, &sid_remapper)
+    //             .unwrap(),
+    //     );
+    //     // STRINGS
+    //     w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
+    //     // GSUBRS
+    //     w.extend(&write_gsubrs(&gsubr_remapper, &gsubrs).unwrap());
+    //
+    //     font_write_context.charset_offset =
+    //         Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
+    //     w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
+    //
+    //     font_write_context.char_strings_offset =
+    //         Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
+    //     w.extend(
+    //         &write_char_strings(
+    //             &ctx.mapper,
+    //             &char_strings,
+    //             &gsubr_remapper,
+    //             &gsubrs,
+    //             kind.fd_select,
+    //             &lsubr_remapper,
+    //             &lsubrs,
+    //         )
+    //         .unwrap(),
+    //     );
+    //
+    //     subsetted_font = w.finish();
+    // }
+    // ttf_parser::cff::Table::parse(&subsetted_font);
+
+    Ok(())
+}
+
 // fn write_charset(
 //     sid_remapper: &SidRemapper,
 //     charset: &Charset,
@@ -504,248 +504,167 @@ mod types;
 //
 //     Ok(w.finish())
 // }
-//
-// fn get_sid_remapper(ctx: &Context, used_sids: &BTreeSet<StringId>) -> SidRemapper {
-//     // SIDs can appear in the top dict and charset
-//     // There are 391 standard strings, so we need to start from 392
-//     let mut sid_remapper = SidRemapper::new();
-//     for sid in used_sids {
-//         sid_remapper.remap(sid.0);
-//     }
-//
-//     sid_remapper
-// }
-//
-// impl<'a> Table<'a> {
-//     pub fn parse(ctx: &mut Context<'a>) -> Result<Self> {
-//         let cff = ctx.expect_table(Tag::CFF).ok_or(MalformedFont)?;
-//
-//         let mut r = Reader::new(cff);
-//
-//         let major = r.read::<u8>().ok_or(MalformedFont)?;
-//
-//         if major != 1 {
-//             return Err(Error::Unimplemented);
-//         }
-//
-//         r.skip::<u8>(); // minor
-//         let header_size = r.read::<u8>().ok_or(MalformedFont)?;
-//         let header = cff.get(0..header_size as usize).ok_or(MalformedFont)?;
-//
-//         r.jump(header_size as usize);
-//
-//         let names_start = r.offset();
-//         skip_index::<u16>(&mut r).ok_or(MalformedFont)?;
-//         let names = cff.get(names_start..r.offset()).ok_or(MalformedFont)?;
-//         let raw_top_dict = r.tail().ok_or(MalformedFont)?;
-//         let top_dict_data = top_dict::parse_top_dict(&mut r).ok_or(MalformedFont)?;
-//
-//         let strings = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
-//         let global_subrs = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
-//
-//         let char_strings_offset = top_dict_data.char_strings.ok_or(MalformedFont)?;
-//         let char_strings = {
-//             let mut r = Reader::new_at(cff, char_strings_offset);
-//             parse_index::<u16>(&mut r).ok_or(MalformedFont)?
-//         };
-//
-//         let number_of_glyphs = u16::try_from(char_strings.len())
-//             .ok()
-//             .filter(|n| *n > 0)
-//             .ok_or(MalformedFont)?;
-//
-//         let charset = match top_dict_data.charset {
-//             Some(charset_id::ISO_ADOBE) => Charset::ISOAdobe,
-//             Some(charset_id::EXPERT) => Charset::Expert,
-//             Some(charset_id::EXPERT_SUBSET) => Charset::ExpertSubset,
-//             Some(offset) => {
-//                 let mut s = Reader::new_at(cff, offset);
-//                 parse_charset(number_of_glyphs, &mut s).ok_or(MalformedFont)?
-//             }
-//             None => Charset::ISOAdobe, // default
-//         };
-//
-//         let kind = if top_dict_data.has_ros {
-//             parse_cid_metadata(cff, &top_dict_data, number_of_glyphs)
-//         } else {
-//             None
-//         };
-//
-//         Ok(Self {
-//             table_data: cff,
-//             header,
-//             names,
-//             raw_top_dict,
-//             top_dict_data,
-//             strings,
-//             global_subrs,
-//             charset,
-//             number_of_glyphs,
-//             char_strings,
-//             kind,
-//         })
-//     }
-// }
-//
-// #[derive(Clone, Debug)]
-// pub(crate) enum FontKind<'a> {
-//     SID(SIDMetadata<'a>),
-//     CID(CIDMetadata<'a>),
-// }
-//
-// #[derive(Clone, Copy, Default, Debug)]
-// pub(crate) struct SIDMetadata<'a> {
-//     local_subrs: Index<'a>,
-//     /// Can be zero.
-//     default_width: f32,
-//     /// Can be zero.
-//     nominal_width: f32,
-//     encoding: Encoding<'a>,
-// }
-//
-// #[derive(Clone, Default, Debug)]
-// pub(crate) struct CIDMetadata<'a> {
-//     local_subrs: Vec<Index<'a>>,
-//     fd_array: Index<'a>,
-//     fd_select: FDSelect<'a>,
-// }
-//
-// #[derive(Clone, Copy, Debug)]
-// enum FDSelect<'a> {
-//     Format0(LazyArray16<'a, u8>),
-//     Format3(&'a [u8]), // It's easier to parse it in-place.
-// }
-//
-// impl Default for FDSelect<'_> {
-//     fn default() -> Self {
-//         FDSelect::Format0(LazyArray16::default())
-//     }
-// }
-//
-// impl FDSelect<'_> {
-//     fn font_dict_index(&self, glyph_id: u16) -> Option<u8> {
-//         match self {
-//             FDSelect::Format0(ref array) => array.get(glyph_id),
-//             FDSelect::Format3(data) => {
-//                 let mut r = Reader::new(data);
-//                 let number_of_ranges = r.read::<u16>()?;
-//                 if number_of_ranges == 0 {
-//                     return None;
-//                 }
-//
-//                 // 'A sentinel GID follows the last range element and serves
-//                 // to delimit the last range in the array.'
-//                 // So we can simply increase the number of ranges by one.
-//                 let number_of_ranges = number_of_ranges.checked_add(1)?;
-//
-//                 // Range is: GlyphId + u8
-//                 let mut prev_first_glyph = r.read::<u16>()?;
-//                 let mut prev_index = r.read::<u8>()?;
-//                 for _ in 1..number_of_ranges {
-//                     let curr_first_glyph = r.read::<u16>()?;
-//                     if (prev_first_glyph..curr_first_glyph).contains(&glyph_id) {
-//                         return Some(prev_index);
-//                     } else {
-//                         prev_index = r.read::<u8>()?;
-//                     }
-//
-//                     prev_first_glyph = curr_first_glyph;
-//                 }
-//
-//                 None
-//             }
-//         }
-//     }
-// }
-//
-// fn parse_cid_metadata<'a>(
-//     data: &'a [u8],
-//     top_dict: &TopDictData,
-//     number_of_glyphs: u16,
-// ) -> Option<FontKind<'a>> {
-//     let (charset_offset, fd_array_offset, fd_select_offset) =
-//         match (top_dict.charset, top_dict.fd_array, top_dict.fd_select) {
-//             (Some(a), Some(b), Some(c)) => (a, b, c),
-//             _ => return None, // charset, FDArray and FDSelect must be set.
-//         };
-//
-//     if charset_offset <= charset_id::EXPERT_SUBSET {
-//         // 'There are no predefined charsets for CID fonts.'
-//         // Adobe Technical Note #5176, chapter 18 CID-keyed Fonts
-//         return None;
-//     }
-//
-//     let mut metadata = CIDMetadata::default();
-//
-//     metadata.fd_array = {
-//         let mut r = Reader::new_at(data, fd_array_offset);
-//         parse_index::<u16>(&mut r)?
-//     };
-//
-//     for font_dict_data in metadata.fd_array {
-//         metadata
-//             .local_subrs
-//             .push(parse_cid_private_dict(data, font_dict_data).unwrap_or_default());
-//     }
-//
-//     metadata.fd_select = {
-//         let mut s = Reader::new_at(data, fd_select_offset);
-//         parse_fd_select(number_of_glyphs, &mut s)?
-//     };
-//
-//     Some(FontKind::CID(metadata))
-// }
-//
-// fn parse_cid_private_dict<'a>(
-//     data: &'a [u8],
-//     font_dict_data: &'a [u8],
-// ) -> Option<Index<'a>> {
-//     let private_dict_range = parse_font_dict(font_dict_data)?;
-//     let private_dict_data = data.get(private_dict_range.clone())?;
-//     let subrs_offset = parse_subr_offset(private_dict_data)?;
-//
-//     let start = private_dict_range.start.checked_add(subrs_offset)?;
-//     let subrs_data = data.get(start..)?;
-//     let mut r = Reader::new(subrs_data);
-//     parse_index::<u16>(&mut r)
-// }
-//
-// fn parse_font_dict(data: &[u8]) -> Option<Range<usize>> {
-//     let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
-//     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
-//     while let Some(operator) = dict_parser.parse_next() {
-//         if operator.get() == top_dict_operator::PRIVATE {
-//             return dict_parser.parse_range();
-//         }
-//     }
-//
-//     None
-// }
-//
-// fn parse_fd_select<'a>(
-//     number_of_glyphs: u16,
-//     r: &mut Reader<'a>,
-// ) -> Option<FDSelect<'a>> {
-//     let format = r.read::<u8>()?;
-//     match format {
-//         0 => Some(FDSelect::Format0(r.read_array16::<u8>(number_of_glyphs)?)),
-//         3 => Some(FDSelect::Format3(r.tail()?)),
-//         _ => None,
-//     }
-// }
-//
-// /// Enumerates Charset IDs defined in the Adobe Technical Note #5176, Table 22
-// mod charset_id {
-//     pub const ISO_ADOBE: usize = 0;
-//     pub const EXPERT: usize = 1;
-//     pub const EXPERT_SUBSET: usize = 2;
-// }
-//
-// /// Enumerates Charset IDs defined in the Adobe Technical Note #5176, Table 16
-// mod encoding_id {
-//     pub const STANDARD: usize = 0;
-//     pub const EXPERT: usize = 1;
-// }
-//
 
-//
+fn get_sid_remapper(ctx: &Context, used_sids: &BTreeSet<StringId>) -> SidRemapper {
+    let mut sid_remapper = SidRemapper::new();
+    for sid in used_sids {
+        sid_remapper.remap(*sid);
+    }
+
+    sid_remapper
+}
+
+impl<'a> Table<'a> {
+    pub fn parse(ctx: &mut Context<'a>) -> Result<Self> {
+        let cff = ctx.expect_table(Tag::CFF).ok_or(MalformedFont)?;
+
+        let mut r = Reader::new(cff);
+
+        let major = r.read::<u8>().ok_or(MalformedFont)?;
+
+        if major != 1 {
+            return Err(Error::Unimplemented);
+        }
+
+        r.skip::<u8>(); // minor
+        let header_size = r.read::<u8>().ok_or(MalformedFont)?;
+        let header = cff.get(0..header_size as usize).ok_or(MalformedFont)?;
+
+        r.jump(header_size as usize);
+
+        let names_start = r.offset();
+        skip_index::<u16>(&mut r).ok_or(MalformedFont)?;
+        let names = cff.get(names_start..r.offset()).ok_or(MalformedFont)?;
+        let raw_top_dict = r.tail().ok_or(MalformedFont)?;
+        let top_dict_data = parse_top_dict(&mut r).ok_or(MalformedFont)?;
+
+        let strings = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
+        let global_subrs = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
+
+        let char_strings_offset = top_dict_data.char_strings.ok_or(MalformedFont)?;
+        let char_strings = {
+            let mut r = Reader::new_at(cff, char_strings_offset);
+            parse_index::<u16>(&mut r).ok_or(MalformedFont)?
+        };
+
+        let number_of_glyphs = u16::try_from(char_strings.len())
+            .ok()
+            .filter(|n| *n > 0)
+            .ok_or(MalformedFont)?;
+
+        let charset = match top_dict_data.charset {
+            Some(charset_id::ISO_ADOBE) => Charset::ISOAdobe,
+            Some(charset_id::EXPERT) => Charset::Expert,
+            Some(charset_id::EXPERT_SUBSET) => Charset::ExpertSubset,
+            Some(offset) => {
+                let mut s = Reader::new_at(cff, offset);
+                parse_charset(number_of_glyphs, &mut s).ok_or(MalformedFont)?
+            }
+            None => Charset::ISOAdobe, // default
+        };
+
+        let kind = if top_dict_data.has_ros {
+            cid_font::parse_cid_metadata(cff, &top_dict_data, number_of_glyphs)
+        } else {
+            None
+        };
+
+        Ok(Self {
+            table_data: cff,
+            header,
+            names,
+            raw_top_dict,
+            top_dict_data,
+            strings,
+            global_subrs,
+            charset,
+            number_of_glyphs,
+            char_strings,
+            kind,
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum FontKind<'a> {
+    SID(SIDMetadata<'a>),
+    CID(CIDMetadata<'a>),
+}
+
+#[derive(Clone, Copy, Default, Debug)]
+pub(crate) struct SIDMetadata<'a> {
+    local_subrs: Index<'a>,
+    /// Can be zero.
+    default_width: f32,
+    /// Can be zero.
+    nominal_width: f32,
+    encoding: Encoding<'a>,
+}
+
+#[derive(Clone, Default, Debug)]
+pub(crate) struct CIDMetadata<'a> {
+    local_subrs: Vec<Index<'a>>,
+    fd_array: Index<'a>,
+    fd_select: FDSelect<'a>,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum FDSelect<'a> {
+    Format0(LazyArray16<'a, u8>),
+    Format3(&'a [u8]), // It's easier to parse it in-place.
+}
+
+impl Default for FDSelect<'_> {
+    fn default() -> Self {
+        FDSelect::Format0(LazyArray16::default())
+    }
+}
+
+impl FDSelect<'_> {
+    fn font_dict_index(&self, glyph_id: u16) -> Option<u8> {
+        match self {
+            FDSelect::Format0(ref array) => array.get(glyph_id),
+            FDSelect::Format3(data) => {
+                let mut r = Reader::new(data);
+                let number_of_ranges = r.read::<u16>()?;
+                if number_of_ranges == 0 {
+                    return None;
+                }
+
+                // 'A sentinel GID follows the last range element and serves
+                // to delimit the last range in the array.'
+                // So we can simply increase the number of ranges by one.
+                let number_of_ranges = number_of_ranges.checked_add(1)?;
+
+                // Range is: GlyphId + u8
+                let mut prev_first_glyph = r.read::<u16>()?;
+                let mut prev_index = r.read::<u8>()?;
+                for _ in 1..number_of_ranges {
+                    let curr_first_glyph = r.read::<u16>()?;
+                    if (prev_first_glyph..curr_first_glyph).contains(&glyph_id) {
+                        return Some(prev_index);
+                    } else {
+                        prev_index = r.read::<u8>()?;
+                    }
+
+                    prev_first_glyph = curr_first_glyph;
+                }
+
+                None
+            }
+        }
+    }
+}
+
+/// Enumerates Charset IDs defined in the Adobe Technical Note #5176, Table 22
+mod charset_id {
+    pub const ISO_ADOBE: usize = 0;
+    pub const EXPERT: usize = 1;
+    pub const EXPERT_SUBSET: usize = 2;
+}
+
+/// Enumerates Charset IDs defined in the Adobe Technical Note #5176, Table 16
+mod encoding_id {
+    pub const STANDARD: usize = 0;
+    pub const EXPERT: usize = 1;
+}

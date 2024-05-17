@@ -1,34 +1,44 @@
 use crate::cff::charstring::SharedCharString;
 
 pub(crate) struct SubroutineCollection<'a> {
-    subroutines: Vec<Vec<SharedCharString<'a>>>,
+    subroutines: Vec<SubroutineContainer<'a>>,
 }
 
 impl<'a> SubroutineCollection<'a> {
-    pub fn new(char_strings: Vec<Vec<SharedCharString<'a>>>) -> Self {
-        Self { subroutines: char_strings }
+    pub fn new(subroutines: Vec<Vec<SharedCharString<'a>>>) -> Self {
+        debug_assert!(subroutines.len() <= 255);
+        Self {
+            subroutines: subroutines
+                .into_iter()
+                .map(|c| SubroutineContainer::new(c))
+                .collect(),
+        }
     }
 
-    pub fn get_with_bias(
-        &self,
-        subroutine_index: i32,
-        fd_index: u8,
-    ) -> Option<ResolvedSubroutine<'a>> {
-        self.subroutines.get(fd_index as usize).and_then(|ch| {
-            let subroutine_handler = SubroutineHandler::new(ch.as_ref());
-            subroutine_handler.get_with_biased(subroutine_index)
-        })
+    pub fn get_handler<'b>(&'b self, fd_index: u8) -> Option<SubroutineHandler<'a, 'b>> {
+        self.subroutines.get(fd_index as usize).map(|s| s.get_handler())
     }
 
-    pub fn get_with_unbiased(
-        &self,
-        subroutine_index: u32,
-        fd_index: u8,
-    ) -> Option<ResolvedSubroutine<'a>> {
-        self.subroutines.get(fd_index as usize).and_then(|ch| {
-            let subroutine_handler = SubroutineHandler::new(ch.as_ref());
-            subroutine_handler.get_with_unbiased(subroutine_index)
-        })
+    pub fn num_entries(&self) -> u8 {
+        self.subroutines.len() as u8
+    }
+}
+
+pub(crate) struct SubroutineContainer<'a> {
+    subroutines: Vec<SharedCharString<'a>>,
+}
+
+impl<'a> SubroutineContainer<'a> {
+    pub fn new(subroutines: Vec<SharedCharString<'a>>) -> Self {
+        Self { subroutines }
+    }
+
+    pub fn get_handler<'b>(&'b self) -> SubroutineHandler<'a, 'b> {
+        SubroutineHandler::new(self.subroutines.as_ref())
+    }
+
+    pub fn num_subroutines(&self) -> u32 {
+        self.subroutines.len() as u32
     }
 }
 
