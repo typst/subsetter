@@ -1,5 +1,37 @@
 use crate::cff::charstring::SharedCharString;
 
+pub(crate) struct SubroutineCollection<'a> {
+    subroutines: Vec<Vec<SharedCharString<'a>>>,
+}
+
+impl<'a> SubroutineCollection<'a> {
+    pub fn new(char_strings: Vec<Vec<SharedCharString<'a>>>) -> Self {
+        Self { subroutines: char_strings }
+    }
+
+    pub fn get_with_bias(
+        &self,
+        subroutine_index: i32,
+        fd_index: u8,
+    ) -> Option<ResolvedSubroutine<'a>> {
+        self.subroutines.get(fd_index as usize).and_then(|ch| {
+            let subroutine_handler = SubroutineHandler::new(ch.as_ref());
+            subroutine_handler.get_with_biased(subroutine_index)
+        })
+    }
+
+    pub fn get_with_unbiased(
+        &self,
+        subroutine_index: u32,
+        fd_index: u8,
+    ) -> Option<ResolvedSubroutine<'a>> {
+        self.subroutines.get(fd_index as usize).and_then(|ch| {
+            let subroutine_handler = SubroutineHandler::new(ch.as_ref());
+            subroutine_handler.get_with_unbiased(subroutine_index)
+        })
+    }
+}
+
 pub(crate) struct ResolvedSubroutine<'a> {
     pub(crate) char_string: SharedCharString<'a>,
     pub(crate) biased_index: i32,
