@@ -5,7 +5,7 @@
 // mod charstring;
 mod dict;
 // mod encoding;
-// mod index;
+mod index;
 // mod private_dict;
 mod remapper;
 // mod top_dict;
@@ -745,28 +745,7 @@ mod types;
 //     pub const EXPERT: usize = 1;
 // }
 //
-// /// Enumerates some operators defined in the Adobe Technical Note #5176,
-// /// Table 23 Private DICT Operators
-// mod private_dict_operator {
-//     pub const BLUE_VALUES: u16 = 6;
-//     pub const OTHER_BLUES: u16 = 7;
-//     pub const FAMILY_BLUES: u16 = 8;
-//     pub const FAMILY_OTHER_BLUES: u16 = 9;
-//     pub const BLUE_SCALE: u16 = 1209;
-//     pub const BLUE_SHIFT: u16 = 1210;
-//     pub const BLUE_FUZZ: u16 = 1211;
-//     pub const STD_HW: u16 = 10;
-//     pub const STD_VW: u16 = 11;
-//     pub const STEM_SNAP_H: u16 = 1212;
-//     pub const STEM_SNAP_V: u16 = 1213;
-//     pub const FORCE_BOLD: u16 = 1214;
-//     pub const LANGUAGE_GROUP: u16 = 1217;
-//     pub const EXPANSION_FACTOR: u16 = 1218;
-//     pub const INITIAL_RANDOM_SEED: u16 = 1219;
-//     pub const SUBRS: u16 = 19;
-//     pub const DEFAULT_WIDTH_X: u16 = 20;
-//     pub const NOMINAL_WIDTH_X: u16 = 21;
-// }
+
 //
 // mod operator {
 //     pub const HORIZONTAL_STEM: u8 = 1;

@@ -365,7 +365,7 @@ mod tests {
         for num in nums {
             let integer = IntegerNumber::from_i32(num);
             let bytes = integer.as_bytes();
-            let mut reader = Reader::new(bytes);
+            let reader = Reader::new(bytes);
 
             let reparsed = IntegerNumber::parse(&mut reader.clone()).unwrap();
             assert_eq!(reparsed.as_bytes().len(), 1);
@@ -375,7 +375,7 @@ mod tests {
         for num in nums {
             let integer = Number::from_i32(num);
             let bytes = integer.as_bytes();
-            let mut reader = Reader::new(bytes);
+            let reader = Reader::new(bytes);
 
             let reparsed = Number::parse_cff_number(&mut reader.clone()).unwrap();
             assert_eq!(reparsed.as_bytes().len(), 1);

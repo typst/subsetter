@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
-use std::iter::Enumerate;
 use std::ops::Add;
-use std::slice::Iter;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Remapper<C, T> {

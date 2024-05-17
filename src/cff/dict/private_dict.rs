@@ -1,5 +1,5 @@
+use crate::cff::dict::operators::*;
 use crate::cff::dict::DictionaryParser;
-use crate::cff::private_dict_operator;
 use crate::cff::types::Number;
 use std::array;
 
@@ -13,11 +13,10 @@ pub fn parse_subr_offset(data: &[u8]) -> Option<usize> {
     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
 
     while let Some(operator) = dict_parser.parse_next() {
-        match operator.get() {
-            private_dict_operator::SUBRS => {
+        match operator {
+            SUBRS => {
                 return Some(dict_parser.parse_offset()?);
             }
-
             _ => {}
         }
     }

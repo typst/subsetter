@@ -1,6 +1,5 @@
 use crate::cff::types::StringId;
 use crate::remapper::Remapper;
-use std::ops::Add;
 
 pub type SubroutineMapper = Remapper<u32, u32>;
 

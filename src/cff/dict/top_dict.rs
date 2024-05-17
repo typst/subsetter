@@ -9,26 +9,17 @@ use std::ops::Range;
 #[derive(Default, Debug, Clone)]
 pub struct TopDictData {
     pub(crate) used_sids: BTreeSet<StringId>,
-    // pub(crate) version: Option<StringId>,
-    // pub(crate) notice: Option<StringId>,
-    // pub(crate) copyright: Option<StringId>,
-    // pub(crate) full_name: Option<StringId>,
-    // pub(crate) family_name: Option<StringId>,
-    // pub(crate) weight: Option<StringId>,
     pub(crate) charset: Option<usize>,
     pub(crate) encoding: Option<usize>,
     pub(crate) char_strings: Option<usize>,
     pub(crate) private: Option<Range<usize>>,
-    // pub(crate) postscript: Option<StringId>,
-    // pub(crate) base_font_name: Option<StringId>,
-    // pub(crate) ros: Option<(StringId, StringId, f64)>,
     pub(crate) fd_array: Option<usize>,
     pub(crate) fd_select: Option<usize>,
     pub(crate) has_ros: bool, // pub(crate) font_name: Option<StringId>,
 }
 
 pub fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDictData> {
-    use top_dict_operator::*;
+    use super::operators::*;
     let mut top_dict = TopDictData::default();
 
     let index = parse_index::<u16>(r)?;
@@ -40,7 +31,7 @@ pub fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDictData> {
     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
 
     while let Some(operator) = dict_parser.parse_next() {
-        match operator.get() {
+        match operator {
             VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
             | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {
                 let sid = dict_parser.parse_sid()?;
