@@ -63,10 +63,15 @@ use std::fmt::{self, Debug, Display, Formatter};
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
 pub fn subset(data: &[u8], index: u32, mapper: &GidMapper) -> Result<Vec<u8>> {
-    _subset(data, index, mapper.clone())
+    let context = prepare_context(data, index, mapper.clone())?;
+    _subset(context)
 }
 
-fn _subset(data: &[u8], index: u32, mut mapper: GidMapper) -> Result<Vec<u8>> {
+fn prepare_context<'a>(
+    data: &'a [u8],
+    index: u32,
+    mut mapper: GidMapper,
+) -> Result<Context<'a>> {
     let face = parse(data, index)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
         Some(_) => FontKind::Cff,
@@ -85,14 +90,16 @@ fn _subset(data: &[u8], index: u32, mut mapper: GidMapper) -> Result<Vec<u8>> {
         glyf::glyph_closure(&face, &mut mapper)?;
     }
 
-    let mut ctx = Context {
+    Ok(Context {
         face,
         mapper,
         kind,
         tables: vec![],
         long_loca: true,
-    };
+    })
+}
 
+fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
     // See here for the required tables:
     // https://learn.microsoft.com/en-us/typography/opentype/spec/otff#required-tables
     // some of those are not strictly needed according to the PDF specification,
