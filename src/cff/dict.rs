@@ -127,9 +127,13 @@ impl<'a> IntegerNumber<'a> {
             let bytes = i16::try_from(num).unwrap().to_be_bytes();
             Self(Cow::Owned(vec![28, bytes[0], bytes[1]]), num)
         } else {
-            let bytes = num.to_be_bytes();
-            Self(Cow::Owned(vec![29, bytes[0], bytes[1], bytes[2], bytes[3]]), num)
+            IntegerNumber::from_i32_as_int5(num)
         }
+    }
+
+    pub fn from_i32_as_int5(num: i32) -> Self {
+        let bytes = num.to_be_bytes();
+        Self(Cow::Owned(vec![29, bytes[0], bytes[1], bytes[2], bytes[3]]), num)
     }
 }
 

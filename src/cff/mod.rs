@@ -18,7 +18,7 @@ use crate::cff::charstring::{
     apply_bias, calc_subroutine_bias, unapply_bias, CharString, Decompiler, Instruction,
     Program, SharedCharString,
 };
-use crate::cff::dict::{DictionaryParser, Number};
+use crate::cff::dict::{DictionaryParser, IntegerNumber, Number};
 use crate::cff::encoding::Encoding;
 use crate::cff::index::{parse_index, skip_index, Index, OffsetSize};
 use crate::cff::operator::{CALL_GLOBAL_SUBROUTINE, CALL_LOCAL_SUBROUTINE};
@@ -60,15 +60,28 @@ pub struct Table<'a> {
     kind: Option<FontKind<'a>>,
 }
 
-#[derive(Default)]
 struct FontWriteContext<'a> {
     // TOP DICT DATA
-    pub(crate) charset_offset: Number<'a>,
-    pub(crate) encoding_offset: Number<'a>,
-    pub(crate) char_strings_offset: Number<'a>,
+    charset_offset: Number<'a>,
+    encoding_offset: Number<'a>,
+    char_strings_offset: Number<'a>,
     // pub(crate) private: Option<Range<usize>>,
-    pub(crate) fd_array_offset: Number<'a>,
-    pub(crate) fd_select_offset: Number<'a>,
+    fd_array_offset: Number<'a>,
+    fd_select_offset: Number<'a>,
+}
+
+impl Default for FontWriteContext<'_> {
+    fn default() -> Self {
+        Self {
+            char_strings_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(
+                0,
+            )),
+            encoding_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
+            charset_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
+            fd_select_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
+            fd_array_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
+        }
+    }
 }
 
 pub fn subset<'a>(ctx: &mut Context<'a>) {
@@ -143,10 +156,12 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         // GSUBRS
         w.extend(&write_gsubrs(&gsubr_remapper, &gsubrs).unwrap());
 
-        font_write_context.charset_offset = Number::from_i32(w.len() as i32);
+        font_write_context.charset_offset =
+            Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
         w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
 
-        font_write_context.char_strings_offset = Number::from_i32(w.len() as i32);
+        font_write_context.char_strings_offset =
+            Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
         w.extend(
             &write_char_strings(
                 &ctx.mapper,
@@ -161,7 +176,6 @@ pub fn subset<'a>(ctx: &mut Context<'a>) {
         );
 
         subsetted_font = w.finish();
-        font_write_context.char_strings_offset = Number::from_i32(1);
     }
     ttf_parser::cff::Table::parse(&subsetted_font);
 }
