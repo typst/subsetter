@@ -3,13 +3,14 @@
 
 mod argstack;
 mod charset;
+mod charstring;
 mod dict;
 mod encoding;
 mod index;
+mod number;
 mod private_dict;
-mod top_dict;
-mod charstring;
 mod remapper;
+mod top_dict;
 
 use super::*;
 use crate::cff::charset::{parse_charset, Charset};
@@ -17,7 +18,7 @@ use crate::cff::charstring::{
     apply_bias, calc_subroutine_bias, unapply_bias, CharString, Decompiler, Instruction,
     Program, SharedCharString,
 };
-use crate::cff::dict::{DictionaryParser, IntegerNumber, Number};
+use crate::cff::dict::DictionaryParser;
 use crate::cff::encoding::Encoding;
 use crate::cff::index::{parse_index, skip_index, Index, OffsetSize};
 use crate::cff::operator::{CALL_GLOBAL_SUBROUTINE, CALL_LOCAL_SUBROUTINE};
@@ -29,6 +30,7 @@ use crate::cff::top_dict::top_dict_operator::{
 };
 use crate::stream::{StringId, U24};
 use crate::util::LazyArray16;
+use number::{IntegerNumber, Number};
 use remapper::Remapper;
 use std::array;
 use std::cell::RefCell;

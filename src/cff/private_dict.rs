@@ -1,5 +1,6 @@
-use crate::cff::dict::{DictionaryParser, Number};
-use crate::cff::{private_dict_operator, MAX_OPERANDS_LEN};
+use crate::cff::dict::DictionaryParser;
+use crate::cff::number::Number;
+use crate::cff::private_dict_operator;
 use std::array;
 
 #[derive(Default, Clone, Debug)]

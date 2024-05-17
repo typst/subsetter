@@ -1,5 +1,4 @@
 use crate::cff::CUSTOM_SID;
-use crate::stream::StringId;
 use std::collections::BTreeMap;
 use std::ops::Add;
 
@@ -16,7 +15,7 @@ impl<T: Ord + PartialEq + From<u8> + Add<T, Output = T> + Default + Copy> Remapp
     }
 
     fn new_with_count(count: T) -> Self {
-        let mut mapper = Self {
+        let mapper = Self {
             counter: count,
             forward: BTreeMap::new(),
             backward: Vec::new(),
