@@ -207,12 +207,14 @@ fn write_gsubrs(
                 Instruction::Operand(num) => {
                     if let Some(Instruction::SingleByteOperator(op)) = iter.peek() {
                         if *op == CALL_GLOBAL_SUBROUTINE {
-                            let old_gsubr =
-                                unapply_bias(num.as_i32().unwrap(), gsubrs.len() as u16)
-                                    .unwrap();
+                            let old_gsubr = unapply_bias(
+                                num.as_i32().unwrap(),
+                                calc_subroutine_bias(gsubrs.len() as u32),
+                            )
+                            .unwrap();
                             let new_gsubr = apply_bias(
                                 gsubr_remapper.get(old_gsubr).unwrap() as i32,
-                                gsubr_remapper.len() as u16,
+                                calc_subroutine_bias(gsubr_remapper.len()),
                             )
                             .unwrap();
                             new_program
@@ -255,7 +257,7 @@ fn write_char_strings(
     for i in 0..gid_mapper.num_gids() {
         let old = gid_mapper.get_reverse(i).unwrap();
         let mut new_program = Program::default();
-        println!("{:?}", char_strings.get(i as usize).unwrap().borrow().used_lsubs().);
+        println!("{:?}", char_strings.get(i as usize).unwrap().borrow().used_lsubs());
         let program = &char_strings.get(i as usize).unwrap().borrow().program;
 
         let mut iter = program.instructions().iter().peekable();
@@ -268,12 +270,14 @@ fn write_char_strings(
                 Instruction::Operand(num) => {
                     if let Some(Instruction::SingleByteOperator(op)) = iter.peek() {
                         if *op == CALL_GLOBAL_SUBROUTINE {
-                            let old_gsubr =
-                                unapply_bias(num.as_i32().unwrap(), gsubrs.len() as u16)
-                                    .unwrap();
+                            let old_gsubr = unapply_bias(
+                                num.as_i32().unwrap(),
+                                calc_subroutine_bias(gsubrs.len() as u32),
+                            )
+                            .unwrap();
                             let new_gsubr = apply_bias(
                                 gsubr_remapper.get(old_gsubr).unwrap() as i32,
-                                gsubr_remapper.len() as u16,
+                                calc_subroutine_bias(gsubr_remapper.len()),
                             )
                             .unwrap();
                             new_program
@@ -285,18 +289,22 @@ fn write_char_strings(
                             let lsubr_remapper =
                                 lsubr_remappers.get(fd_index as usize).unwrap();
                             let lsubrs = lsubrs.get(fd_index as usize).unwrap();
-                            let old_lsubr =
-                                unapply_bias(num.as_i32().unwrap(), lsubrs.len() as u16)
-                                    .unwrap();
+                            let old_lsubr = unapply_bias(
+                                num.as_i32().unwrap(),
+                                calc_subroutine_bias(lsubrs.len() as u32),
+                            )
+                            .unwrap();
                             let new_lsubr = apply_bias(
                                 lsubr_remapper.get(old_lsubr).unwrap() as i32,
-                                gsubr_remapper.len() as u16,
+                                calc_subroutine_bias(gsubr_remapper.len()),
                             )
                             .unwrap();
 
-                            let new_lsubr =
-                                apply_bias(new_lsubr, lsubr_remapper.len() as u16)
-                                    .unwrap();
+                            let new_lsubr = apply_bias(
+                                new_lsubr,
+                                calc_subroutine_bias(lsubr_remapper.len()),
+                            )
+                            .unwrap();
                             new_program
                                 .push(Instruction::Operand(Number::from_i32(new_lsubr)));
                             continue;
