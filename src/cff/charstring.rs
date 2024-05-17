@@ -1,5 +1,6 @@
 use crate::cff::argstack::ArgumentsStack;
 use crate::cff::operator::Operator;
+use crate::cff::subroutines::SubroutineHandler;
 use crate::cff::types::Number;
 use crate::read::{Readable, Reader};
 use crate::write::Writer;
@@ -9,14 +10,13 @@ use operators::*;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::fmt::{Debug, Formatter};
+use std::rc::Rc;
 
-pub type SharedCharString<'a> = RefCell<CharString<'a>>;
+pub type SharedCharString<'a> = Rc<RefCell<CharString<'a>>>;
 
 pub struct Decompiler<'a, 'b> {
-    lsubrs: &'b [SharedCharString<'a>],
-    lsubrs_bias: u16,
-    gsubrs: &'b [SharedCharString<'a>],
-    gsubrs_bias: u16,
+    gsubr_handler: SubroutineHandler<'a, 'b>,
+    lsubr_handler: SubroutineHandler<'a, 'b>,
     stack: ArgumentsStack<'a>,
     hint_count: u16,
     hint_mask_bytes: u16,
@@ -24,14 +24,12 @@ pub struct Decompiler<'a, 'b> {
 
 impl<'a, 'b> Decompiler<'a, 'b> {
     pub fn new(
-        lsubrs: &'b [SharedCharString<'a>],
-        gsubrs: &'b [SharedCharString<'a>],
+        gsubr_handler: SubroutineHandler<'a, 'b>,
+        lsubr_handler: SubroutineHandler<'a, 'b>,
     ) -> Self {
         Self {
-            lsubrs,
-            gsubrs,
-            lsubrs_bias: calc_subroutine_bias(lsubrs.len() as u32),
-            gsubrs_bias: calc_subroutine_bias(gsubrs.len() as u32),
+            gsubr_handler,
+            lsubr_handler,
             stack: ArgumentsStack::new(),
             hint_count: 0,
             hint_mask_bytes: 0,
@@ -223,16 +221,16 @@ impl<'a> CharString<'a> {
                         .pop()
                         .and_then(|n| n.as_i32())
                         .ok_or(MalformedFont)?;
-                    let gsubr_index = unapply_bias(biased_index, decompiler.gsubrs_bias)
-                        .ok_or(MalformedFont)?;
                     let gsubr = decompiler
-                        .gsubrs
-                        .get(gsubr_index as usize)
+                        .gsubr_handler
+                        .get_with_biased(biased_index)
                         .ok_or(MalformedFont)?;
-                    self.used_gsubs.insert(gsubr_index);
+                    gsubr.char_string.borrow_mut().decompile(decompiler)?;
+                    self.used_gsubs.insert(gsubr.unbiased_index);
                     // Make sure used lsubs and gsubs are propagated transitively.
-                    self.used_lsubs.extend(&gsubr.borrow().used_lsubs);
-                    self.used_gsubs.extend(&gsubr.borrow().used_gsubs);
+                    // TODO Maybe don't do this?
+                    self.used_lsubs.extend(&gsubr.char_string.borrow().used_lsubs);
+                    self.used_gsubs.extend(&gsubr.char_string.borrow().used_gsubs);
                 }
                 CALL_LOCAL_SUBROUTINE => {
                     push_instr(Instruction::Operator(operator));
@@ -243,17 +241,15 @@ impl<'a> CharString<'a> {
                         .pop()
                         .and_then(|n| n.as_i32())
                         .ok_or(MalformedFont)?;
-                    let lsubr_index = unapply_bias(biased_index, decompiler.lsubrs_bias)
-                        .ok_or(MalformedFont)?;
                     let lsubr = decompiler
-                        .lsubrs
-                        .get(lsubr_index as usize)
+                        .lsubr_handler
+                        .get_with_biased(biased_index)
                         .ok_or(MalformedFont)?;
-                    lsubr.borrow_mut().decompile(decompiler)?;
-                    self.used_lsubs.insert(lsubr_index);
+                    lsubr.char_string.borrow_mut().decompile(decompiler)?;
+                    self.used_lsubs.insert(lsubr.unbiased_index);
                     // Make sure used lsubs and gsubs are propagated transitively.
-                    self.used_lsubs.extend(&lsubr.borrow().used_lsubs);
-                    self.used_gsubs.extend(&lsubr.borrow().used_gsubs);
+                    self.used_lsubs.extend(&lsubr.char_string.borrow().used_lsubs);
+                    self.used_gsubs.extend(&lsubr.char_string.borrow().used_gsubs);
                 }
                 HINT_MASK | COUNTER_MASK => {
                     push_instr(Instruction::Operator(operator));
