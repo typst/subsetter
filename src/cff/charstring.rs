@@ -1,13 +1,11 @@
 use crate::cff::argstack::ArgumentsStack;
-use crate::cff::charstring::Instruction::{
-    DoubleByteOperator, HintMask, SingleByteOperator,
-};
-use crate::cff::operator;
+use crate::cff::operator::Operator;
 use crate::cff::types::Number;
 use crate::read::{Readable, Reader};
 use crate::write::Writer;
 use crate::Error::MalformedFont;
 use crate::{Error, Result};
+use operators::*;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::fmt::{Debug, Formatter};
@@ -49,9 +47,7 @@ impl<'a, 'b> Decompiler<'a, 'b> {
 #[derive(Debug)]
 pub enum Instruction<'a> {
     Operand(Number<'a>),
-    SingleByteOperator(u8),
-    // Needs to be encoded with 12 in the beginning when serializing.
-    DoubleByteOperator(u8),
+    Operator(Operator),
     HintMask(&'a [u8]),
 }
 
@@ -66,18 +62,13 @@ impl Debug for Program<'_> {
         for instr in &self.0 {
             match instr {
                 Instruction::Operand(op) => str_buffer.push(format!("{}", op.as_f64())),
-                Instruction::SingleByteOperator(op) => {
+                Instruction::Operator(op) => {
                     str_buffer.push(format!("op({})", op));
 
-                    if *op != operator::HINT_MASK && *op != operator::COUNTER_MASK {
+                    if *op != HINT_MASK && *op != COUNTER_MASK {
                         formatted_strings.push(str_buffer.join(" "));
                         str_buffer.clear();
                     }
-                }
-                Instruction::DoubleByteOperator(op) => {
-                    str_buffer.push(format!("op({})", 1200 + *op as u16));
-                    formatted_strings.push(str_buffer.join(" "));
-                    str_buffer.clear();
                 }
                 Instruction::HintMask(bytes) => {
                     let mut byte_string = String::new();
@@ -112,14 +103,10 @@ impl<'a> Program<'a> {
                 Instruction::Operand(op) => {
                     writer.extend(op.as_bytes());
                 }
-                SingleByteOperator(sbo) => {
-                    writer.write(*sbo);
+                Instruction::Operator(op) => {
+                    writer.write(op.as_bytes());
                 }
-                DoubleByteOperator(dbo) => {
-                    writer.write::<u8>(12);
-                    writer.write(*dbo);
-                }
-                HintMask(hm) => {
+                Instruction::HintMask(hm) => {
                     writer.extend(*hm);
                 }
             }
@@ -186,68 +173,49 @@ impl<'a> CharString<'a> {
             };
 
             // We need to peak instead of read because parsing a number requires
-            // access to the whole buffer. This means that for each operator, we need
-            // to add another read manually.
+            // access to the whole buffer.
             let op = r.peak::<u8>().ok_or(Error::MalformedFont)?;
 
-            match op {
-                0 | 2 | 9 | 13 | 15 | 16 | 17 => {
-                    // Reserved.
-                    return Err(Error::MalformedFont);
-                }
-                operator::TWO_BYTE_OPERATOR_MARK => {
-                    r.read::<u8>();
-                    let op2 = r.read::<u8>().ok_or(MalformedFont)?;
+            // Numbers
+            if matches!(op, 28 | 32..=255) {
+                let number =
+                    Number::parse_charstring_number(&mut r).ok_or(MalformedFont)?;
+                decompiler.stack.push(number.clone())?;
+                push_instr(Instruction::Operand(number));
+                continue;
+            }
 
-                    match op2 {
-                        operator::HFLEX
-                        | operator::FLEX
-                        | operator::HFLEX1
-                        | operator::FLEX1 => {
-                            decompiler.stack.pop_all();
-                            push_instr(DoubleByteOperator(op2));
-                        }
-                        _ => return Err(MalformedFont),
-                    }
-                }
-                operator::HORIZONTAL_STEM
-                | operator::VERTICAL_STEM
-                | operator::HORIZONTAL_STEM_HINT_MASK
-                | operator::VERTICAL_STEM_HINT_MASK => {
-                    r.read::<u8>();
-                    decompiler.count_hints();
-                    push_instr(SingleByteOperator(op));
-                }
-                operator::VERTICAL_MOVE_TO
-                | operator::HORIZONTAL_MOVE_TO
-                | operator::LINE_TO
-                | operator::VERTICAL_LINE_TO
-                | operator::HORIZONTAL_LINE_TO
-                | operator::MOVE_TO
-                | operator::HORIZONTAL_MOVE_TO
-                | operator::CURVE_LINE
-                | operator::LINE_CURVE
-                | operator::VV_CURVE_TO
-                | operator::VH_CURVE_TO
-                | operator::HH_CURVE_TO
-                | operator::HV_CURVE_TO
-                | operator::CURVE_TO => {
-                    r.read::<u8>();
+            let op = r.read::<u8>().ok_or(Error::MalformedFont)?;
+            let operator = if op == 12 {
+                Operator::from_two_byte(r.read::<u8>().ok_or(Error::MalformedFont)?)
+            } else {
+                Operator::from_one_byte(op)
+            };
+
+            match operator {
+                HFLEX | FLEX | HFLEX1 | FLEX1 => {
                     decompiler.stack.pop_all();
-                    push_instr(Instruction::SingleByteOperator(op))
+                    push_instr(Instruction::Operator(operator));
                 }
-                operator::RETURN => {
-                    r.read::<u8>();
-                    push_instr(Instruction::SingleByteOperator(op))
+                HORIZONTAL_STEM
+                | VERTICAL_STEM
+                | HORIZONTAL_STEM_HINT_MASK
+                | VERTICAL_STEM_HINT_MASK => {
+                    decompiler.count_hints();
+                    push_instr(Instruction::Operator(operator));
                 }
-                28 | 32..=254 => {
-                    let number = Number::parse_cff_number(&mut r).ok_or(MalformedFont)?;
-                    decompiler.stack.push(number.clone())?;
-                    push_instr(Instruction::Operand(number));
+                VERTICAL_MOVE_TO | HORIZONTAL_MOVE_TO | LINE_TO | VERTICAL_LINE_TO
+                | HORIZONTAL_LINE_TO | MOVE_TO | CURVE_LINE | LINE_CURVE
+                | VV_CURVE_TO | VH_CURVE_TO | HH_CURVE_TO | HV_CURVE_TO | CURVE_TO => {
+                    decompiler.stack.pop_all();
+                    push_instr(Instruction::Operator(operator));
                 }
-                operator::CALL_GLOBAL_SUBROUTINE => {
-                    r.read::<u8>();
-                    push_instr(SingleByteOperator(op));
+                RETURN => {
+                    push_instr(Instruction::Operator(operator));
+                }
+                CALL_GLOBAL_SUBROUTINE => {
+                    push_instr(Instruction::Operator(operator));
+
                     // TODO: Add depth limit
                     // TODO: Recursion detector
                     let biased_index = decompiler
@@ -266,9 +234,8 @@ impl<'a> CharString<'a> {
                     self.used_lsubs.extend(&gsubr.borrow().used_lsubs);
                     self.used_gsubs.extend(&gsubr.borrow().used_gsubs);
                 }
-                operator::CALL_LOCAL_SUBROUTINE => {
-                    r.read::<u8>();
-                    push_instr(SingleByteOperator(op));
+                CALL_LOCAL_SUBROUTINE => {
+                    push_instr(Instruction::Operator(operator));
                     // TODO: Add depth limit
                     // TODO: Recursion detector
                     let biased_index = decompiler
@@ -288,9 +255,8 @@ impl<'a> CharString<'a> {
                     self.used_lsubs.extend(&lsubr.borrow().used_lsubs);
                     self.used_gsubs.extend(&lsubr.borrow().used_gsubs);
                 }
-                operator::HINT_MASK | operator::COUNTER_MASK => {
-                    r.read::<u8>();
-                    push_instr(SingleByteOperator(op));
+                HINT_MASK | COUNTER_MASK => {
+                    push_instr(Instruction::Operator(operator));
                     if decompiler.hint_mask_bytes == 0 {
                         decompiler.count_hints();
                         decompiler.hint_mask_bytes = (decompiler.hint_count + 7) / 8;
@@ -299,19 +265,13 @@ impl<'a> CharString<'a> {
                     let hint_bytes = r
                         .read_bytes(decompiler.hint_mask_bytes as usize)
                         .ok_or(MalformedFont)?;
-                    push_instr(HintMask(hint_bytes));
+                    push_instr(Instruction::HintMask(hint_bytes));
                 }
-                operator::ENDCHAR => {
+                ENDCHAR => {
                     // TODO: Add seac!
-                    r.read::<u8>();
-                    push_instr(SingleByteOperator(op));
+                    push_instr(Instruction::Operator(operator));
                 }
-                operator::FIXED_16_16 => {
-                    let num =
-                        Number::parse_charstring_number(&mut r).ok_or(MalformedFont)?;
-                    decompiler.stack.push(num.clone())?;
-                    push_instr(Instruction::Operand(num));
-                }
+                _ => return Err(MalformedFont),
             }
         }
 
@@ -340,4 +300,39 @@ pub fn apply_bias(index: i32, bias: u16) -> Option<i32> {
     let bias = i32::from(bias);
 
     index.checked_sub(bias)
+}
+
+#[allow(dead_code)]
+mod operators {
+    use crate::cff::operator::Operator;
+
+    pub const HORIZONTAL_STEM: Operator = Operator::from_one_byte(1);
+    pub const VERTICAL_STEM: Operator = Operator::from_one_byte(3);
+    pub const VERTICAL_MOVE_TO: Operator = Operator::from_one_byte(4);
+    pub const LINE_TO: Operator = Operator::from_one_byte(5);
+    pub const HORIZONTAL_LINE_TO: Operator = Operator::from_one_byte(6);
+    pub const VERTICAL_LINE_TO: Operator = Operator::from_one_byte(7);
+    pub const CURVE_TO: Operator = Operator::from_one_byte(8);
+    pub const CALL_LOCAL_SUBROUTINE: Operator = Operator::from_one_byte(10);
+    pub const RETURN: Operator = Operator::from_one_byte(11);
+    pub const ENDCHAR: Operator = Operator::from_one_byte(14);
+    pub const HORIZONTAL_STEM_HINT_MASK: Operator = Operator::from_one_byte(18);
+    pub const HINT_MASK: Operator = Operator::from_one_byte(19);
+    pub const COUNTER_MASK: Operator = Operator::from_one_byte(20);
+    pub const MOVE_TO: Operator = Operator::from_one_byte(21);
+    pub const HORIZONTAL_MOVE_TO: Operator = Operator::from_one_byte(22);
+    pub const VERTICAL_STEM_HINT_MASK: Operator = Operator::from_one_byte(23);
+    pub const CURVE_LINE: Operator = Operator::from_one_byte(24);
+    pub const LINE_CURVE: Operator = Operator::from_one_byte(25);
+    pub const VV_CURVE_TO: Operator = Operator::from_one_byte(26);
+    pub const HH_CURVE_TO: Operator = Operator::from_one_byte(27);
+    pub const SHORT_INT: Operator = Operator::from_one_byte(28);
+    pub const CALL_GLOBAL_SUBROUTINE: Operator = Operator::from_one_byte(29);
+    pub const VH_CURVE_TO: Operator = Operator::from_one_byte(30);
+    pub const HV_CURVE_TO: Operator = Operator::from_one_byte(31);
+    pub const HFLEX: Operator = Operator::from_one_byte(34);
+    pub const FLEX: Operator = Operator::from_one_byte(35);
+    pub const HFLEX1: Operator = Operator::from_one_byte(36);
+    pub const FLEX1: Operator = Operator::from_one_byte(37);
+    pub const FIXED_16_16: Operator = Operator::from_one_byte(255);
 }

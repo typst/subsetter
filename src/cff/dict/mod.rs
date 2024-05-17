@@ -1,11 +1,10 @@
 pub(crate) mod private_dict;
 pub(crate) mod top_dict;
 
+use crate::cff::operator::{Operator, TWO_BYTE_OPERATOR_MARK};
 use crate::cff::types::{Number, StringId};
 use crate::read::Reader;
-use std::fmt::Debug;
 use std::ops::Range;
-use crate::cff::operator::{Operator, TWO_BYTE_OPERATOR_MARK};
 
 pub struct DictionaryParser<'a> {
     data: &'a [u8],
@@ -172,6 +171,7 @@ fn is_dict_one_byte_op(b: u8) -> bool {
 }
 
 #[allow(dead_code)]
+// TODO: Use constructor
 mod operators {
     use crate::cff::operator::{Operator, OperatorType, TWO_BYTE_OPERATOR_MARK};
 
