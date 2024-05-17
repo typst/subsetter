@@ -4,7 +4,8 @@ use crate::cff::charstring::Instruction::{
 };
 use crate::cff::operator;
 use crate::cff::types::Number;
-use crate::stream::{Readable, Reader, Writer};
+use crate::read::{Readable, Reader};
+use crate::write::Writer;
 use crate::Error::MalformedFont;
 use crate::{Error, Result};
 use std::cell::RefCell;

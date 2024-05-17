@@ -1,6 +1,7 @@
 use crate::name::read::NameRecord;
 use crate::name::read::Version0Table;
-use crate::stream::{Readable, Writeable, Writer};
+use crate::read::Readable;
+use crate::write::{Writeable, Writer};
 use std::borrow::Cow;
 use std::collections::HashMap;
 

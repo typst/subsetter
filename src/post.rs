@@ -1,5 +1,5 @@
 use super::*;
-use crate::util::LazyArray16;
+use crate::read::LazyArray16;
 use crate::Error::{MalformedFont, SubsetError};
 
 /// An iterator over glyph names.

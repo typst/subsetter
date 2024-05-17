@@ -1,4 +1,4 @@
-use crate::stream::{Readable, Reader};
+use crate::read::{Readable, Reader};
 use std::borrow::Cow;
 
 #[derive(Clone, Debug)]

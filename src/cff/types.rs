@@ -1,4 +1,5 @@
-use crate::stream::{Readable, Reader, Writeable, Writer};
+use crate::read::{Readable, Reader};
+use crate::write::{Writeable, Writer};
 use std::borrow::Cow;
 use std::fmt::{Debug, Formatter};
 
@@ -347,7 +348,7 @@ impl Writeable for U24 {
 #[cfg(test)]
 mod tests {
     use crate::cff::types::*;
-    use crate::stream::Reader;
+    use crate::read::Reader;
 
     #[test]
     fn size1_roundtrip() {

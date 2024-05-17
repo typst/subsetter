@@ -28,7 +28,7 @@ use crate::cff::top_dict::top_dict_operator::{
     BASE_FONT_BLEND, BASE_FONT_NAME, COPYRIGHT, FAMILY_NAME, FONT_NAME, FULL_NAME,
     NOTICE, POSTSCRIPT, ROS, VERSION, WEIGHT,
 };
-use crate::util::LazyArray16;
+use crate::read::LazyArray16;
 use remapper::Remapper;
 use std::array;
 use std::cell::RefCell;

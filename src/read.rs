@@ -1,4 +1,4 @@
-use crate::util::LazyArray16;
+use std::convert::TryInto;
 
 #[derive(Clone, Debug)]
 /// A readable stream of binary data.
@@ -79,62 +79,10 @@ impl<'a> Reader<'a> {
     }
 }
 
-/// A writable stream of binary data.
-pub struct Writer(Vec<u8>);
-
-impl Writer {
-    /// Create a new writable stream of binary data.
-    pub fn new() -> Self {
-        Self(Vec::with_capacity(1024))
-    }
-
-    /// Create a new writable stream of binary data with a capacity.
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self(Vec::with_capacity(capacity))
-    }
-
-    /// Write `T` into the data.
-    pub fn write<T: Writeable>(&mut self, data: T) {
-        data.write(self);
-    }
-
-    pub fn write_vector<T: Writeable>(&mut self, data: &Vec<T>) {
-        for el in data {
-            el.write(self);
-        }
-    }
-
-    /// Give bytes into the writer.
-    pub fn extend(&mut self, bytes: &[u8]) {
-        self.0.extend(bytes);
-    }
-
-    /// Align the contents to a byte boundary.
-    pub fn align(&mut self, to: usize) {
-        while self.0.len() % to != 0 {
-            self.0.push(0);
-        }
-    }
-
-    /// The number of written bytes.
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    /// Return the written bytes.
-    pub fn finish(self) -> Vec<u8> {
-        self.0
-    }
-}
-
 pub trait Readable<'a>: Sized {
     const SIZE: usize;
 
     fn read(r: &mut Reader<'a>) -> Option<Self>;
-}
-
-pub trait Writeable: Sized {
-    fn write(&self, w: &mut Writer);
 }
 
 impl<const N: usize> Readable<'_> for [u8; N] {
@@ -145,28 +93,11 @@ impl<const N: usize> Readable<'_> for [u8; N] {
     }
 }
 
-impl<const N: usize> Writeable for [u8; N] {
-    fn write(&self, w: &mut Writer) {
-        w.extend(self)
-    }
-}
-
 impl Readable<'_> for u8 {
     const SIZE: usize = 1;
 
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 1]>().map(Self::from_be_bytes)
-    }
-}
-impl Writeable for u8 {
-    fn write(&self, w: &mut Writer) {
-        w.write::<[u8; 1]>(self.to_be_bytes());
-    }
-}
-
-impl Writeable for &[u8] {
-    fn write(&self, w: &mut Writer) {
-        w.extend(self);
     }
 }
 
@@ -177,22 +108,12 @@ impl Readable<'_> for u16 {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
     }
 }
-impl Writeable for u16 {
-    fn write(&self, w: &mut Writer) {
-        w.write::<[u8; 2]>(self.to_be_bytes());
-    }
-}
 
 impl Readable<'_> for i16 {
     const SIZE: usize = 2;
 
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 2]>().map(Self::from_be_bytes)
-    }
-}
-impl Writeable for i16 {
-    fn write(&self, w: &mut Writer) {
-        w.write::<[u8; 2]>(self.to_be_bytes());
     }
 }
 
@@ -204,12 +125,6 @@ impl Readable<'_> for u32 {
     }
 }
 
-impl Writeable for u32 {
-    fn write(&self, w: &mut Writer) {
-        w.write::<[u8; 4]>(self.to_be_bytes());
-    }
-}
-
 impl Readable<'_> for i32 {
     const SIZE: usize = 4;
 
@@ -217,8 +132,96 @@ impl Readable<'_> for i32 {
         r.read::<[u8; 4]>().map(Self::from_be_bytes)
     }
 }
-impl Writeable for i32 {
-    fn write(&self, w: &mut Writer) {
-        w.write::<[u8; 4]>(self.to_be_bytes());
+
+/// A slice-like container that converts internal binary data only on access.
+///
+/// Array values are stored in a continuous data chunk.
+#[derive(Clone, Copy)]
+pub struct LazyArray16<'a, T> {
+    data: &'a [u8],
+    data_type: core::marker::PhantomData<T>,
+}
+
+impl<T> Default for LazyArray16<'_, T> {
+    #[inline]
+    fn default() -> Self {
+        LazyArray16 { data: &[], data_type: core::marker::PhantomData }
+    }
+}
+
+impl<'a, T: Readable<'a>> LazyArray16<'a, T> {
+    /// Creates a new `LazyArray`.
+    #[inline]
+    pub fn new(data: &'a [u8]) -> Self {
+        LazyArray16 { data, data_type: core::marker::PhantomData }
+    }
+
+    /// Returns a value at `index`.
+    #[inline]
+    pub fn get(&self, index: u16) -> Option<T> {
+        if index < self.len() {
+            let start = usize::from(index) * T::SIZE;
+            let end = start + T::SIZE;
+            self.data
+                .get(start..end)
+                .map(Reader::new)
+                .and_then(|mut r| T::read(&mut r))
+        } else {
+            None
+        }
+    }
+
+    /// Returns array's length.
+    #[inline]
+    pub fn len(&self) -> u16 {
+        (self.data.len() / T::SIZE) as u16
+    }
+}
+
+impl<'a, T: Readable<'a> + core::fmt::Debug + Copy> core::fmt::Debug
+    for LazyArray16<'a, T>
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.debug_list().entries(*self).finish()
+    }
+}
+
+impl<'a, T: Readable<'a>> IntoIterator for LazyArray16<'a, T> {
+    type Item = T;
+    type IntoIter = LazyArrayIter16<'a, T>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        LazyArrayIter16 { data: self, index: 0 }
+    }
+}
+
+/// An iterator over `LazyArray16`.
+#[derive(Clone, Copy)]
+#[allow(missing_debug_implementations)]
+pub struct LazyArrayIter16<'a, T> {
+    data: LazyArray16<'a, T>,
+    index: u16,
+}
+
+impl<'a, T: Readable<'a>> Default for LazyArrayIter16<'a, T> {
+    #[inline]
+    fn default() -> Self {
+        LazyArrayIter16 { data: LazyArray16::new(&[]), index: 0 }
+    }
+}
+
+impl<'a, T: Readable<'a>> Iterator for LazyArrayIter16<'a, T> {
+    type Item = T;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.index += 1; // TODO: check
+        self.data.get(self.index - 1)
+    }
+
+    #[inline]
+    fn count(self) -> usize {
+        usize::from(self.data.len().saturating_sub(self.index))
     }
 }

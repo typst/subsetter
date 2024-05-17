@@ -1,5 +1,5 @@
 use crate::cff::types::U24;
-use crate::stream::{Readable, Reader};
+use crate::read::{Readable, Reader};
 
 pub trait IndexSize: for<'a> Readable<'a> {
     fn to_u32(self) -> u32;

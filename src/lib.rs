@@ -39,7 +39,6 @@ resulting font is 36 KB (5 KB zipped).
 #![deny(unsafe_code)]
 // #![deny(missing_docs)]
 
-//mod cff;
 mod cff;
 mod glyf;
 mod head;
@@ -48,11 +47,12 @@ mod mapper;
 mod maxp;
 mod name;
 mod post;
-mod stream;
-mod util;
+mod read;
+mod write;
 
 pub use crate::mapper::GidMapper;
-use crate::stream::{Readable, Reader, Writeable, Writer};
+use crate::read::{Readable, Reader};
+use crate::write::{Writeable, Writer};
 use crate::Error::{InvalidGidMapper, MalformedFont, UnknownKind};
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display, Formatter};

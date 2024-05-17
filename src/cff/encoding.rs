@@ -1,6 +1,6 @@
 use crate::cff::types::StringId;
-use crate::stream::{Readable, Reader};
-use crate::util::LazyArray16;
+use crate::read::LazyArray16;
+use crate::read::{Readable, Reader};
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Format1Range {
