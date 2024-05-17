@@ -1,7 +1,7 @@
 use crate::cff::dict::DictionaryParser;
 use crate::cff::index::parse_index;
-use crate::cff::types::Number;
-use crate::stream::{Reader, StringId};
+use crate::cff::types::{Number, StringId};
+use crate::stream::Reader;
 use std::array;
 use std::collections::BTreeSet;
 use std::ops::Range;

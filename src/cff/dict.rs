@@ -1,5 +1,5 @@
-use crate::cff::types::Number;
-use crate::stream::{Reader, StringId};
+use crate::cff::types::{Number, StringId};
+use crate::stream::Reader;
 use std::fmt::Debug;
 use std::ops::Range;
 

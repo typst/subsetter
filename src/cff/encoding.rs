@@ -1,4 +1,5 @@
-use crate::stream::{Readable, Reader, StringId};
+use crate::cff::types::StringId;
+use crate::stream::{Readable, Reader};
 use crate::util::LazyArray16;
 
 #[derive(Clone, Copy, Debug)]

@@ -246,30 +246,6 @@ impl Writeable for U24 {
     }
 }
 
-/// A type-safe wrapper for string ID.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug, Hash, Ord)]
-pub struct StringId(pub u16);
-
-impl Readable<'_> for StringId {
-    const SIZE: usize = u16::SIZE;
-
-    fn read(r: &mut Reader<'_>) -> Option<Self> {
-        Some(Self(r.read::<u16>()?))
-    }
-}
-
-impl Writeable for StringId {
-    fn write(&self, w: &mut Writer) {
-        w.write::<u16>(self.0)
-    }
-}
-
-impl From<u16> for StringId {
-    fn from(value: u16) -> Self {
-        Self(value)
-    }
-}
-
 /// A 32-bit signed fixed-point number (16.16).
 #[derive(Clone, Copy, Debug)]
 pub struct Fixed(pub f32);
