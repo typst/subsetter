@@ -63,14 +63,16 @@ use std::fmt::{self, Debug, Display, Formatter};
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
 pub fn subset(data: &[u8], index: u32, mapper: &GidMapper) -> Result<Vec<u8>> {
-    let context = prepare_context(data, index, mapper.clone())?;
+    let mut owned_mapper = mapper.clone();
+    let context = prepare_context(data, index, &mut owned_mapper)?;
+
     _subset(context)
 }
 
 fn prepare_context<'a>(
     data: &'a [u8],
     index: u32,
-    mut mapper: GidMapper,
+    mapper: &'a mut GidMapper,
 ) -> Result<Context<'a>> {
     let face = parse(data, index)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
@@ -87,7 +89,7 @@ fn prepare_context<'a>(
     }
 
     if kind == FontKind::TrueType {
-        glyf::glyph_closure(&face, &mut mapper)?;
+        glyf::glyph_closure(&face, mapper)?;
     }
 
     Ok(Context {
@@ -278,7 +280,7 @@ struct Context<'a> {
     /// Original face.
     face: Face<'a>,
     /// A map from old gids to new gids, and the reverse
-    mapper: GidMapper,
+    mapper: &'a GidMapper,
     /// The kind of face.
     kind: FontKind,
     /// Subsetted tables.
