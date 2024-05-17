@@ -1,6 +1,38 @@
 use super::*;
 use crate::Error::MalformedFont;
 
+pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
+    let subsetted_entries = subset_glyf_entries(ctx)?;
+
+    let mut sub_glyf = Writer::new();
+    let mut sub_loca = Writer::new();
+
+    let mut write_offset = |offset: usize| {
+        if ctx.long_loca {
+            sub_loca.write::<u32>(offset as u32);
+        } else {
+            sub_loca.write::<u16>((offset / 2) as u16);
+        }
+    };
+
+    for entry in &subsetted_entries {
+        write_offset(sub_glyf.len());
+        sub_glyf.extend(entry);
+
+        if !ctx.long_loca {
+            sub_glyf.align(2);
+        }
+    }
+
+    // Write the final offset.
+    write_offset(sub_glyf.len());
+
+    ctx.push(Tag::LOCA, sub_loca.finish());
+    ctx.push(Tag::GLYF, sub_glyf.finish());
+
+    Ok(())
+}
+
 /// A glyf + loca table.
 struct Table<'a> {
     loca: &'a [u8],
@@ -34,38 +66,6 @@ impl<'a> Table<'a> {
         let to = read_offset(id as usize + 1)?;
         self.glyf.get(from..to)
     }
-}
-
-pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
-    let subsetted_entries = subset_glyf_entries(ctx)?;
-
-    let mut sub_glyf = Writer::new();
-    let mut sub_loca = Writer::new();
-
-    let mut write_offset = |offset: usize| {
-        if ctx.long_loca {
-            sub_loca.write::<u32>(offset as u32);
-        } else {
-            sub_loca.write::<u16>((offset / 2) as u16);
-        }
-    };
-
-    for entry in &subsetted_entries {
-        write_offset(sub_glyf.len());
-        sub_glyf.extend(entry);
-
-        if !ctx.long_loca {
-            sub_glyf.align(2);
-        }
-    }
-
-    // Write the final offset.
-    write_offset(sub_glyf.len());
-
-    ctx.push(Tag::LOCA, sub_loca.finish());
-    ctx.push(Tag::GLYF, sub_glyf.finish());
-
-    Ok(())
 }
 
 fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> {
