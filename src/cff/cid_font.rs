@@ -1,10 +1,10 @@
 use crate::cff::charset::charset_id;
+use crate::cff::dict;
 use crate::cff::dict::private_dict::parse_subr_offset;
 use crate::cff::dict::top_dict::TopDictData;
 use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{parse_index, Index};
 use crate::cff::types::Number;
-use crate::cff::{dict};
 use crate::read::{LazyArray16, Reader};
 use std::array;
 use std::ops::Range;

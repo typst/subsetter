@@ -306,7 +306,7 @@ impl<'a> Context<'a> {
         match tag {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
-            // Tag::CFF => cff::subset::subset(self)?,
+            Tag::CFF => cff::subset(self)?,
             Tag::HEAD => head::subset(self)?,
             Tag::HHEA => panic!("handled by hmtx"),
             Tag::HMTX => hmtx::subset(self)?,

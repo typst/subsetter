@@ -1,4 +1,9 @@
-use crate::cff::charstring::SharedCharString;
+use crate::cff::charstring;
+use crate::cff::charstring::{Instruction, Program, SharedCharString};
+use crate::cff::index::create_index;
+use crate::cff::remapper::SubroutineRemapper;
+use crate::cff::types::Number;
+use crate::Error::MalformedFont;
 
 pub(crate) struct SubroutineCollection<'a> {
     subroutines: Vec<SubroutineContainer<'a>>,
@@ -75,6 +80,10 @@ impl<'a, 'b> SubroutineHandler<'a, 'b> {
             })
         })
     }
+
+    pub fn get_bias(&self) -> u16 {
+        self.bias
+    }
 }
 
 fn calc_subroutine_bias(len: u32) -> u16 {
@@ -98,4 +107,59 @@ pub fn apply_bias(index: u32, bias: u16) -> Option<i32> {
     let index = i64::from(index);
 
     i32::try_from(index.checked_sub(bias)?).ok()
+}
+
+pub(crate) fn write_gsubrs(
+    gsubr_remapper: &SubroutineRemapper,
+    gsubr_handler: SubroutineHandler,
+) -> crate::Result<Vec<u8>> {
+    let mut new_gsubrs = vec![];
+
+    for old_subr in gsubr_remapper.sequential_iter() {
+        let mut new_program = Program::default();
+        let resolved_subroutine =
+            gsubr_handler.get_with_unbiased(old_subr).ok_or(MalformedFont)?;
+        let char_string = resolved_subroutine.char_string.borrow();
+        let program = char_string.program();
+
+        let mut iter = program.instructions().iter().peekable();
+
+        while let Some(instruction) = iter.next() {
+            match instruction {
+                Instruction::HintMask(mask) => {
+                    new_program.push(Instruction::HintMask(*mask))
+                }
+                Instruction::Operand(num) => {
+                    if let Some(Instruction::Operator(op)) = iter.peek() {
+                        if *op == charstring::operators::CALL_GLOBAL_SUBROUTINE {
+                            let old_gsubr = unapply_bias(
+                                num.as_i32().unwrap(),
+                                gsubr_handler.get_bias(),
+                            )
+                            .unwrap();
+
+                            let index = gsubr_remapper.get(old_gsubr).unwrap();
+
+                            let new_gsubr = apply_bias(
+                                index,
+                                calc_subroutine_bias(gsubr_remapper.len()),
+                            )
+                            .unwrap();
+                            new_program
+                                .push(Instruction::Operand(Number::from_i32(new_gsubr)));
+                            continue;
+                        }
+                    }
+
+                    new_program.push(Instruction::Operand(num.clone()))
+                }
+                // TODO: What if two gsubr/lsubr next to each other>
+                Instruction::Operator(op) => new_program.push(Instruction::Operator(*op)),
+            }
+        }
+
+        new_gsubrs.push(new_program.compile());
+    }
+
+    create_index(new_gsubrs)
 }

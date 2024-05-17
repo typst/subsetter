@@ -1,6 +1,9 @@
+use crate::cff::remapper::SidRemapper;
 use crate::cff::types::StringId;
 use crate::read::LazyArray16;
 use crate::read::{Readable, Reader};
+use crate::write::Writer;
+use crate::GidMapper;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum Charset<'a> {
@@ -13,33 +16,33 @@ pub(crate) enum Charset<'a> {
 }
 
 impl Charset<'_> {
-    pub fn gid_to_sid(&self, gid: StringId) -> Option<StringId> {
+    pub fn gid_to_sid(&self, gid: u16) -> Option<StringId> {
         match self {
             Charset::ISOAdobe => {
-                if gid.0 <= 228 {
-                    Some(StringId(gid.0))
+                if gid <= 228 {
+                    Some(StringId(gid))
                 } else {
                     None
                 }
             }
             Charset::Expert => {
-                EXPERT_ENCODING.get(usize::from(gid.0)).cloned().map(StringId)
+                EXPERT_ENCODING.get(usize::from(gid)).cloned().map(StringId)
             }
             Charset::ExpertSubset => {
-                EXPERT_SUBSET_ENCODING.get(usize::from(gid.0)).cloned().map(StringId)
+                EXPERT_SUBSET_ENCODING.get(usize::from(gid)).cloned().map(StringId)
             }
             Charset::Format0(ref array) => {
-                if gid.0 == 0 {
+                if gid == 0 {
                     Some(StringId(0))
                 } else {
-                    array.get(gid.0 - 1)
+                    array.get(gid - 1)
                 }
             }
             Charset::Format1(array) => {
-                if gid.0 == 0 {
+                if gid == 0 {
                     Some(StringId(0))
                 } else {
-                    let mut sid = gid.0 - 1;
+                    let mut sid = gid - 1;
                     for range in *array {
                         if sid <= u16::from(range.left) {
                             sid = sid.checked_add(range.first.0)?;
@@ -53,10 +56,10 @@ impl Charset<'_> {
                 }
             }
             Charset::Format2(array) => {
-                if gid.0 == 0 {
+                if gid == 0 {
                     Some(StringId(0))
                 } else {
-                    let mut sid = gid.0 - 1;
+                    let mut sid = gid - 1;
                     for range in *array {
                         if sid <= range.left {
                             sid = sid.checked_add(range.first.0)?;
@@ -187,3 +190,22 @@ const EXPERT_SUBSET_ENCODING: &[u16] = &[
     150,  164,  169,  327,  328,  329,  330,  331,  332,  333,  334,  335,  336,  337,  338,  339,
     340,  341,  342,  343,  344,  345,  346
 ];
+
+pub(crate) fn write_charset(
+    sid_remapper: &SidRemapper,
+    charset: &Charset,
+    gid_mapper: &GidMapper,
+) -> crate::Result<Vec<u8>> {
+    // TODO: Explore using Format 1/2
+    let mut w = Writer::new();
+    // Format 0
+    w.write::<u8>(0);
+
+    for old_gid in gid_mapper.old_gids() {
+        let sid = charset.gid_to_sid(old_gid).unwrap();
+        // TODO: need to remap SID in SID-keyed fonts.
+        w.write(sid)
+    }
+
+    Ok(w.finish())
+}

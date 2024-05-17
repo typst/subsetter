@@ -1,5 +1,7 @@
 use crate::cff::types::U24;
 use crate::read::{Readable, Reader};
+use crate::write::Writer;
+use crate::Error::MalformedFont;
 
 pub trait IndexSize: for<'a> Readable<'a> {
     fn to_u32(self) -> u32;
@@ -210,4 +212,64 @@ impl Readable<'_> for OffsetSize {
             _ => None,
         }
     }
+}
+
+pub(crate) fn create_index(data: Vec<Vec<u8>>) -> crate::Result<Vec<u8>> {
+    let count = u16::try_from(data.len()).map_err(|_| MalformedFont)?;
+    // + 1 Since we start counting from the preceding byte.
+    let offsize = data.iter().map(|v| v.len() as u32).sum::<u32>() + 1;
+
+    // Empty Index only contains the count field
+    if count == 0 {
+        return Ok(vec![0, 0]);
+    }
+
+    let offset_size = if offsize <= u8::MAX as u32 {
+        OffsetSize::Size1
+    } else if offsize <= u16::MAX as u32 {
+        OffsetSize::Size2
+    } else if offsize <= U24::MAX {
+        OffsetSize::Size3
+    } else {
+        OffsetSize::Size4
+    };
+
+    let mut w = Writer::new();
+    w.write(count);
+    w.write(offset_size as u8);
+
+    let mut cur_offset: u32 = 0;
+
+    let mut write_offset = |len| {
+        cur_offset += len;
+
+        match offset_size {
+            OffsetSize::Size1 => {
+                let num = u8::try_from(cur_offset).map_err(|_| MalformedFont)?;
+                w.write(num);
+            }
+            OffsetSize::Size2 => {
+                let num = u16::try_from(cur_offset).map_err(|_| MalformedFont)?;
+                w.write(num);
+            }
+            OffsetSize::Size3 => {
+                let num = U24(cur_offset);
+                w.write(num);
+            }
+            OffsetSize::Size4 => w.write(cur_offset),
+        }
+
+        Ok(())
+    };
+
+    write_offset(1)?;
+    for el in &data {
+        write_offset(el.len() as u32)?;
+    }
+
+    for el in &data {
+        w.extend(el);
+    }
+
+    Ok(w.finish())
 }

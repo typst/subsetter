@@ -122,7 +122,7 @@ impl<'a> Program<'a> {
 
 pub struct CharString<'a> {
     bytecode: &'a [u8],
-    pub program: Program<'a>,
+    program: Program<'a>,
     used_lsubs: BTreeSet<u32>,
     used_gsubs: BTreeSet<u32>,
     referenced_glyphs: Vec<u16>,
@@ -139,37 +139,41 @@ impl<'a> CharString<'a> {
         }
     }
 
-    pub fn used_lsubs(&self) -> Option<&BTreeSet<u32>> {
-        if self.program.len() == 0 {
-            None
-        } else {
-            Some(&self.used_lsubs)
-        }
+    pub fn program(&self) -> &Program {
+        assert!(self.is_compiled());
+        &self.program
     }
 
-    pub fn used_gsubs(&self) -> Option<&BTreeSet<u32>> {
-        if self.program.len() == 0 {
-            None
-        } else {
-            Some(&self.used_gsubs)
-        }
+    pub fn used_lsubs(&self) -> &BTreeSet<u32> {
+        assert!(self.is_compiled());
+        &self.used_lsubs
     }
 
-    pub fn decompile(
-        &mut self,
-        decompiler: &mut Decompiler<'a, '_>,
-    ) -> Result<&[Instruction]> {
+    pub fn used_gsubs(&self) -> &BTreeSet<u32> {
+        assert!(self.is_compiled());
+        &self.used_gsubs
+    }
+
+    pub fn is_compiled(&self) -> bool {
+        self.program.len() > 0
+    }
+
+    #[must_use]
+    pub fn decompile(&mut self, decompiler: &mut Decompiler<'a, '_>) -> Result<()> {
         let mut r = Reader::new(self.bytecode);
-        let needs_decompilation = self.program.len() == 0;
+        let needs_decompilation = !self.is_compiled();
 
         while !r.at_end() {
+            // println!("----------\n{:?}\n------------", self.program);
             // We always need to execute the subroutine, because a subroutine
             // has an effect on the state of the stack, hinting, etc., meaning
             // that if we don't execute it, the result will be wrong. However, we
             // only need to decompile the program (= push instructions to the program)
             // if it's empty.
             let mut push_instr: Box<dyn FnMut(_) -> ()> = if needs_decompilation {
-                Box::new(|instr| self.program.push(instr))
+                Box::new(|instr| {
+                    self.program.push(instr);
+                })
             } else {
                 Box::new(|_| {})
             };
@@ -275,7 +279,7 @@ impl<'a> CharString<'a> {
             }
         }
 
-        Ok(self.program.instructions())
+        Ok(())
     }
 }
 
@@ -303,7 +307,7 @@ pub fn apply_bias(index: i32, bias: u16) -> Option<i32> {
 }
 
 #[allow(dead_code)]
-mod operators {
+pub(crate) mod operators {
     use crate::cff::operator::Operator;
 
     pub const HORIZONTAL_STEM: Operator = Operator::from_one_byte(1);

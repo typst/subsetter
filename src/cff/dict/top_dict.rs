@@ -1,7 +1,10 @@
 use crate::cff::dict::DictionaryParser;
-use crate::cff::index::parse_index;
+use crate::cff::index::{create_index, parse_index};
+use crate::cff::remapper::SidRemapper;
 use crate::cff::types::{Number, StringId};
+use crate::cff::FontWriteContext;
 use crate::read::Reader;
+use crate::write::Writer;
 use std::array;
 use std::collections::BTreeSet;
 use std::ops::Range;
@@ -60,4 +63,89 @@ pub fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDictData> {
     }
 
     Some(top_dict)
+}
+
+pub(crate) fn write_top_dict(
+    raw_top_dict: &[u8],
+    font_write_context: &mut FontWriteContext,
+    sid_remapper: &SidRemapper,
+) -> crate::Result<Vec<u8>> {
+    use super::operators::*;
+
+    let mut w = Writer::new();
+    let mut r = Reader::new(raw_top_dict);
+
+    let index = parse_index::<u16>(&mut r).unwrap();
+
+    // The Top DICT INDEX should have only one dictionary.
+    let data = index.get(0).unwrap();
+
+    let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
+    let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
+
+    let mut write = |operands: &[u8], operator: &[u8]| {
+        for operand in operands {
+            w.write(*operand);
+        }
+        w.write(operator);
+    };
+
+    while let Some(operator) = dict_parser.parse_next() {
+        match operator {
+            CHARSET => {
+                write(font_write_context.charset_offset.as_bytes(), operator.as_bytes())
+            }
+            ENCODING => {
+                write(font_write_context.encoding_offset.as_bytes(), operator.as_bytes())
+            }
+            CHAR_STRINGS => write(
+                font_write_context.char_strings_offset.as_bytes(),
+                operator.as_bytes(),
+            ),
+            FD_ARRAY => {
+                write(font_write_context.fd_array_offset.as_bytes(), operator.as_bytes())
+            }
+            FD_SELECT => {
+                write(font_write_context.fd_select_offset.as_bytes(), operator.as_bytes())
+            }
+            VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
+            | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {
+                let sid = sid_remapper.get(dict_parser.parse_sid().unwrap()).unwrap();
+                write(Number::from_i32(sid.0 as i32).as_bytes(), operator.as_bytes())
+            }
+            ROS => {
+                dict_parser.parse_operands().unwrap();
+                let operands = dict_parser.operands();
+
+                let arg1 = sid_remapper
+                    .get(StringId(u16::try_from(operands[0].as_u32().unwrap()).unwrap()))
+                    .unwrap();
+                let arg2 = sid_remapper
+                    .get(StringId(u16::try_from(operands[1].as_u32().unwrap()).unwrap()))
+                    .unwrap();
+
+                let mut w = Writer::new();
+                w.write(Number::from_i32(arg1.0 as i32).as_bytes());
+                w.write(Number::from_i32(arg2.0 as i32).as_bytes());
+                w.write(operands[2].as_bytes());
+                write(&w.finish(), operator.as_bytes());
+            }
+            PRIVATE => unimplemented!(),
+            _ => {
+                dict_parser.parse_operands().unwrap();
+                let operands = dict_parser.operands();
+
+                let mut w = Writer::new();
+
+                for operand in operands {
+                    w.write(operand.as_bytes());
+                }
+
+                write(&w.finish(), operator.as_bytes());
+            }
+        }
+    }
+
+    let finished = w.finish();
+    create_index(vec![finished])
 }
