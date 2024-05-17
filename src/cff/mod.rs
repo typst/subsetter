@@ -1,17 +1,16 @@
-// Acknowledgement: Most of this code has been adapted from
-// ttf-parser.
+// TODO: Add acknowledgements
 
 // mod argstack;
 // mod charset;
 // mod charstring;
-// mod dict;
+mod dict;
 // mod encoding;
 // mod index;
 // mod private_dict;
 mod remapper;
 // mod top_dict;
 mod types;
-//
+
 // use super::*;
 // use crate::cff::charset::{parse_charset, Charset};
 // use crate::cff::charstring::{
