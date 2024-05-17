@@ -66,7 +66,7 @@ pub fn subset(data: &[u8], index: u32, mapper: &GidMapper) -> Result<Vec<u8>> {
     _subset(data, index, mapper.clone())
 }
 
-fn _subset(data: &[u8], index: u32, mapper: GidMapper) -> Result<Vec<u8>> {
+fn _subset(data: &[u8], index: u32, mut mapper: GidMapper) -> Result<Vec<u8>> {
     let face = parse(data, index)?;
     let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
         Some(_) => FontKind::Cff,
@@ -79,6 +79,10 @@ fn _subset(data: &[u8], index: u32, mapper: GidMapper) -> Result<Vec<u8>> {
 
     if mapper.old_gids().iter().any(|g| *g >= num_glyphs) {
         return Err(InvalidGidMapper);
+    }
+
+    if kind == FontKind::TrueType {
+        glyf::glyph_closure(&face, &mut mapper)?;
     }
 
     let mut ctx = Context {
@@ -97,9 +101,6 @@ fn _subset(data: &[u8], index: u32, mapper: GidMapper) -> Result<Vec<u8>> {
     // It's important that we process glyf and CFF first, because they might add
     // additional GIDs that need to be included in the subset (because they are referenced
     // indirectly, for example).
-    if ctx.kind == FontKind::TrueType {
-        ctx.process(Tag::GLYF)?;
-    }
 
     if ctx.kind == FontKind::Cff {
         // cff::subset(&mut ctx);
@@ -108,6 +109,7 @@ fn _subset(data: &[u8], index: u32, mapper: GidMapper) -> Result<Vec<u8>> {
 
     if ctx.kind == FontKind::TrueType {
         // LOCA will be handled by GLYF
+        ctx.process(Tag::GLYF)?;
         ctx.process(Tag::CVT)?; // won't be subsetted.
         ctx.process(Tag::FPGM)?; // won't be subsetted.
         ctx.process(Tag::PREP)?; // won't be subsetted.

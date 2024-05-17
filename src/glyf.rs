@@ -1,5 +1,42 @@
 use super::*;
-use crate::Error::MalformedFont;
+use crate::Error::{MalformedFont, SubsetError};
+use std::collections::HashSet;
+
+pub(crate) fn glyph_closure(face: &Face, gid_mapper: &mut GidMapper) -> Result<()> {
+    let table = Table::new(face).ok_or(MalformedFont)?;
+
+    let mut all_glyphs = HashSet::new();
+    let mut process_glyphs = gid_mapper.old_gids().iter().copied().collect::<Vec<_>>();
+
+    while let Some(glyph) = process_glyphs.pop() {
+        all_glyphs.insert(glyph);
+        let glyph_data = match table.glyph_data(glyph) {
+            Some(glph_data) => glph_data,
+            None => unimplemented!(),
+        };
+
+        if glyph_data.is_empty() {
+            continue;
+        }
+
+        let mut r = Reader::new(glyph_data);
+        let num_contours = r.read::<i16>().ok_or(MalformedFont)?;
+
+        if num_contours < 0 {
+            for component in component_glyphs(glyph_data).ok_or(MalformedFont)? {
+                if !all_glyphs.contains(&component) {
+                    process_glyphs.push(component);
+                }
+            }
+        }
+    }
+
+    for glyph in all_glyphs {
+        gid_mapper.remap(glyph);
+    }
+
+    Ok(())
+}
 
 pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let subsetted_entries = subset_glyf_entries(ctx)?;
@@ -41,10 +78,10 @@ struct Table<'a> {
 }
 
 impl<'a> Table<'a> {
-    fn new(ctx: &Context<'a>) -> Option<Self> {
-        let loca = ctx.expect_table(Tag::LOCA)?;
-        let glyf = ctx.expect_table(Tag::GLYF)?;
-        let head = ctx.expect_table(Tag::HEAD)?;
+    fn new(face: &Face<'a>) -> Option<Self> {
+        let loca = face.table(Tag::LOCA)?;
+        let glyf = face.table(Tag::GLYF)?;
+        let head = face.table(Tag::HEAD)?;
 
         let mut r = Reader::new_at(head, 50);
         let long = r.read::<i16>()? != 0;
@@ -69,27 +106,17 @@ impl<'a> Table<'a> {
 }
 
 fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> {
-    let table = Table::new(ctx).ok_or(MalformedFont)?;
+    let table = Table::new(&ctx.face).ok_or(MalformedFont)?;
 
-    // Because glyphs may depend on other glyphs as components (also with
-    // multiple layers of nesting), we have to process all glyphs to find
-    // their components.
     let mut size = 0;
     let mut glyf_entries = vec![];
 
-    let mut new_gid = 0;
-
-    // This while loop works under the assumption that adding new GIDs
-    // is monotonically increasing.
-    // TODO: Change how this works.
-    while new_gid < ctx.mapper.num_gids() {
-        let old_gid = ctx.mapper.old_gids().get(new_gid as usize).unwrap();
+    for old_gid in ctx.mapper.old_gids() {
         let glyph_data = table.glyph_data(*old_gid).ok_or(MalformedFont)?;
 
         // Empty glyph.
         if glyph_data.is_empty() {
             glyf_entries.push(Cow::Borrowed(glyph_data));
-            new_gid += 1;
             continue;
         }
 
@@ -97,7 +124,7 @@ fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> 
         let num_contours = r.read::<i16>().ok_or(MalformedFont)?;
 
         let glyph_data = if num_contours < 0 {
-            Cow::Owned(remap_component_glyph(ctx, &glyph_data)?)
+            Cow::Owned(remap_component_glyph(&ctx.mapper, &glyph_data)?)
         } else {
             // Simple glyphs don't need any subsetting.
             Cow::Borrowed(glyph_data)
@@ -108,8 +135,6 @@ fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> 
         size += len;
 
         glyf_entries.push(glyph_data);
-
-        new_gid += 1;
     }
 
     ctx.long_loca = size > 2 * (u16::MAX as usize);
@@ -117,7 +142,7 @@ fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> 
     Ok(glyf_entries)
 }
 
-fn remap_component_glyph(ctx: &mut Context, data: &[u8]) -> Result<Vec<u8>> {
+fn remap_component_glyph(mapper: &GidMapper, data: &[u8]) -> Result<Vec<u8>> {
     let mut r = Reader::new(data);
     let mut w = Writer::with_capacity(data.len());
 
@@ -142,7 +167,7 @@ fn remap_component_glyph(ctx: &mut Context, data: &[u8]) -> Result<Vec<u8>> {
         let flags = r.read::<u16>().ok_or(MalformedFont)?;
         w.write(flags);
         let old_component = r.read::<u16>().ok_or(MalformedFont)?;
-        let new_component = ctx.mapper.remap(old_component);
+        let new_component = mapper.get(old_component).ok_or(SubsetError)?;
         w.write(new_component);
 
         if flags & ARG_1_AND_2_ARE_WORDS != 0 {
@@ -172,4 +197,55 @@ fn remap_component_glyph(ctx: &mut Context, data: &[u8]) -> Result<Vec<u8>> {
     }
 
     Ok(w.finish())
+}
+
+fn component_glyphs(glyph_data: &[u8]) -> Option<impl Iterator<Item = u16> + '_> {
+    let mut r = Reader::new(glyph_data);
+
+    // Number of contours
+    r.read::<i16>()?;
+
+    // xMin, yMin, xMax, yMax
+    r.read::<i16>()?;
+    r.read::<i16>()?;
+    r.read::<i16>()?;
+    r.read::<i16>()?;
+
+    const ARG_1_AND_2_ARE_WORDS: u16 = 0x0001;
+    const WE_HAVE_A_SCALE: u16 = 0x0008;
+    const MORE_COMPONENTS: u16 = 0x0020;
+    const WE_HAVE_AN_X_AND_Y_SCALE: u16 = 0x0040;
+    const WE_HAVE_A_TWO_BY_TWO: u16 = 0x0080;
+
+    let mut done = false;
+    Some(std::iter::from_fn(move || {
+        if done {
+            return None;
+        }
+
+        let flags = r.read::<u16>()?;
+        let component = r.read::<u16>()?;
+
+        if flags & ARG_1_AND_2_ARE_WORDS != 0 {
+            r.read::<i16>();
+            r.read::<i16>();
+        } else {
+            r.read::<u16>();
+        }
+
+        if flags & WE_HAVE_A_SCALE != 0 {
+            r.read::<F2Dot14>();
+        } else if flags & WE_HAVE_AN_X_AND_Y_SCALE != 0 {
+            r.read::<F2Dot14>();
+            r.read::<F2Dot14>();
+        } else if flags & WE_HAVE_A_TWO_BY_TWO != 0 {
+            r.read::<F2Dot14>();
+            r.read::<F2Dot14>();
+            r.read::<F2Dot14>();
+            r.read::<F2Dot14>();
+        }
+
+        done = flags & MORE_COMPONENTS == 0;
+        Some(component)
+    }))
 }
