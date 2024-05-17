@@ -20,12 +20,12 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         };
 
         for old_gid in ctx.mapper.old_gids() {
-            let has_advance_width = *old_gid < num_h_metrics;
+            let has_advance_width = old_gid < num_h_metrics;
 
             let offset = if has_advance_width {
-                *old_gid as usize * 4
+                old_gid as usize * 4
             } else {
-                (num_h_metrics * 4 + (*old_gid - num_h_metrics) * 2) as usize
+                (num_h_metrics * 4 + (old_gid - num_h_metrics) * 2) as usize
             };
 
             let mut r = Reader::new(hmtx.get(offset..).ok_or(MalformedFont)?);

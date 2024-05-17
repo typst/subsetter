@@ -24,7 +24,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let mut string_index = 0;
 
     for old_gid in ctx.mapper.old_gids() {
-        let index = table.glyph_indexes.get(*old_gid).ok_or(MalformedFont)?;
+        let index = table.glyph_indexes.get(old_gid).ok_or(MalformedFont)?;
 
         if index <= 257 {
             sub_post.write(index);

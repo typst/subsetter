@@ -75,16 +75,17 @@ fn prepare_context<'a>(
     mapper: &'a mut GidMapper,
 ) -> Result<Context<'a>> {
     let face = parse(data, index)?;
-    let kind = match face.table(Tag::CFF).or(face.table(Tag::CFF2)) {
-        Some(_) => FontKind::Cff,
-        None => FontKind::TrueType,
+    let kind = match (face.table(Tag::GLYF), face.table(Tag::CFF)){
+        (Some(_), _) => FontKind::TrueType,
+        (_, Some(_)) => FontKind::Cff,
+        _ => return Err(UnknownKind)
     };
 
     let maxp = face.table(Tag::MAXP).ok_or(MalformedFont)?;
     let mut r = Reader::new_at(maxp, 4);
     let num_glyphs = r.read::<u16>().ok_or(MalformedFont)?;
 
-    if mapper.old_gids().iter().any(|g| *g >= num_glyphs) {
+    if mapper.old_gids().any(|g| g >= num_glyphs) {
         return Err(InvalidGidMapper);
     }
 

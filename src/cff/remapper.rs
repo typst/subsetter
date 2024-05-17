@@ -1,13 +1,14 @@
 use std::collections::BTreeMap;
 use std::ops::Add;
+use crate::remapper::Remapper;
 
-
+pub type SubroutineMapper = Remapper<u32, u32>;
 
 pub struct SidRemapper(Remapper<u16>);
 
 impl SidRemapper {
     pub fn new() -> Self {
-        SidRemapper(Remapper::new_with_count(0))
+        SidRemapper(Remapper::new(0))
     }
 
     pub fn get(&self, old: u16) -> Option<u16> {

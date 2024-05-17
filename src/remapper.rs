@@ -104,8 +104,8 @@ impl GidMapper {
     }
 
     // Returned gids are sorted by their new ID.
-    pub fn old_gids(&self) -> &[u16] {
-        &self.0.backward
+    pub fn old_gids(&self) -> impl Iterator<Item = u16> + '_ {
+        self.0.backward.iter().copied()
     }
 }
 

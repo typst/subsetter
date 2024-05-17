@@ -6,7 +6,7 @@ pub(crate) fn glyph_closure(face: &Face, gid_mapper: &mut GidMapper) -> Result<(
     let table = Table::new(face).ok_or(MalformedFont)?;
 
     let mut all_glyphs = HashSet::new();
-    let mut process_glyphs = gid_mapper.old_gids().iter().copied().collect::<Vec<_>>();
+    let mut process_glyphs = gid_mapper.old_gids().collect::<Vec<_>>();
 
     while let Some(glyph) = process_glyphs.pop() {
         all_glyphs.insert(glyph);
@@ -112,7 +112,7 @@ fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> 
     let mut glyf_entries = vec![];
 
     for old_gid in ctx.mapper.old_gids() {
-        let glyph_data = table.glyph_data(*old_gid).ok_or(MalformedFont)?;
+        let glyph_data = table.glyph_data(old_gid).ok_or(MalformedFont)?;
 
         // Empty glyph.
         if glyph_data.is_empty() {
