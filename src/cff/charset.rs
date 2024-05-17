@@ -147,3 +147,9 @@ pub(crate) fn parse_charset<'a>(
         _ => None,
     }
 }
+
+pub mod charset_id {
+    pub const ISO_ADOBE: usize = 0;
+    pub const EXPERT: usize = 1;
+    pub const EXPERT_SUBSET: usize = 2;
+}

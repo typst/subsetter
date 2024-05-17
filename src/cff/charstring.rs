@@ -95,20 +95,24 @@ impl<'a> Program<'a> {
         self.0.push(instruction);
     }
 
-    pub fn compile(&self, writer: &mut Writer) {
+    pub fn compile(&self) -> Vec<u8> {
+        let mut w = Writer::new();
+
         for instr in &self.0 {
             match instr {
                 Instruction::Operand(op) => {
-                    writer.extend(op.as_bytes());
+                    w.extend(op.as_bytes());
                 }
                 Instruction::Operator(op) => {
-                    writer.write(op.as_bytes());
+                    w.write(op.as_bytes());
                 }
                 Instruction::HintMask(hm) => {
-                    writer.extend(*hm);
+                    w.extend(*hm);
                 }
             }
         }
+
+        w.finish()
     }
 
     pub fn len(&self) -> usize {

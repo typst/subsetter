@@ -17,23 +17,17 @@ mod types;
 use super::*;
 use crate::cff::charset::{parse_charset, Charset};
 use crate::cff::charstring::{CharString, Decompiler};
+use crate::cff::cid_font::CIDMetadata;
 use crate::cff::dict::top_dict::{parse_top_dict, TopDictData};
-use crate::cff::encoding::Encoding;
 use crate::cff::index::{parse_index, skip_index, Index};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper, SubroutineRemapper};
 use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
-use crate::read::LazyArray16;
+use charset::charset_id;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::rc::Rc;
 use types::{IntegerNumber, Number, StringId};
 
-// Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
-const MAX_OPERANDS_LEN: usize = 48;
-const MAX_ARGUMENTS_STACK_LEN: usize = 513;
-
-/// A [Compact Font Format Table](
-/// https://docs.microsoft.com/en-us/typography/opentype/spec/cff).
 #[derive(Clone)]
 pub struct Table<'a> {
     table_data: &'a [u8],
@@ -46,7 +40,7 @@ pub struct Table<'a> {
     charset: Charset<'a>,
     number_of_glyphs: u16,
     char_strings: Index<'a>,
-    kind: Option<FontKind<'a>>,
+    cid_metadata: CIDMetadata<'a>,
 }
 
 struct FontWriteContext<'a> {
@@ -76,10 +70,6 @@ impl Default for FontWriteContext<'_> {
 pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
     let table = Table::parse(ctx).unwrap();
 
-    let Some(FontKind::CID(kind)) = table.kind else {
-        unimplemented!();
-    };
-
     let gsubrs = {
         let subroutines = table
             .global_subrs
@@ -90,7 +80,8 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
     };
 
     let lsubrs = {
-        let subroutines = kind
+        let subroutines = table
+            .cid_metadata
             .local_subrs
             .into_iter()
             .map(|index| {
@@ -111,7 +102,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
     let mut char_strings = vec![];
 
     for old_gid in ctx.mapper.old_gids() {
-        let fd_index = kind.fd_select.font_dict_index(old_gid).unwrap();
+        let fd_index = table.cid_metadata.fd_select.font_dict_index(old_gid).unwrap();
         fd_remapper.remap(fd_index);
 
         let mut decompiler = Decompiler::new(
@@ -563,11 +554,9 @@ impl<'a> Table<'a> {
             None => Charset::ISOAdobe, // default
         };
 
-        let kind = if top_dict_data.has_ros {
+        let cid_metadata =
             cid_font::parse_cid_metadata(cff, &top_dict_data, number_of_glyphs)
-        } else {
-            None
-        };
+                .ok_or(MalformedFont)?;
 
         Ok(Self {
             table_data: cff,
@@ -580,87 +569,9 @@ impl<'a> Table<'a> {
             charset,
             number_of_glyphs,
             char_strings,
-            kind,
+            cid_metadata,
         })
     }
-}
-
-#[derive(Clone, Debug)]
-pub(crate) enum FontKind<'a> {
-    SID(SIDMetadata<'a>),
-    CID(CIDMetadata<'a>),
-}
-
-#[derive(Clone, Copy, Default, Debug)]
-pub(crate) struct SIDMetadata<'a> {
-    local_subrs: Index<'a>,
-    /// Can be zero.
-    default_width: f32,
-    /// Can be zero.
-    nominal_width: f32,
-    encoding: Encoding<'a>,
-}
-
-#[derive(Clone, Default, Debug)]
-pub(crate) struct CIDMetadata<'a> {
-    local_subrs: Vec<Index<'a>>,
-    fd_array: Index<'a>,
-    fd_select: FDSelect<'a>,
-}
-
-#[derive(Clone, Copy, Debug)]
-enum FDSelect<'a> {
-    Format0(LazyArray16<'a, u8>),
-    Format3(&'a [u8]), // It's easier to parse it in-place.
-}
-
-impl Default for FDSelect<'_> {
-    fn default() -> Self {
-        FDSelect::Format0(LazyArray16::default())
-    }
-}
-
-impl FDSelect<'_> {
-    fn font_dict_index(&self, glyph_id: u16) -> Option<u8> {
-        match self {
-            FDSelect::Format0(ref array) => array.get(glyph_id),
-            FDSelect::Format3(data) => {
-                let mut r = Reader::new(data);
-                let number_of_ranges = r.read::<u16>()?;
-                if number_of_ranges == 0 {
-                    return None;
-                }
-
-                // 'A sentinel GID follows the last range element and serves
-                // to delimit the last range in the array.'
-                // So we can simply increase the number of ranges by one.
-                let number_of_ranges = number_of_ranges.checked_add(1)?;
-
-                // Range is: GlyphId + u8
-                let mut prev_first_glyph = r.read::<u16>()?;
-                let mut prev_index = r.read::<u8>()?;
-                for _ in 1..number_of_ranges {
-                    let curr_first_glyph = r.read::<u16>()?;
-                    if (prev_first_glyph..curr_first_glyph).contains(&glyph_id) {
-                        return Some(prev_index);
-                    } else {
-                        prev_index = r.read::<u8>()?;
-                    }
-
-                    prev_first_glyph = curr_first_glyph;
-                }
-
-                None
-            }
-        }
-    }
-}
-
-/// Enumerates Charset IDs defined in the Adobe Technical Note #5176, Table 22
-mod charset_id {
-    pub const ISO_ADOBE: usize = 0;
-    pub const EXPERT: usize = 1;
-    pub const EXPERT_SUBSET: usize = 2;
 }
 
 /// Enumerates Charset IDs defined in the Adobe Technical Note #5176, Table 16
