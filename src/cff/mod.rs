@@ -13,14 +13,14 @@ mod top_dict;
 mod types;
 
 use super::*;
-use crate::cff::charset::{Charset, parse_charset};
+use crate::cff::charset::{parse_charset, Charset};
 use crate::cff::charstring::{
-    apply_bias, calc_subroutine_bias, CharString, Decompiler, Instruction, Program,
-    SharedCharString, unapply_bias,
+    apply_bias, calc_subroutine_bias, unapply_bias, CharString, Decompiler, Instruction,
+    Program, SharedCharString,
 };
 use crate::cff::dict::DictionaryParser;
 use crate::cff::encoding::Encoding;
-use crate::cff::index::{Index, OffsetSize, parse_index, skip_index};
+use crate::cff::index::{parse_index, skip_index, Index, OffsetSize};
 use crate::cff::operator::{CALL_GLOBAL_SUBROUTINE, CALL_LOCAL_SUBROUTINE};
 use crate::cff::private_dict::parse_subr_offset;
 use crate::cff::remapper::SidRemapper;
@@ -28,7 +28,6 @@ use crate::cff::top_dict::top_dict_operator::{
     BASE_FONT_BLEND, BASE_FONT_NAME, COPYRIGHT, FAMILY_NAME, FONT_NAME, FULL_NAME,
     NOTICE, POSTSCRIPT, ROS, VERSION, WEIGHT,
 };
-use crate::stream::U24;
 use crate::util::LazyArray16;
 use remapper::Remapper;
 use std::array;
@@ -37,6 +36,7 @@ use std::collections::BTreeSet;
 use std::hash::Hash;
 use std::ops::{Add, Range};
 use top_dict::{top_dict_operator, TopDictData};
+use types::U24;
 use types::{IntegerNumber, Number, StringId};
 
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.

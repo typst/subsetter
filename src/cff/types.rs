@@ -321,6 +321,29 @@ impl From<u16> for StringId {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct U24(pub u32);
+
+impl U24 {
+    pub const MAX: u32 = 16777215;
+}
+
+impl Readable<'_> for U24 {
+    const SIZE: usize = 3;
+
+    fn read(r: &mut Reader<'_>) -> Option<Self> {
+        let data = r.read::<[u8; 3]>()?;
+        Some(U24(u32::from_be_bytes([0, data[0], data[1], data[2]])))
+    }
+}
+
+impl Writeable for U24 {
+    fn write(&self, w: &mut Writer) {
+        let data = self.0.to_be_bytes();
+        w.write::<[u8; 3]>([data[0], data[1], data[2]]);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::cff::types::*;
