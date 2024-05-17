@@ -29,7 +29,15 @@ fn main() {
     // Read the raw font data.
     let data = std::fs::read(&args[1]).unwrap();
     let gids = parse_gids(&args.get(3).to_owned().unwrap_or(&"0-5".to_owned()));
-    let mapper = GidMapper::from_gid_set(&gids);
+    let mapper = {
+        let mut mapper = GidMapper::new();
+
+        for gid in &gids {
+            mapper.remap(*gid);
+        }
+
+        mapper
+    };
 
     let sub = subset(&data, 0, &mapper).unwrap();
 

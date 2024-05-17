@@ -302,6 +302,14 @@ fn parse_float_nibble(nibble: u8, mut idx: usize, data: &mut [u8]) -> Option<usi
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug, Hash, Ord)]
 pub struct StringId(pub u16);
 
+impl StringId {
+    const CUSTOM_SID: u16 = 392;
+
+    fn is_standard_string(&self) -> bool {
+        self.0 < Self::CUSTOM_SID
+    }
+}
+
 impl Readable<'_> for StringId {
     const SIZE: usize = u16::SIZE;
 

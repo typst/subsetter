@@ -4,7 +4,8 @@ use crate::Error::{MalformedFont, SubsetError};
 pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let hmtx = ctx.expect_table(Tag::HMTX).ok_or(MalformedFont)?;
 
-    let get_metrics = |new_gid: u16| {
+    let new_metrics = {
+        let mut new_metrics = vec![];
         let num_h_metrics = {
             let hhea = ctx.expect_table(Tag::HHEA).ok_or(MalformedFont)?;
             let mut r = Reader::new(hhea);
@@ -12,37 +13,43 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
             r.read::<u16>().ok_or(MalformedFont)?
         };
 
-        let old_gid = ctx.mapper.get_reverse(new_gid).ok_or(SubsetError)?;
         let last_advance_width = {
             let index = 4 * num_h_metrics.checked_sub(1).ok_or(MalformedFont)? as usize;
             let mut r = Reader::new(hmtx.get(index..).ok_or(MalformedFont)?);
             r.read::<u16>().ok_or(MalformedFont)?
         };
 
-        let has_advance_width = old_gid < num_h_metrics;
-        let offset = if has_advance_width {
-            old_gid as usize * 4
-        } else {
-            (num_h_metrics * 4 + (old_gid - num_h_metrics) * 2) as usize
-        };
+        for old_gid in ctx.mapper.old_gids() {
+            let has_advance_width = *old_gid < num_h_metrics;
 
-        let mut r = Reader::new(hmtx.get(offset..).ok_or(MalformedFont)?);
+            let offset = if has_advance_width {
+                *old_gid as usize * 4
+            } else {
+                (num_h_metrics * 4 + (*old_gid - num_h_metrics) * 2) as usize
+            };
 
-        if has_advance_width {
-            let adv = r.read::<u16>().ok_or(MalformedFont)?;
-            let lsb = r.read::<u16>().ok_or(MalformedFont)?;
-            Ok((adv, lsb))
-        } else {
-            Ok((last_advance_width, r.read::<u16>().ok_or(MalformedFont)?))
+            let mut r = Reader::new(hmtx.get(offset..).ok_or(MalformedFont)?);
+
+            if has_advance_width {
+                let adv = r.read::<u16>().ok_or(MalformedFont)?;
+                let lsb = r.read::<u16>().ok_or(MalformedFont)?;
+                new_metrics.push((adv, lsb));
+            } else {
+                new_metrics
+                    .push((last_advance_width, r.read::<u16>().ok_or(MalformedFont)?));
+            }
         }
+
+        new_metrics
     };
 
-    let mut last_advance_width_index = ctx.mapper.num_gids() - 1;
-    let last_advance_width = get_metrics(last_advance_width_index)?.0;
+    let mut last_advance_width_index =
+        u16::try_from(new_metrics.len()).map_err(|_| SubsetError)? - 1;
+    let last_advance_width = new_metrics[last_advance_width_index as usize].0;
 
-    for gid in (0..last_advance_width_index).rev() {
-        if get_metrics(gid)?.0 == last_advance_width {
-            last_advance_width_index = gid;
+    for gid in new_metrics.iter().rev().skip(1) {
+        if gid.0 == last_advance_width {
+            last_advance_width_index -= 1;
         } else {
             break;
         }
@@ -50,14 +57,13 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
 
     let mut sub_hmtx = Writer::new();
 
-    for gid in 0..ctx.mapper.num_gids() {
-        let metrics = get_metrics(gid)?;
-
-        if gid <= last_advance_width_index {
-            sub_hmtx.write::<u16>(metrics.0);
+    for (index, metric) in new_metrics.iter().enumerate() {
+        let index = u16::try_from(index).map_err(|_| SubsetError)?;
+        if index <= last_advance_width_index {
+            sub_hmtx.write::<u16>(metric.0);
         }
 
-        sub_hmtx.write::<u16>(metrics.1);
+        sub_hmtx.write::<u16>(metric.1);
     }
 
     ctx.push(Tag::HMTX, sub_hmtx.finish());

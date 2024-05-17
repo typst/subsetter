@@ -81,9 +81,10 @@ fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> 
 
     // This while loop works under the assumption that adding new GIDs
     // is monotonically increasing.
+    // TODO: Change how this works.
     while new_gid < ctx.mapper.num_gids() {
-        let old_gid = ctx.mapper.get_reverse(new_gid).unwrap();
-        let glyph_data = table.glyph_data(old_gid).ok_or(MalformedFont)?;
+        let old_gid = ctx.mapper.old_gids().get(new_gid as usize).unwrap();
+        let glyph_data = table.glyph_data(*old_gid).ok_or(MalformedFont)?;
 
         // Empty glyph.
         if glyph_data.is_empty() {

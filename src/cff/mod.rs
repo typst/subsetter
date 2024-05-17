@@ -42,7 +42,6 @@ use types::{IntegerNumber, Number, StringId};
 // Limits according to the Adobe Technical Note #5176, chapter 4 DICT Data.
 const MAX_OPERANDS_LEN: usize = 48;
 const MAX_ARGUMENTS_STACK_LEN: usize = 513;
-const CUSTOM_SID: u16 = 392;
 
 /// A [Compact Font Format Table](
 /// https://docs.microsoft.com/en-us/typography/opentype/spec/cff).

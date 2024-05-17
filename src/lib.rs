@@ -39,19 +39,19 @@ resulting font is 36 KB (5 KB zipped).
 #![deny(unsafe_code)]
 // #![deny(missing_docs)]
 
-mod cff;
+// mod cff;
 mod glyf;
 mod head;
 mod hmtx;
-mod mapper;
 mod maxp;
 mod name;
 mod post;
 mod read;
+mod remapper;
 mod write;
 
-pub use crate::mapper::GidMapper;
 use crate::read::{Readable, Reader};
+pub use crate::remapper::GidMapper;
 use crate::write::{Writeable, Writer};
 use crate::Error::{InvalidGidMapper, MalformedFont, UnknownKind};
 use std::borrow::Cow;
@@ -102,7 +102,7 @@ fn _subset(data: &[u8], index: u32, mapper: GidMapper) -> Result<Vec<u8>> {
     }
 
     if ctx.kind == FontKind::Cff {
-        cff::subset(&mut ctx);
+        // cff::subset(&mut ctx);
         // cff::discover(&mut ctx)?;
     }
 
