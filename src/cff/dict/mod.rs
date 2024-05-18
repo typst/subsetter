@@ -46,10 +46,7 @@ impl<'a> DictionaryParser<'a> {
                 let b = r.read::<u8>()?;
                 let mut operator = Operator::from_one_byte(b);
 
-                // Check that operator is two byte long.
                 if b == TWO_BYTE_OPERATOR_MARK {
-                    // Use a 1200 'prefix' to make two byte operators more readable.
-                    // 12 3 => 1203
                     operator = Operator::from_two_byte(r.read::<u8>()?);
                 }
 

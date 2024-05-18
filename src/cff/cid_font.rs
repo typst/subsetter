@@ -3,7 +3,12 @@ use crate::cff::dict::font_dict;
 use crate::cff::dict::font_dict::FontDict;
 use crate::cff::dict::top_dict::TopDictData;
 use crate::cff::index::{parse_index, Index};
+use crate::cff::remapper::FontDictRemapper;
 use crate::read::{LazyArray16, Reader};
+use crate::write::Writer;
+use crate::Error::SubsetError;
+use crate::GidMapper;
+use crate::Result;
 
 pub fn parse_cid_metadata<'a>(
     data: &'a [u8],
@@ -104,4 +109,22 @@ impl FDSelect<'_> {
             }
         }
     }
+}
+
+pub(crate) fn build_fd_index(
+    gid_remapper: &GidMapper,
+    fd_select: FDSelect,
+    fd_remapper: &FontDictRemapper,
+) -> Result<Vec<u8>> {
+    let mut w = Writer::new();
+    // We always use format 0, since it's the simplest.
+    w.write::<u8>(0);
+
+    for gid in gid_remapper.old_gids() {
+        let old_fd = fd_select.font_dict_index(gid).ok_or(SubsetError)?;
+        let new_fd = fd_remapper.get(old_fd).ok_or(SubsetError)?;
+        w.write(new_fd);
+    }
+
+    Ok(w.finish())
 }

@@ -17,7 +17,7 @@ mod types;
 use super::*;
 use crate::cff::charset::{parse_charset, write_charset, Charset};
 use crate::cff::charstring::{CharString, Decompiler};
-use crate::cff::cid_font::CIDMetadata;
+use crate::cff::cid_font::{build_fd_index, CIDMetadata};
 use crate::cff::dict::top_dict::{parse_top_dict, write_top_dict, TopDictData};
 use crate::cff::index::{create_index, parse_index, skip_index, Index};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
@@ -125,11 +125,19 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
 
         font_write_context.charset_offset =
             Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
-        // Charset
+        // Charsets
         w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
+
+        // FDSelect
+        w.extend(&build_fd_index(
+            ctx.mapper,
+            table.cid_metadata.fd_select,
+            &fd_remapper,
+        )?);
 
         font_write_context.char_strings_offset =
             Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
+        // Charstrings INDEX
         w.extend(&create_index(char_strings.iter().map(|p| p.compile()).collect())?);
 
         subsetted_font = w.finish();
