@@ -1,12 +1,11 @@
-use crate::cff::charstring::{CharString, OwnedCharString};
+use crate::cff::charstring::CharString;
 
-
-pub(crate) struct SubroutineCollection {
-    subroutines: Vec<SubroutineContainer>,
+pub(crate) struct SubroutineCollection<'a> {
+    subroutines: Vec<SubroutineContainer<'a>>,
 }
 
-impl SubroutineCollection {
-    pub fn new(subroutines: Vec<Vec<OwnedCharString>>) -> Self {
+impl<'a> SubroutineCollection<'a> {
+    pub fn new(subroutines: Vec<Vec<CharString<'a>>>) -> Self {
         debug_assert!(subroutines.len() <= 255);
         Self {
             subroutines: subroutines
@@ -25,12 +24,12 @@ impl SubroutineCollection {
     }
 }
 
-pub(crate) struct SubroutineContainer {
-    subroutines: Vec<OwnedCharString>,
+pub(crate) struct SubroutineContainer<'a> {
+    subroutines: Vec<CharString<'a>>,
 }
 
-impl SubroutineContainer {
-    pub fn new(subroutines: Vec<OwnedCharString>) -> Self {
+impl<'a> SubroutineContainer<'a> {
+    pub fn new(subroutines: Vec<CharString<'a>>) -> Self {
         Self { subroutines }
     }
 
@@ -59,6 +58,10 @@ impl<'a> SubroutineHandler<'a> {
 
     pub fn get_with_biased(&self, index: i32) -> Option<CharString<'a>> {
         self.get_with_unbiased(unapply_bias(index, self.bias)?)
+    }
+
+    pub fn get_with_unbiased(&self, index: u32) -> Option<CharString<'a>> {
+        self.subroutines.get(index as usize).copied()
     }
 }
 

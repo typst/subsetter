@@ -69,12 +69,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
     let table = Table::parse(ctx).unwrap();
 
     let gsubrs = {
-        let subroutines = table
-            .global_subrs
-            .into_iter()
-            // TODO: Don't convert ot vec
-            .map(|g| g.to_vec())
-            .collect::<Vec<_>>();
+        let subroutines = table.global_subrs.into_iter().collect::<Vec<_>>();
         SubroutineContainer::new(subroutines)
     };
 
@@ -83,22 +78,17 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
             .cid_metadata
             .local_subrs
             .into_iter()
-            .map(|index| {
-                index
-                    .into_iter()
-                    .map(|g| g.to_vec())
-                    .collect::<Vec<_>>()
-            })
+            .map(|index| index.into_iter().collect::<Vec<_>>())
             .collect::<Vec<_>>();
         SubroutineCollection::new(subroutines)
     };
 
     let mut fd_remapper = FontDictRemapper::new();
     let sid_remapper = get_sid_remapper(ctx, &table.top_dict_data.used_sids);
-    let mut char_strings = vec![];
+    // let mut char_strings = vec![];
 
     for old_gid in ctx.mapper.old_gids() {
-        println!("GID: {:?}", old_gid);
+        // println!("\n\nGID: {:?}", old_gid);
         let fd_index = table.cid_metadata.fd_select.font_dict_index(old_gid).unwrap();
         fd_remapper.remap(fd_index);
 
@@ -108,9 +98,8 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         );
         let charstring = table.char_strings.get(old_gid as u32).unwrap();
         let program = decompiler.decompile(charstring)?;
-        charstring.decompile(&mut decompiler).map_err(|_| MalformedFont)?;
 
-        println!("{:?}", program)
+        // println!("{:?}", program)
     }
     //
     // let mut font_write_context = FontWriteContext::default();

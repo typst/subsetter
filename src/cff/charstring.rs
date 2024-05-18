@@ -33,14 +33,18 @@ impl<'a, 'b> Decompiler<'a> {
             hint_mask_bytes: 0,
         }
     }
-    
-    pub fn decompile(mut self, charstring: CharString) -> Result<Program> {
+
+    pub fn decompile(mut self, charstring: CharString<'a>) -> Result<Program<'a>> {
         let mut program = Program::default();
         self.decompile_inner(charstring, &mut program)?;
         Ok(program)
     }
 
-    fn decompile_inner(&mut self, charstring: CharString, program: &mut Program) -> Result<()> {
+    fn decompile_inner(
+        &mut self,
+        charstring: CharString<'a>,
+        program: &mut Program<'a>,
+    ) -> Result<()> {
         let mut r = Reader::new(charstring);
 
         while !r.at_end() {
@@ -86,15 +90,13 @@ impl<'a, 'b> Decompiler<'a> {
                     // Don't do anything for return, since we desubroutinize.
                 }
                 CALL_GLOBAL_SUBROUTINE => {
-                    program.push(Instruction::Operator(operator));
+                    // Pop the subroutine index from the program.
+                    program.0.pop();
 
                     // TODO: Add depth limit
                     // TODO: Recursion detector
-                    let biased_index = self
-                        .stack
-                        .pop()
-                        .and_then(|n| n.as_i32())
-                        .ok_or(MalformedFont)?;
+                    let biased_index =
+                        self.stack.pop().and_then(|n| n.as_i32()).ok_or(MalformedFont)?;
                     let gsubr = self
                         .gsubr_handler
                         .get_with_biased(biased_index)
@@ -102,14 +104,12 @@ impl<'a, 'b> Decompiler<'a> {
                     self.decompile_inner(gsubr, program)?;
                 }
                 CALL_LOCAL_SUBROUTINE => {
-                    program.push(Instruction::Operator(operator));
+                    // Pop the subroutine index from the program.
+                    program.0.pop();
                     // TODO: Add depth limit
                     // TODO: Recursion detector
-                    let biased_index = self
-                        .stack
-                        .pop()
-                        .and_then(|n| n.as_i32())
-                        .ok_or(MalformedFont)?;
+                    let biased_index =
+                        self.stack.pop().and_then(|n| n.as_i32()).ok_or(MalformedFont)?;
                     let lsubr = self
                         .lsubr_handler
                         .get_with_biased(biased_index)
@@ -192,6 +192,10 @@ impl Debug for Program<'_> {
 impl<'a> Program<'a> {
     pub fn instructions(&self) -> &[Instruction<'a>] {
         self.0.as_ref()
+    }
+
+    pub fn pop(&mut self) -> Option<Instruction> {
+        self.0.pop()
     }
 
     pub fn push(&mut self, instruction: Instruction<'a>) {
