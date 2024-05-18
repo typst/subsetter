@@ -76,19 +76,18 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
     let lsubrs = {
         let subroutines = table
             .cid_metadata
-            .local_subrs
+            .font_dicts
             .into_iter()
-            .map(|index| index.into_iter().collect::<Vec<_>>())
+            .map(|font_dict| font_dict.local_subrs.into_iter().collect::<Vec<_>>())
             .collect::<Vec<_>>();
         SubroutineCollection::new(subroutines)
     };
 
     let mut fd_remapper = FontDictRemapper::new();
     let sid_remapper = get_sid_remapper(ctx, &table.top_dict_data.used_sids);
-    // let mut char_strings = vec![];
+    let mut char_strings = vec![];
 
     for old_gid in ctx.mapper.old_gids() {
-        // println!("\n\nGID: {:?}", old_gid);
         let fd_index = table.cid_metadata.fd_select.font_dict_index(old_gid).unwrap();
         fd_remapper.remap(fd_index);
 
@@ -97,146 +96,50 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
             lsubrs.get_handler(fd_index).ok_or(MalformedFont)?,
         );
         let charstring = table.char_strings.get(old_gid as u32).unwrap();
-        let program = decompiler.decompile(charstring)?;
-
-        // println!("{:?}", program)
+        char_strings.push(decompiler.decompile(charstring)?);
     }
-    //
-    // let mut font_write_context = FontWriteContext::default();
-    // let mut subsetted_font = vec![];
-    //
-    // for _ in 0..2 {
-    //     let mut w = Writer::new();
-    //     // HEADER
-    //     w.write(table.header);
-    //     // NAME INDEX
-    //     w.write(table.names);
-    //     // TOP DICT
-    //     w.extend(
-    //         &write_top_dict(table.raw_top_dict, &mut font_write_context, &sid_remapper)
-    //             .unwrap(),
-    //     );
-    //     // STRINGS
-    //     w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
-    //     // GSUBRS
-    //     w.extend(&create_index(vec![vec![]]).unwrap());
-    //
-    //     font_write_context.charset_offset =
-    //         Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
-    //     w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
-    //
-    //     // font_write_context.char_strings_offset =
-    //     //     Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
-    //     // w.extend(
-    //     //     &write_char_strings(
-    //     //         &ctx.mapper,
-    //     //         &char_strings,
-    //     //         &gsubr_remapper,
-    //     //         &gsubrs,
-    //     //         table.cid_metadata.fd_select,
-    //     //         &lsubr_remapper,
-    //     //         &lsubrs,
-    //     //     )
-    //     //     .unwrap(),
-    //     // );
-    //
-    //     subsetted_font = w.finish();
-    // }
-    // // ttf_parser::cff::Table::parse(&subsetted_font);
-    //
-    // std::fs::write("outt.ttf", subsetted_font).unwrap();
+
+    let mut font_write_context = FontWriteContext::default();
+    let mut subsetted_font = vec![];
+
+    // TODO: Don't write two times
+    for _ in 0..2 {
+        let mut w = Writer::new();
+        // HEADER
+        w.write(table.header);
+        // Name INDEX
+        w.write(table.names);
+        // Top DICT INDEX
+        // Note: CFF fonts only have 1 top dict, so index of length 1.
+        w.extend(&create_index(vec![write_top_dict(
+            table.raw_top_dict,
+            &mut font_write_context,
+            &sid_remapper,
+        )
+        .unwrap()])?);
+        // String INDEX
+        w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
+        // Global Subr INDEX
+        // Note: We desubroutinized, so no global subroutines and thus empty index.
+        w.extend(&create_index(vec![vec![]]).unwrap());
+
+        font_write_context.charset_offset =
+            Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
+        // Charset
+        w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
+
+        font_write_context.char_strings_offset =
+            Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
+        w.extend(&create_index(char_strings.iter().map(|p| p.compile()).collect())?);
+
+        subsetted_font = w.finish();
+    }
+    // ttf_parser::cff::Table::parse(&subsetted_font);
+
+    std::fs::write("outt.otf", subsetted_font).unwrap();
 
     Ok(())
 }
-
-//
-// fn write_char_strings(
-//     gid_mapper: &GidMapper,
-//     char_strings: &[SharedCharString],
-//     gsubr_remapper: &Remapper<u32>,
-//     gsubrs: &[SharedCharString],
-//     fd_select: FDSelect,
-//     lsubr_remappers: &Vec<Remapper<u32>>,
-//     lsubrs: &[Vec<SharedCharString>],
-// ) -> Result<Vec<u8>> {
-//     let mut new_char_strings = vec![];
-//
-//     for i in 0..gid_mapper.num_gids() {
-//         let old = gid_mapper.get_reverse(i).unwrap();
-//         let mut new_program = Program::default();
-//         let program = &char_strings.get(i as usize).unwrap().borrow().program;
-//
-//         let mut iter = program.instructions().iter().peekable();
-//
-//         while let Some(instruction) = iter.next() {
-//             match instruction {
-//                 Instruction::HintMask(mask) => {
-//                     new_program.push(Instruction::HintMask(*mask))
-//                 }
-//                 Instruction::Operand(num) => {
-//                     if let Some(Instruction::SingleByteOperator(op)) = iter.peek() {
-//                         if *op == CALL_GLOBAL_SUBROUTINE {
-//                             let old_gsubr = unapply_bias(
-//                                 num.as_i32().unwrap(),
-//                                 calc_subroutine_bias(gsubrs.len() as u32),
-//                             )
-//                             .unwrap();
-//                             let new_gsubr = apply_bias(
-//                                 gsubr_remapper.get(old_gsubr).unwrap() as i32,
-//                                 calc_subroutine_bias(gsubr_remapper.len()),
-//                             )
-//                             .unwrap();
-//                             new_program
-//                                 .push(Instruction::Operand(Number::from_i32(new_gsubr)));
-//                             continue;
-//                         } else if *op == CALL_LOCAL_SUBROUTINE {
-//                             let fd_index = fd_select.font_dict_index(old).unwrap();
-//
-//                             let lsubr_remapper =
-//                                 lsubr_remappers.get(fd_index as usize).unwrap();
-//                             let lsubrs = lsubrs.get(fd_index as usize).unwrap();
-//                             let old_lsubr = unapply_bias(
-//                                 num.as_i32().unwrap(),
-//                                 calc_subroutine_bias(lsubrs.len() as u32),
-//                             )
-//                             .unwrap();
-//                             let new_lsubr = apply_bias(
-//                                 lsubr_remapper.get(old_lsubr).unwrap() as i32,
-//                                 calc_subroutine_bias(gsubr_remapper.len()),
-//                             )
-//                             .unwrap();
-//
-//                             let new_lsubr = apply_bias(
-//                                 new_lsubr,
-//                                 calc_subroutine_bias(lsubr_remapper.len()),
-//                             )
-//                             .unwrap();
-//                             new_program
-//                                 .push(Instruction::Operand(Number::from_i32(new_lsubr)));
-//                             continue;
-//                         }
-//                     }
-//
-//                     new_program.push(Instruction::Operand(num.clone()))
-//                 }
-//                 // TODO: What if two gsubr/lsubr next to each other>
-//                 Instruction::DoubleByteOperator(op) => {
-//                     new_program.push(Instruction::DoubleByteOperator(*op))
-//                 }
-//                 Instruction::SingleByteOperator(op) => {
-//                     new_program.push(Instruction::SingleByteOperator(*op))
-//                 }
-//             }
-//         }
-//
-//         let mut w = Writer::new();
-//         new_program.compile(&mut w);
-//         new_char_strings.push(w.finish());
-//     }
-//
-//     create_index(new_char_strings)
-// }
-//
 fn write_sids(sid_remapper: &SidRemapper, strings: Index) -> Result<Vec<u8>> {
     let mut new_strings = vec![];
     for sid in sid_remapper.sids() {
