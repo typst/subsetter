@@ -1,5 +1,5 @@
 FONT="fonts/NotoSansCJKsc-Regular.otf"
-GIDS="9987"
+GIDS="0-10"
 
 fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,cmap,hdmx \
  --gids=$GIDS --glyph-names --desubroutinize --output-file=out_ft.otf \

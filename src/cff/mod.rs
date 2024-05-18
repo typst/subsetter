@@ -19,6 +19,7 @@ use crate::cff::charset::{parse_charset, write_charset, Charset};
 use crate::cff::charstring::{CharString, Decompiler};
 use crate::cff::cid_font::{build_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::write_font_dict_index;
+use crate::cff::dict::private_dict::write_private_dicts;
 use crate::cff::dict::top_dict::{parse_top_dict, write_top_dict_index, TopDictData};
 use crate::cff::index::{create_index, parse_index, skip_index, Index};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
@@ -27,7 +28,6 @@ use charset::charset_id;
 use std::collections::BTreeSet;
 use ttf_parser::GlyphId;
 use types::{IntegerNumber, Number, StringId};
-use crate::cff::dict::private_dict::write_private_dicts;
 
 #[derive(Clone)]
 pub struct Table<'a> {
@@ -169,7 +169,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
             &fd_remapper,
             &mut font_write_context,
             &table.cid_metadata,
-            &mut w
+            &mut w,
         )?;
 
         // Local Subr INDEX
@@ -181,9 +181,9 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         subsetted_font = w.finish();
     }
 
-    let table = ttf_parser::cff::Table::parse(&subsetted_font).unwrap();
-    let mut sink = Sink(vec![]);
-    table.outline(GlyphId(1), &mut sink).unwrap();
+    // let table = ttf_parser::cff::Table::parse(&subsetted_font).unwrap();
+    // let mut sink = Sink(vec![]);
+    // table.outline(GlyphId(1), &mut sink).unwrap();
 
     ctx.push(Tag::CFF, subsetted_font);
 
