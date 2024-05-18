@@ -1,7 +1,7 @@
 FONT="fonts/NotoSansCJKsc-Regular.otf"
-GIDS="0-10"
+GIDS="9987"
 
-fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,cmap,hdmx \
+fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx \
  --gids=$GIDS --glyph-names --desubroutinize --output-file=out_ft.otf \
  --notdef-outline --no-prune-unicode-ranges --no-prune-codepage-ranges &&
 fonttools ttx -f -o out_ft.xml out_ft.otf &&

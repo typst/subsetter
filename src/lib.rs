@@ -180,16 +180,6 @@ fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
     Ok(Face { data, records })
 }
 
-// Taken from fonttools
-const TTF_TABLE_ORDER: [&[u8; 4]; 19] = [
-    b"head", b"hhea", b"maxp", b"OS/2", b"hmtx", b"LTSH", b"VDMX", b"hdmx", b"cmap",
-    b"fpgm", b"prep", b"cvt ", b"loca", b"glyf", b"kern", b"name", b"post", b"gasp",
-    b"PCLT",
-];
-
-const CFF_TABLE_ORDER: [&[u8; 4]; 8] =
-    [b"head", b"hhea", b"maxp", b"OS/2", b"name", b"cmap", b"post", b"CFF "];
-
 /// Construct a brand new font.
 fn construct(mut ctx: Context) -> Vec<u8> {
     let mut cloned = ctx.face.records.clone();
@@ -197,14 +187,6 @@ fn construct(mut ctx: Context) -> Vec<u8> {
 
     let mut w = Writer::new();
     w.write::<FontKind>(ctx.kind);
-
-    if ctx.kind == FontKind::Cff {
-        ctx.tables
-            .sort_by_key(|&(tag, _)| CFF_TABLE_ORDER.iter().position(|r| tag.0 == **r));
-    } else if ctx.kind == FontKind::TrueType {
-        ctx.tables
-            .sort_by_key(|&(tag, _)| TTF_TABLE_ORDER.iter().position(|r| tag.0 == **r));
-    }
 
     // Write table directory.
     let count = ctx.tables.len() as u16;

@@ -184,6 +184,8 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
     // let table = ttf_parser::cff::Table::parse(&subsetted_font).unwrap();
     // let mut sink = Sink(vec![]);
     // table.outline(GlyphId(1), &mut sink).unwrap();
+    //
+    // println!("{:?}", sink);
 
     ctx.push(Tag::CFF, subsetted_font);
 

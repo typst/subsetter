@@ -83,8 +83,6 @@ pub fn write_private_dicts(
             sub_w.finish()
         };
 
-        println!("{:?}", private_dict_data);
-
         let private_dict_len = private_dict_data.len();
 
         let offsets = font_write_context
