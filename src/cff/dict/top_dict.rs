@@ -65,7 +65,7 @@ pub fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDictData> {
     Some(top_dict)
 }
 
-pub(crate) fn write_top_dict(
+pub(crate) fn write_top_dict_index(
     raw_top_dict: &[u8],
     font_write_context: &mut FontWriteContext,
     sid_remapper: &SidRemapper,
@@ -147,5 +147,10 @@ pub(crate) fn write_top_dict(
     }
 
     let finished = w.finish();
-    create_index(vec![finished])
+
+    let index = create_index(vec![finished])?;
+    println!("{:?}", index);
+    println!("{:?}", index.len());
+
+    Ok(index)
 }

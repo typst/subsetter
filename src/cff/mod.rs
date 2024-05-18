@@ -19,12 +19,13 @@ use crate::cff::charset::{parse_charset, write_charset, Charset};
 use crate::cff::charstring::{CharString, Decompiler};
 use crate::cff::cid_font::{build_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::write_font_dict_index;
-use crate::cff::dict::top_dict::{parse_top_dict, write_top_dict, TopDictData};
+use crate::cff::dict::top_dict::{parse_top_dict, write_top_dict_index, TopDictData};
 use crate::cff::index::{create_index, parse_index, skip_index, Index};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
 use charset::charset_id;
 use std::collections::BTreeSet;
+use ttf_parser::GlyphId;
 use types::{IntegerNumber, Number, StringId};
 
 #[derive(Clone)]
@@ -120,12 +121,14 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         w.write(table.names);
         // Top DICT INDEX
         // Note: CFF fonts only have 1 top dict, so index of length 1.
-        w.extend(&create_index(vec![write_top_dict(
-            table.raw_top_dict,
-            &mut font_write_context,
-            &sid_remapper,
-        )
-        .unwrap()])?);
+        w.extend(
+            &write_top_dict_index(
+                table.raw_top_dict,
+                &mut font_write_context,
+                &sid_remapper,
+            )
+            .unwrap(),
+        );
         // String INDEX
         w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
         // Global Subr INDEX
@@ -169,9 +172,11 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
 
         subsetted_font = w.finish();
     }
-    // ttf_parser::cff::Table::parse(&subsetted_font);
+    let table = ttf_parser::cff::Table::parse(&subsetted_font).unwrap();
+    let mut builder = Sink(vec![]);
+    table.outline(GlyphId(3), &mut builder).unwrap();
 
-    std::fs::write("outt.otf", subsetted_font).unwrap();
+    ctx.push(Tag::CFF, subsetted_font);
 
     Ok(())
 }
@@ -277,4 +282,38 @@ impl<'a> Table<'a> {
 mod encoding_id {
     pub const STANDARD: usize = 0;
     pub const EXPERT: usize = 1;
+}
+
+#[derive(Debug, Default, PartialEq)]
+struct Sink(Vec<Inst>);
+
+#[derive(Debug, PartialEq)]
+enum Inst {
+    MoveTo(f32, f32),
+    LineTo(f32, f32),
+    QuadTo(f32, f32, f32, f32),
+    CurveTo(f32, f32, f32, f32, f32, f32),
+    Close,
+}
+
+impl ttf_parser::OutlineBuilder for Sink {
+    fn move_to(&mut self, x: f32, y: f32) {
+        self.0.push(Inst::MoveTo(x, y));
+    }
+
+    fn line_to(&mut self, x: f32, y: f32) {
+        self.0.push(Inst::LineTo(x, y));
+    }
+
+    fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
+        self.0.push(Inst::QuadTo(x1, y1, x, y));
+    }
+
+    fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
+        self.0.push(Inst::CurveTo(x1, y1, x2, y2, x, y));
+    }
+
+    fn close(&mut self) {
+        self.0.push(Inst::Close);
+    }
 }
