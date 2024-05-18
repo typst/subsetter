@@ -1,16 +1,22 @@
-use crate::cff::dict;
+use crate::cff::cid_font::CIDMetadata;
 use crate::cff::dict::private_dict::parse_subr_offset;
 use crate::cff::dict::DictionaryParser;
-use crate::cff::index::{parse_index, Index};
+use crate::cff::index::{create_index, parse_index, Index};
+use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::types::{Number, StringId};
+use crate::cff::{dict, FontWriteContext};
 use crate::read::Reader;
+use crate::write::Writer;
+use crate::Error::{MalformedFont, SubsetError};
+use crate::Result;
 use std::array;
 
 #[derive(Default, Clone, Debug)]
 pub(crate) struct FontDict<'a> {
+    pub(crate) raw_data: &'a [u8],
     pub(crate) local_subrs: Index<'a>,
-    pub(crate) used_sids: Vec<StringId>,
     pub(crate) private_dict: &'a [u8],
+    pub(crate) font_name_sid: Option<StringId>,
 }
 
 pub fn parse_font_dict<'a>(
@@ -34,9 +40,49 @@ pub fn parse_font_dict<'a>(
                 parse_index::<u16>(&mut r)?
             };
         } else if operator == dict::operators::FONT_NAME {
-            font_dict.used_sids.push(dict_parser.parse_sid()?);
+            font_dict.font_name_sid = Some(dict_parser.parse_sid()?);
         }
     }
 
     Some(font_dict)
+}
+
+pub(crate) fn write_font_dict_index(
+    fd_remapper: &FontDictRemapper,
+    sid_remapper: &SidRemapper,
+    font_write_context: &mut FontWriteContext,
+    metadata: &CIDMetadata,
+) -> Result<Vec<u8>> {
+    let mut dicts = vec![];
+
+    for (new_df, old_df) in fd_remapper.sequential_iter().enumerate() {
+        let new_df = new_df as u8;
+
+        let dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
+        let mut w = Writer::new();
+        let mut write = |operands: &[u8], operator: &[u8]| {
+            for operand in operands {
+                w.write(*operand);
+            }
+            w.write(operator);
+        };
+
+        if let Some(sid) = dict.font_name_sid {
+            let new_sid = sid_remapper.get(sid).ok_or(MalformedFont)?;
+            write(
+                Number::from_i32(new_sid.0 as i32).as_bytes(),
+                dict::operators::FONT_NAME.as_bytes(),
+            );
+        }
+
+        // TODO: Offsets can be u32?
+        let private_dict_offset = font_write_context
+            .private_dicts_offsets
+            .get(new_df as usize)
+            .ok_or(SubsetError)?;
+        write(private_dict_offset.as_bytes(), dict::operators::PRIVATE.as_bytes());
+        dicts.push(w.finish());
+    }
+
+    create_index(dicts)
 }

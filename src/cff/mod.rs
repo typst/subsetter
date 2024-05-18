@@ -18,6 +18,7 @@ use super::*;
 use crate::cff::charset::{parse_charset, write_charset, Charset};
 use crate::cff::charstring::{CharString, Decompiler};
 use crate::cff::cid_font::{build_fd_index, CIDMetadata};
+use crate::cff::dict::font_dict::write_font_dict_index;
 use crate::cff::dict::top_dict::{parse_top_dict, write_top_dict, TopDictData};
 use crate::cff::index::{create_index, parse_index, skip_index, Index};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
@@ -43,24 +44,32 @@ pub struct Table<'a> {
 
 struct FontWriteContext<'a> {
     // TOP DICT DATA
-    charset_offset: Number<'a>,
-    encoding_offset: Number<'a>,
-    char_strings_offset: Number<'a>,
+    charset_offset: IntegerNumber<'a>,
+    encoding_offset: IntegerNumber<'a>,
+    char_strings_offset: IntegerNumber<'a>,
     // pub(crate) private: Option<Range<usize>>,
-    fd_array_offset: Number<'a>,
-    fd_select_offset: Number<'a>,
+    fd_array_offset: IntegerNumber<'a>,
+    fd_select_offset: IntegerNumber<'a>,
+    private_dicts_offsets: Vec<IntegerNumber<'a>>,
+    lsubrs_offsets: Vec<IntegerNumber<'a>>,
 }
 
-impl Default for FontWriteContext<'_> {
-    fn default() -> Self {
+impl FontWriteContext<'_> {
+    pub fn new(num_font_dicts: u8) -> Self {
         Self {
-            char_strings_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(
-                0,
-            )),
-            encoding_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
-            charset_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
-            fd_select_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
-            fd_array_offset: Number::IntegerNumber(IntegerNumber::from_i32_as_int5(0)),
+            char_strings_offset: IntegerNumber::from_i32_as_int5(0),
+            encoding_offset: IntegerNumber::from_i32_as_int5(0),
+            charset_offset: IntegerNumber::from_i32_as_int5(0),
+            fd_select_offset: IntegerNumber::from_i32_as_int5(0),
+            fd_array_offset: IntegerNumber::from_i32_as_int5(0),
+            lsubrs_offsets: vec![
+                IntegerNumber::from_i32_as_int5(0);
+                num_font_dicts as usize
+            ],
+            private_dicts_offsets: vec![
+                IntegerNumber::from_i32_as_int5(0);
+                num_font_dicts as usize
+            ],
         }
     }
 }
@@ -77,7 +86,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         let subroutines = table
             .cid_metadata
             .font_dicts
-            .into_iter()
+            .iter()
             .map(|font_dict| font_dict.local_subrs.into_iter().collect::<Vec<_>>())
             .collect::<Vec<_>>();
         SubroutineCollection::new(subroutines)
@@ -99,7 +108,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         char_strings.push(decompiler.decompile(charstring)?);
     }
 
-    let mut font_write_context = FontWriteContext::default();
+    let mut font_write_context = FontWriteContext::new(fd_remapper.len());
     let mut subsetted_font = vec![];
 
     // TODO: Don't write two times
@@ -124,12 +133,12 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         w.extend(&create_index(vec![vec![]]).unwrap());
 
         font_write_context.charset_offset =
-            Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
+            IntegerNumber::from_i32_as_int5(w.len() as i32);
         // Charsets
         w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
 
         font_write_context.fd_select_offset =
-            Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
+            IntegerNumber::from_i32_as_int5(w.len() as i32);
         // FDSelect
         w.extend(&build_fd_index(
             ctx.mapper,
@@ -137,10 +146,20 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
             &fd_remapper,
         )?);
 
-        font_write_context.char_strings_offset =
-            Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
         // Charstrings INDEX
+        font_write_context.char_strings_offset =
+            IntegerNumber::from_i32_as_int5(w.len() as i32);
         w.extend(&create_index(char_strings.iter().map(|p| p.compile()).collect())?);
+
+        // FD Array
+        font_write_context.fd_array_offset =
+            IntegerNumber::from_i32_as_int5(w.len() as i32);
+        w.extend(&write_font_dict_index(
+            &fd_remapper,
+            &sid_remapper,
+            &mut font_write_context,
+            &table.cid_metadata,
+        )?);
 
         subsetted_font = w.finish();
     }
@@ -166,12 +185,12 @@ fn write_sids(sid_remapper: &SidRemapper, strings: Index) -> Result<Vec<u8>> {
 
 fn get_sid_remapper(table: &Table) -> SidRemapper {
     let mut sid_remapper = SidRemapper::new();
-    for sid in table.top_dict_data.used_sids {
+    for sid in &table.top_dict_data.used_sids {
         sid_remapper.remap(*sid);
     }
 
     for font_dict in &table.cid_metadata.font_dicts {
-        for sid in font_dict.used_sids {
+        if let Some(sid) = font_dict.font_name_sid {
             sid_remapper.remap(sid);
         }
     }
