@@ -60,6 +60,7 @@ pub(crate) fn write_font_dict_index(
 
         let dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
         let mut w = Writer::new();
+
         let mut write = |operands: &[u8], operator: &[u8]| {
             for operand in operands {
                 w.write(*operand);
@@ -80,7 +81,12 @@ pub(crate) fn write_font_dict_index(
             .private_dicts_offsets
             .get(new_df as usize)
             .ok_or(SubsetError)?;
-        write(private_dict_offset.as_bytes(), dict::operators::PRIVATE.as_bytes());
+
+        let mut op_w = Writer::new();
+        op_w.write(private_dict_offset.0.as_bytes());
+        op_w.write(private_dict_offset.1.as_bytes());
+
+        write(&op_w.finish(), dict::operators::PRIVATE.as_bytes());
         dicts.push(w.finish());
     }
 
