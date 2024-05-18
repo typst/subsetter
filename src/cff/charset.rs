@@ -201,7 +201,8 @@ pub(crate) fn write_charset(
     // Format 0
     w.write::<u8>(0);
 
-    for old_gid in gid_mapper.old_gids() {
+    // Skip 0
+    for old_gid in gid_mapper.old_gids().skip(1) {
         let sid = charset.gid_to_sid(old_gid).unwrap();
         // TODO: need to remap SID in SID-keyed fonts.
         w.write(sid)
