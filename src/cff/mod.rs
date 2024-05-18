@@ -51,7 +51,7 @@ struct FontWriteContext<'a> {
     fd_array_offset: IntegerNumber<'a>,
     fd_select_offset: IntegerNumber<'a>,
     private_dicts_offsets: Vec<IntegerNumber<'a>>,
-    lsubrs_offsets: Vec<IntegerNumber<'a>>,
+    lsubrs_offsets: IntegerNumber<'a>,
 }
 
 impl FontWriteContext<'_> {
@@ -62,10 +62,7 @@ impl FontWriteContext<'_> {
             charset_offset: IntegerNumber::from_i32_as_int5(0),
             fd_select_offset: IntegerNumber::from_i32_as_int5(0),
             fd_array_offset: IntegerNumber::from_i32_as_int5(0),
-            lsubrs_offsets: vec![
-                IntegerNumber::from_i32_as_int5(0);
-                num_font_dicts as usize
-            ],
+            lsubrs_offsets: IntegerNumber::from_i32_as_int5(0),
             private_dicts_offsets: vec![
                 IntegerNumber::from_i32_as_int5(0);
                 num_font_dicts as usize
@@ -160,6 +157,12 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
             &mut font_write_context,
             &table.cid_metadata,
         )?);
+
+        // Local Subr INDEX
+        // Again, always empty since we desubroutinize.
+        font_write_context.lsubrs_offsets =
+            IntegerNumber::from_i32_as_int5(w.len() as i32);
+        w.extend(&create_index(vec![vec![]])?);
 
         subsetted_font = w.finish();
     }
