@@ -39,10 +39,7 @@ pub fn write_private_dicts(
     for (new_df, old_df) in fd_remapper.sequential_iter().enumerate() {
         let font_dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
 
-        let offsets = font_write_context
-            .private_dicts_offsets
-            .get_mut(new_df)
-            .ok_or(SubsetError)?;
+        let private_dict_offset = w.len();
 
         let private_dict_data = {
             let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
@@ -62,8 +59,9 @@ pub fn write_private_dicts(
                 match operator {
                     SUBRS => {
                         let mut w = Writer::new();
-                        w.write(offsets.0.as_bytes());
-                        w.write(offsets.1.as_bytes());
+                        let offset = font_write_context.lsubrs_offsets.as_i32() - private_dict_offset as i32;
+                        println!("{:?}", offset);
+                        IntegerNumber::from_i32_as_int5(offset);
 
                         write(&w.finish(), SUBRS.as_bytes());
                     }
@@ -85,10 +83,14 @@ pub fn write_private_dicts(
             sub_w.finish()
         };
 
-        offsets.0 = IntegerNumber::from_i32(private_dict_data.len() as i32);
-        offsets.1 = IntegerNumber::from_i32(
-            font_write_context.lsubrs_offsets.as_i32() - w.len() as i32,
-        );
+        let private_dict_len = private_dict_data.len();
+
+        let offsets = font_write_context
+            .private_dicts_offsets
+            .get_mut(new_df)
+            .ok_or(SubsetError)?;
+        offsets.0 = IntegerNumber::from_i32_as_int5(private_dict_len as i32);
+        offsets.1 = IntegerNumber::from_i32_as_int5(private_dict_offset as i32);
 
         w.extend(&private_dict_data);
     }

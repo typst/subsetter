@@ -27,6 +27,7 @@ use charset::charset_id;
 use std::collections::BTreeSet;
 use ttf_parser::GlyphId;
 use types::{IntegerNumber, Number, StringId};
+use crate::cff::dict::private_dict::write_private_dicts;
 
 #[derive(Clone)]
 pub struct Table<'a> {
@@ -164,6 +165,13 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
             &table.cid_metadata,
         )?);
 
+        write_private_dicts(
+            &fd_remapper,
+            &mut font_write_context,
+            &table.cid_metadata,
+            &mut w
+        )?;
+
         // Local Subr INDEX
         // Again, always empty since we desubroutinize.
         font_write_context.lsubrs_offsets =
@@ -172,6 +180,11 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
 
         subsetted_font = w.finish();
     }
+
+    let table = ttf_parser::cff::Table::parse(&subsetted_font).unwrap();
+    let mut sink = Sink(vec![]);
+    table.outline(GlyphId(1), &mut sink).unwrap();
+
     ctx.push(Tag::CFF, subsetted_font);
 
     Ok(())
