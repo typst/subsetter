@@ -127,46 +127,46 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         char_strings.push(RefCell::new(charstring))
     }
 
-    // let mut font_write_context = FontWriteContext::default();
-    // let mut subsetted_font = vec![];
-    //
-    // for _ in 0..2 {
-    //     let mut w = Writer::new();
-    //     // HEADER
-    //     w.write(table.header);
-    //     // NAME INDEX
-    //     w.write(table.names);
-    //     // TOP DICT
-    //     w.extend(
-    //         &write_top_dict(table.raw_top_dict, &mut font_write_context, &sid_remapper)
-    //             .unwrap(),
-    //     );
-    //     // STRINGS
-    //     w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
-    //     // GSUBRS
-    //     w.extend(&write_gsubrs(&gsubr_remapper, gsubrs.get_handler()).unwrap());
-    //
-    //     font_write_context.charset_offset =
-    //         Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
-    //     w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
-    //
-    //     // font_write_context.char_strings_offset =
-    //     //     Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
-    //     // w.extend(
-    //     //     &write_char_strings(
-    //     //         &ctx.mapper,
-    //     //         &char_strings,
-    //     //         &gsubr_remapper,
-    //     //         &gsubrs,
-    //     //         table.cid_metadata.fd_select,
-    //     //         &lsubr_remapper,
-    //     //         &lsubrs,
-    //     //     )
-    //     //     .unwrap(),
-    //     // );
-    //
-    //     subsetted_font = w.finish();
-    // }
+    let mut font_write_context = FontWriteContext::default();
+    let mut subsetted_font = vec![];
+
+    for _ in 0..2 {
+        let mut w = Writer::new();
+        // HEADER
+        w.write(table.header);
+        // NAME INDEX
+        w.write(table.names);
+        // TOP DICT
+        w.extend(
+            &write_top_dict(table.raw_top_dict, &mut font_write_context, &sid_remapper)
+                .unwrap(),
+        );
+        // STRINGS
+        w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
+        // GSUBRS
+        w.extend(&write_gsubrs(&gsubr_remapper, gsubrs.get_handler()).unwrap());
+
+        font_write_context.charset_offset =
+            Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
+        w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
+
+        // font_write_context.char_strings_offset =
+        //     Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
+        // w.extend(
+        //     &write_char_strings(
+        //         &ctx.mapper,
+        //         &char_strings,
+        //         &gsubr_remapper,
+        //         &gsubrs,
+        //         table.cid_metadata.fd_select,
+        //         &lsubr_remapper,
+        //         &lsubrs,
+        //     )
+        //     .unwrap(),
+        // );
+
+        subsetted_font = w.finish();
+    }
     // // ttf_parser::cff::Table::parse(&subsetted_font);
     //
     // std::fs::write("outt.ttf", subsetted_font).unwrap();

@@ -16,7 +16,7 @@ impl SidRemapper {
             return Some(old);
         } else {
             self.0
-                .get(old.0)
+                .get(old.0 - StringId::CUSTOM_SID)
                 .and_then(|n| n.checked_add(StringId::CUSTOM_SID))
                 .map(StringId::from)
         }
@@ -55,6 +55,8 @@ mod tests {
         assert_eq!(sid_remapper.remap(StringId(156)), StringId(156));
         assert_eq!(sid_remapper.remap(StringId(480)), StringId(395));
         assert_eq!(sid_remapper.remap(StringId(400)), StringId(392));
+
+        assert_eq!(sid_remapper.get(StringId(395)), Some(StringId(393)));
 
         assert_eq!(
             sid_remapper.sids().collect::<Vec<_>>(),

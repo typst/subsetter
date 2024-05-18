@@ -1,11 +1,14 @@
 FONT="fonts/NotoSansCJKsc-Regular.otf"
-GIDS="0-20"
+GIDS="0-1500,3000-4500"
 
-fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,cmap,hdmx \
- --gids=$GIDS --glyph-names --output-file=out_ft.otf \
- --notdef-outline --no-prune-unicode-ranges --no-prune-codepage-ranges &&
-fonttools ttx -f -o out_ft.xml out_ft.otf &&
-cp out_ft.otf ft.otf
+#fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,cmap,hdmx \
+# --gids=$GIDS --glyph-names --output-file=out_ft.otf \
+# --notdef-outline --no-prune-unicode-ranges --no-prune-codepage-ranges &&
+#fonttools ttx -f -o out_ft.xml out_ft.otf &&
+#cp out_ft.otf ft.otf
+
+
+time hb-subset $FONT --gids=$GIDS --output-file=out_hb.otf
 
 #cargo run -- $FONT out_ss.otf $GIDS &&
 #fonttools ttx -f -o /Users/lstampfl/Programming/GitHub/subsetter/out_ss.ttx /Users/lstampfl/Programming/GitHub/subsetter/out_ss.otf &&
