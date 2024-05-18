@@ -98,7 +98,7 @@ fn prepare_context<'a>(
         mapper,
         kind,
         tables: vec![],
-        long_loca: true,
+        long_loca: false,
     })
 }
 

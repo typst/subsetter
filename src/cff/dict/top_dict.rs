@@ -149,8 +149,6 @@ pub(crate) fn write_top_dict_index(
     let finished = w.finish();
 
     let index = create_index(vec![finished])?;
-    println!("{:?}", index);
-    println!("{:?}", index.len());
 
     Ok(index)
 }
