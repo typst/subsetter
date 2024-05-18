@@ -2,7 +2,7 @@
 
 mod argstack;
 mod charset;
-pub(crate) mod charstring;
+mod charstring;
 mod dict;
 mod encoding;
 mod index;

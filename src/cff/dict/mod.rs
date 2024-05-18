@@ -1,3 +1,4 @@
+pub(crate) mod font_dict;
 pub(crate) mod private_dict;
 pub(crate) mod top_dict;
 
