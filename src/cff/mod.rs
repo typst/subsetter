@@ -84,7 +84,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
     };
 
     let mut fd_remapper = FontDictRemapper::new();
-    let sid_remapper = get_sid_remapper(ctx, &table.top_dict_data.used_sids);
+    let sid_remapper = get_sid_remapper(&table);
     let mut char_strings = vec![];
 
     for old_gid in ctx.mapper.old_gids() {
@@ -128,6 +128,8 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         // Charsets
         w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
 
+        font_write_context.fd_select_offset =
+            Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
         // FDSelect
         w.extend(&build_fd_index(
             ctx.mapper,
@@ -162,10 +164,16 @@ fn write_sids(sid_remapper: &SidRemapper, strings: Index) -> Result<Vec<u8>> {
     create_index(new_strings)
 }
 
-fn get_sid_remapper(ctx: &Context, used_sids: &BTreeSet<StringId>) -> SidRemapper {
+fn get_sid_remapper(table: &Table) -> SidRemapper {
     let mut sid_remapper = SidRemapper::new();
-    for sid in used_sids {
+    for sid in table.top_dict_data.used_sids {
         sid_remapper.remap(*sid);
+    }
+
+    for font_dict in &table.cid_metadata.font_dicts {
+        for sid in font_dict.used_sids {
+            sid_remapper.remap(sid);
+        }
     }
 
     sid_remapper
