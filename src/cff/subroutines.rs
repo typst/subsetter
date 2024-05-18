@@ -1,16 +1,12 @@
-use crate::cff::charstring;
-use crate::cff::charstring::{Instruction, Program, SharedCharString};
-use crate::cff::index::create_index;
-use crate::cff::remapper::SubroutineRemapper;
-use crate::cff::types::Number;
-use crate::Error::MalformedFont;
+use crate::cff::charstring::{CharString, OwnedCharString};
 
-pub(crate) struct SubroutineCollection<'a> {
-    subroutines: Vec<SubroutineContainer<'a>>,
+
+pub(crate) struct SubroutineCollection {
+    subroutines: Vec<SubroutineContainer>,
 }
 
-impl<'a> SubroutineCollection<'a> {
-    pub fn new(subroutines: Vec<Vec<SharedCharString<'a>>>) -> Self {
+impl SubroutineCollection {
+    pub fn new(subroutines: Vec<Vec<OwnedCharString>>) -> Self {
         debug_assert!(subroutines.len() <= 255);
         Self {
             subroutines: subroutines
@@ -20,7 +16,7 @@ impl<'a> SubroutineCollection<'a> {
         }
     }
 
-    pub fn get_handler<'b>(&'b self, fd_index: u8) -> Option<SubroutineHandler<'a, 'b>> {
+    pub fn get_handler(&self, fd_index: u8) -> Option<SubroutineHandler> {
         self.subroutines.get(fd_index as usize).map(|s| s.get_handler())
     }
 
@@ -29,16 +25,16 @@ impl<'a> SubroutineCollection<'a> {
     }
 }
 
-pub(crate) struct SubroutineContainer<'a> {
-    subroutines: Vec<SharedCharString<'a>>,
+pub(crate) struct SubroutineContainer {
+    subroutines: Vec<OwnedCharString>,
 }
 
-impl<'a> SubroutineContainer<'a> {
-    pub fn new(subroutines: Vec<SharedCharString<'a>>) -> Self {
+impl SubroutineContainer {
+    pub fn new(subroutines: Vec<OwnedCharString>) -> Self {
         Self { subroutines }
     }
 
-    pub fn get_handler<'b>(&'b self) -> SubroutineHandler<'a, 'b> {
+    pub fn get_handler(&self) -> SubroutineHandler {
         SubroutineHandler::new(self.subroutines.as_ref())
     }
 
@@ -47,42 +43,22 @@ impl<'a> SubroutineContainer<'a> {
     }
 }
 
-pub(crate) struct ResolvedSubroutine<'a> {
-    pub(crate) char_string: SharedCharString<'a>,
-    pub(crate) biased_index: i32,
-    pub(crate) unbiased_index: u32,
-}
-
 #[derive(Clone)]
-pub(crate) struct SubroutineHandler<'a, 'b> {
-    subroutines: &'b [SharedCharString<'a>],
+pub(crate) struct SubroutineHandler<'a> {
+    subroutines: &'a [CharString<'a>],
     bias: u16,
 }
 
-impl<'a, 'b> SubroutineHandler<'a, 'b> {
-    pub fn new(char_strings: &'b [SharedCharString<'a>]) -> Self {
+impl<'a> SubroutineHandler<'a> {
+    pub fn new(char_strings: &'a [CharString<'a>]) -> Self {
         Self {
             subroutines: char_strings,
             bias: calc_subroutine_bias(char_strings.len() as u32),
         }
     }
 
-    pub fn get_with_biased(&self, index: i32) -> Option<ResolvedSubroutine<'a>> {
+    pub fn get_with_biased(&self, index: i32) -> Option<CharString<'a>> {
         self.get_with_unbiased(unapply_bias(index, self.bias)?)
-    }
-
-    pub fn get_with_unbiased(&self, index: u32) -> Option<ResolvedSubroutine<'a>> {
-        self.subroutines.get(index as usize).and_then(|s| {
-            Some(ResolvedSubroutine {
-                char_string: s.clone(),
-                biased_index: apply_bias(index, self.bias)?,
-                unbiased_index: index,
-            })
-        })
-    }
-
-    pub fn get_bias(&self) -> u16 {
-        self.bias
     }
 }
 
@@ -107,59 +83,4 @@ pub fn apply_bias(index: u32, bias: u16) -> Option<i32> {
     let index = i64::from(index);
 
     i32::try_from(index.checked_sub(bias)?).ok()
-}
-
-pub(crate) fn write_gsubrs(
-    gsubr_remapper: &SubroutineRemapper,
-    gsubr_handler: SubroutineHandler,
-) -> crate::Result<Vec<u8>> {
-    let mut new_gsubrs = vec![];
-
-    for old_subr in gsubr_remapper.sequential_iter() {
-        let mut new_program = Program::default();
-        let resolved_subroutine =
-            gsubr_handler.get_with_unbiased(old_subr).ok_or(MalformedFont)?;
-        let char_string = resolved_subroutine.char_string.borrow();
-        let program = char_string.program();
-
-        let mut iter = program.instructions().iter().peekable();
-
-        while let Some(instruction) = iter.next() {
-            match instruction {
-                Instruction::HintMask(mask) => {
-                    new_program.push(Instruction::HintMask(*mask))
-                }
-                Instruction::Operand(num) => {
-                    if let Some(Instruction::Operator(op)) = iter.peek() {
-                        if *op == charstring::operators::CALL_GLOBAL_SUBROUTINE {
-                            let old_gsubr = unapply_bias(
-                                num.as_i32().unwrap(),
-                                gsubr_handler.get_bias(),
-                            )
-                            .unwrap();
-
-                            let index = gsubr_remapper.get(old_gsubr).unwrap();
-
-                            let new_gsubr = apply_bias(
-                                index,
-                                calc_subroutine_bias(gsubr_remapper.len()),
-                            )
-                            .unwrap();
-                            new_program
-                                .push(Instruction::Operand(Number::from_i32(new_gsubr)));
-                            continue;
-                        }
-                    }
-
-                    new_program.push(Instruction::Operand(num.clone()))
-                }
-                // TODO: What if two gsubr/lsubr next to each other>
-                Instruction::Operator(op) => new_program.push(Instruction::Operator(*op)),
-            }
-        }
-
-        new_gsubrs.push(new_program.compile());
-    }
-
-    create_index(new_gsubrs)
 }

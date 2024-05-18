@@ -20,12 +20,10 @@ use crate::cff::charstring::{CharString, Decompiler};
 use crate::cff::cid_font::CIDMetadata;
 use crate::cff::dict::top_dict::{parse_top_dict, write_top_dict, TopDictData};
 use crate::cff::index::{create_index, parse_index, skip_index, Index};
-use crate::cff::remapper::{FontDictRemapper, SidRemapper, SubroutineRemapper};
-use crate::cff::subroutines::{write_gsubrs, SubroutineCollection, SubroutineContainer};
+use crate::cff::remapper::{FontDictRemapper, SidRemapper};
+use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
 use charset::charset_id;
-use std::cell::RefCell;
 use std::collections::BTreeSet;
-use std::rc::Rc;
 use types::{IntegerNumber, Number, StringId};
 
 #[derive(Clone)]
@@ -74,7 +72,8 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         let subroutines = table
             .global_subrs
             .into_iter()
-            .map(|g| Rc::new(RefCell::new(CharString::new(g))))
+            // TODO: Don't convert ot vec
+            .map(|g| g.to_vec())
             .collect::<Vec<_>>();
         SubroutineContainer::new(subroutines)
     };
@@ -87,22 +86,19 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
             .map(|index| {
                 index
                     .into_iter()
-                    .map(|g| Rc::new(RefCell::new(CharString::new(g))))
+                    .map(|g| g.to_vec())
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
         SubroutineCollection::new(subroutines)
     };
 
-    let mut gsubr_remapper = SubroutineRemapper::new();
-    let mut lsubr_remapper =
-        vec![SubroutineRemapper::new(); lsubrs.num_entries() as usize];
     let mut fd_remapper = FontDictRemapper::new();
     let sid_remapper = get_sid_remapper(ctx, &table.top_dict_data.used_sids);
     let mut char_strings = vec![];
 
     for old_gid in ctx.mapper.old_gids() {
-        // println!("GID: {:?}", old_gid);
+        println!("GID: {:?}", old_gid);
         let fd_index = table.cid_metadata.fd_select.font_dict_index(old_gid).unwrap();
         fd_remapper.remap(fd_index);
 
@@ -110,63 +106,53 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
             gsubrs.get_handler(),
             lsubrs.get_handler(fd_index).ok_or(MalformedFont)?,
         );
-        let raw_charstring = table.char_strings.get(old_gid as u32).unwrap();
-        let mut charstring = CharString::new(raw_charstring);
+        let charstring = table.char_strings.get(old_gid as u32).unwrap();
+        let program = decompiler.decompile(charstring)?;
         charstring.decompile(&mut decompiler).map_err(|_| MalformedFont)?;
 
-        charstring.used_gsubs().iter().for_each(|n| {
-            gsubr_remapper.remap(*n);
-        });
-
-        let mapped_lsubrs = lsubr_remapper.get_mut(fd_index as usize).unwrap();
-
-        charstring.used_lsubs().iter().for_each(|n| {
-            mapped_lsubrs.remap(*n);
-        });
-
-        char_strings.push(RefCell::new(charstring))
+        println!("{:?}", program)
     }
-
-    let mut font_write_context = FontWriteContext::default();
-    let mut subsetted_font = vec![];
-
-    for _ in 0..2 {
-        let mut w = Writer::new();
-        // HEADER
-        w.write(table.header);
-        // NAME INDEX
-        w.write(table.names);
-        // TOP DICT
-        w.extend(
-            &write_top_dict(table.raw_top_dict, &mut font_write_context, &sid_remapper)
-                .unwrap(),
-        );
-        // STRINGS
-        w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
-        // GSUBRS
-        w.extend(&write_gsubrs(&gsubr_remapper, gsubrs.get_handler()).unwrap());
-
-        font_write_context.charset_offset =
-            Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
-        w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
-
-        // font_write_context.char_strings_offset =
-        //     Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
-        // w.extend(
-        //     &write_char_strings(
-        //         &ctx.mapper,
-        //         &char_strings,
-        //         &gsubr_remapper,
-        //         &gsubrs,
-        //         table.cid_metadata.fd_select,
-        //         &lsubr_remapper,
-        //         &lsubrs,
-        //     )
-        //     .unwrap(),
-        // );
-
-        subsetted_font = w.finish();
-    }
+    //
+    // let mut font_write_context = FontWriteContext::default();
+    // let mut subsetted_font = vec![];
+    //
+    // for _ in 0..2 {
+    //     let mut w = Writer::new();
+    //     // HEADER
+    //     w.write(table.header);
+    //     // NAME INDEX
+    //     w.write(table.names);
+    //     // TOP DICT
+    //     w.extend(
+    //         &write_top_dict(table.raw_top_dict, &mut font_write_context, &sid_remapper)
+    //             .unwrap(),
+    //     );
+    //     // STRINGS
+    //     w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
+    //     // GSUBRS
+    //     w.extend(&create_index(vec![vec![]]).unwrap());
+    //
+    //     font_write_context.charset_offset =
+    //         Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
+    //     w.extend(&write_charset(&sid_remapper, &table.charset, &ctx.mapper).unwrap());
+    //
+    //     // font_write_context.char_strings_offset =
+    //     //     Number::IntegerNumber(IntegerNumber::from_i32_as_int5(w.len() as i32));
+    //     // w.extend(
+    //     //     &write_char_strings(
+    //     //         &ctx.mapper,
+    //     //         &char_strings,
+    //     //         &gsubr_remapper,
+    //     //         &gsubrs,
+    //     //         table.cid_metadata.fd_select,
+    //     //         &lsubr_remapper,
+    //     //         &lsubrs,
+    //     //     )
+    //     //     .unwrap(),
+    //     // );
+    //
+    //     subsetted_font = w.finish();
+    // }
     // // ttf_parser::cff::Table::parse(&subsetted_font);
     //
     // std::fs::write("outt.ttf", subsetted_font).unwrap();
