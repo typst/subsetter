@@ -99,21 +99,6 @@ impl<'a> DictionaryParser<'a> {
     }
 
     #[inline]
-    pub fn parse_number(&mut self) -> Option<Number> {
-        self.parse_operands()?;
-        self.operands().get(0).cloned()
-    }
-
-    #[inline]
-    pub fn parse_bool(&mut self) -> Option<bool> {
-        self.parse_number().and_then(|n| n.as_i32()).and_then(|n| match n {
-            0 => Some(false),
-            1 => Some(true),
-            _ => None,
-        })
-    }
-
-    #[inline]
     pub fn parse_sid(&mut self) -> Option<StringId> {
         self.parse_operands()?;
         let operands = self.operands();
@@ -147,12 +132,6 @@ impl<'a> DictionaryParser<'a> {
         } else {
             None
         }
-    }
-
-    #[inline]
-    pub fn parse_delta(&mut self) -> Option<Vec<Number>> {
-        self.parse_operands()?;
-        Some(self.operands().into())
     }
 }
 

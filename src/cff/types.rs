@@ -253,10 +253,6 @@ impl<'a> Number<'a> {
     pub fn as_u32(&self) -> Option<u32> {
         u32::try_from(self.as_i32()?).ok()
     }
-
-    pub fn as_u16(&self) -> Option<u16> {
-        u16::try_from(self.as_i32()?).ok()
-    }
 }
 
 fn parse_float_nibble(nibble: u8, mut idx: usize, data: &mut [u8]) -> Option<usize> {

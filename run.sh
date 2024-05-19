@@ -1,13 +1,13 @@
-FONT="fonts/NotoSansCJKsc-Regular.otf"
-GIDS="0,1,2698,3950,4059,8509,14538,38945"
+FONT="fonts/LatinModernRoman-Regular.otf"
+GIDS="0-5"
 
 fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap \
  --gids=$GIDS --glyph-names --desubroutinize --output-file=out_ft.otf \
  --notdef-outline --no-prune-unicode-ranges --no-prune-codepage-ranges &&
-fonttools ttx -f -o out_ft.xml out_ft.otf &&
+fonttools ttx -f -o out_ft.xml out_ft.otf
 
-cargo run -- $FONT out_ss.otf $GIDS &&
-fonttools ttx -f -o out_ss.xml out_ss.otf
+#cargo run -- $FONT out_ss.otf $GIDS &&
+#fonttools ttx -f -o out_ss.xml out_ss.otf
 
 
 #time hb-subset $FONT --desubroutinize --gids=$GIDS --output-file=out_hb.otf

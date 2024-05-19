@@ -1,6 +1,5 @@
 use super::*;
 use crate::Error::{MalformedFont, SubsetError};
-use std::collections::{BTreeMap, HashSet};
 
 pub(crate) fn glyph_closure(face: &Face, gid_set: &mut BTreeSet<u16>) -> Result<()> {
     let table = Table::new(face).ok_or(MalformedFont)?;

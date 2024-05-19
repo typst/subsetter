@@ -13,7 +13,6 @@ use std::array;
 
 #[derive(Default, Clone, Debug)]
 pub(crate) struct FontDict<'a> {
-    pub(crate) raw_data: &'a [u8],
     pub(crate) local_subrs: Index<'a>,
     pub(crate) private_dict: &'a [u8],
     pub(crate) font_name_sid: Option<StringId>,

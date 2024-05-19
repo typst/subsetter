@@ -1,5 +1,5 @@
 use std::env;
-use subsetter::{subset, GidMapper};
+use subsetter::subset;
 
 fn parse_gids(gids: &str) -> Vec<u16> {
     if gids == "*" {

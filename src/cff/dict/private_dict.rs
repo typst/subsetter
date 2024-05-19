@@ -1,7 +1,7 @@
 use crate::cff::cid_font::CIDMetadata;
 use crate::cff::dict::operators::*;
 use crate::cff::dict::DictionaryParser;
-use crate::cff::remapper::{FontDictRemapper, SidRemapper};
+use crate::cff::remapper::FontDictRemapper;
 use crate::cff::types::{IntegerNumber, Number};
 use crate::cff::FontWriteContext;
 use crate::write::Writer;

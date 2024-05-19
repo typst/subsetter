@@ -18,10 +18,6 @@ impl<'a> SubroutineCollection<'a> {
     pub fn get_handler(&self, fd_index: u8) -> Option<SubroutineHandler> {
         self.subroutines.get(fd_index as usize).map(|s| s.get_handler())
     }
-
-    pub fn num_entries(&self) -> u8 {
-        self.subroutines.len() as u8
-    }
 }
 
 pub(crate) struct SubroutineContainer<'a> {
@@ -35,10 +31,6 @@ impl<'a> SubroutineContainer<'a> {
 
     pub fn get_handler(&self) -> SubroutineHandler {
         SubroutineHandler::new(self.subroutines.as_ref())
-    }
-
-    pub fn num_subroutines(&self) -> u32 {
-        self.subroutines.len() as u32
     }
 }
 
@@ -79,11 +71,4 @@ pub fn unapply_bias(index: i32, bias: u16) -> Option<u32> {
     let bias = i32::from(bias);
 
     u32::try_from(index.checked_add(bias)?).ok()
-}
-
-pub fn apply_bias(index: u32, bias: u16) -> Option<i32> {
-    let bias = i64::from(bias);
-    let index = i64::from(index);
-
-    i32::try_from(index.checked_sub(bias)?).ok()
 }

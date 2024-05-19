@@ -16,7 +16,7 @@ mod types;
 
 use super::*;
 use crate::cff::charset::{parse_charset, write_charset, Charset};
-use crate::cff::charstring::{CharString, Decompiler};
+use crate::cff::charstring::Decompiler;
 use crate::cff::cid_font::{build_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::write_font_dict_index;
 use crate::cff::dict::private_dict::write_private_dicts;
@@ -26,12 +26,10 @@ use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
 use charset::charset_id;
 use std::collections::BTreeSet;
-use ttf_parser::GlyphId;
-use types::{IntegerNumber, Number, StringId};
+use types::{IntegerNumber, StringId};
 
 #[derive(Clone)]
 pub struct Table<'a> {
-    table_data: &'a [u8],
     header: &'a [u8],
     names: &'a [u8],
     raw_top_dict: &'a [u8],
@@ -39,7 +37,6 @@ pub struct Table<'a> {
     strings: Index<'a>,
     global_subrs: Index<'a>,
     charset: Charset<'a>,
-    number_of_glyphs: u16,
     char_strings: Index<'a>,
     cid_metadata: CIDMetadata<'a>,
 }
@@ -102,7 +99,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         let fd_index = table.cid_metadata.fd_select.font_dict_index(old_gid).unwrap();
         used_fds.insert(fd_index);
 
-        let mut decompiler = Decompiler::new(
+        let decompiler = Decompiler::new(
             gsubrs.get_handler(),
             lsubrs.get_handler(fd_index).ok_or(MalformedFont)?,
         );
@@ -280,7 +277,6 @@ impl<'a> Table<'a> {
                 .ok_or(MalformedFont)?;
 
         Ok(Self {
-            table_data: cff,
             header,
             names,
             raw_top_dict,
@@ -288,7 +284,6 @@ impl<'a> Table<'a> {
             strings,
             global_subrs,
             charset,
-            number_of_glyphs,
             char_strings,
             cid_metadata,
         })
