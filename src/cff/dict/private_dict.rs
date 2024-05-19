@@ -58,12 +58,7 @@ pub fn write_private_dicts(
             while let Some(operator) = dict_parser.parse_next() {
                 match operator {
                     SUBRS => {
-                        let mut w = Writer::new();
-                        let offset = font_write_context.lsubrs_offsets.as_i32()
-                            - private_dict_offset as i32;
-                        w.write(IntegerNumber::from_i32_as_int5(offset).as_bytes());
-
-                        write(&w.finish(), SUBRS.as_bytes());
+                        // We don't have any subroutines
                     }
                     _ => {
                         dict_parser.parse_operands().unwrap();

@@ -94,13 +94,13 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         SubroutineCollection::new(subroutines)
     };
 
-    let mut fd_remapper = FontDictRemapper::new();
+    let mut used_fds = BTreeSet::new();
     let sid_remapper = get_sid_remapper(&table);
     let mut char_strings = vec![];
 
     for old_gid in ctx.mapper.old_gids() {
         let fd_index = table.cid_metadata.fd_select.font_dict_index(old_gid).unwrap();
-        fd_remapper.remap(fd_index);
+        used_fds.insert(fd_index);
 
         let mut decompiler = Decompiler::new(
             gsubrs.get_handler(),
@@ -108,6 +108,12 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         );
         let charstring = table.char_strings.get(old_gid as u32).unwrap();
         char_strings.push(decompiler.decompile(charstring)?);
+    }
+
+    let mut fd_remapper = FontDictRemapper::new();
+
+    for fd in used_fds {
+        fd_remapper.remap(fd);
     }
 
     let mut font_write_context = FontWriteContext::new(fd_remapper.len());
@@ -134,7 +140,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
         // Global Subr INDEX
         // Note: We desubroutinized, so no global subroutines and thus empty index.
-        w.extend(&create_index(vec![vec![]]).unwrap());
+        w.extend(&create_index(vec![]).unwrap());
 
         font_write_context.charset_offset =
             IntegerNumber::from_i32_as_int5(w.len() as i32);
@@ -176,7 +182,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         // Again, always empty since we desubroutinize.
         font_write_context.lsubrs_offsets =
             IntegerNumber::from_i32_as_int5(w.len() as i32);
-        w.extend(&create_index(vec![vec![]])?);
+        w.extend(&create_index(vec![])?);
 
         subsetted_font = w.finish();
     }
