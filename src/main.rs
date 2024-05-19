@@ -29,17 +29,8 @@ fn main() {
     // Read the raw font data.
     let data = std::fs::read(&args[1]).unwrap();
     let gids = parse_gids(&args.get(3).to_owned().unwrap_or(&"0-5".to_owned()));
-    let mapper = {
-        let mut mapper = GidMapper::new();
 
-        for gid in &gids {
-            mapper.remap(*gid);
-        }
-
-        mapper
-    };
-
-    let sub = subset(&data, 0, &mapper).unwrap();
+    let (sub, _) = subset(&data, 0, &gids).unwrap();
 
     // Write the resulting file.
     std::fs::write(&args.get(2).unwrap_or(&"res.otf".to_owned()), sub).unwrap();

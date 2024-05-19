@@ -1,18 +1,18 @@
 use super::*;
 use crate::Error::{MalformedFont, SubsetError};
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
-pub(crate) fn glyph_closure(face: &Face, gid_mapper: &mut GidMapper) -> Result<()> {
+pub(crate) fn glyph_closure(face: &Face, gid_set: &mut BTreeSet<u16>) -> Result<()> {
     let table = Table::new(face).ok_or(MalformedFont)?;
 
-    let mut all_glyphs = HashSet::new();
-    let mut process_glyphs = gid_mapper.old_gids().collect::<Vec<_>>();
+    let mut process_glyphs = gid_set.iter().copied().collect::<Vec<_>>();
 
     while let Some(glyph) = process_glyphs.pop() {
-        all_glyphs.insert(glyph);
+        gid_set.insert(glyph);
+
         let glyph_data = match table.glyph_data(glyph) {
             Some(glph_data) => glph_data,
-            None => unimplemented!(),
+            None => return Err(InvalidGidMapper),
         };
 
         if glyph_data.is_empty() {
@@ -24,15 +24,11 @@ pub(crate) fn glyph_closure(face: &Face, gid_mapper: &mut GidMapper) -> Result<(
 
         if num_contours < 0 {
             for component in component_glyphs(glyph_data).ok_or(MalformedFont)? {
-                if !all_glyphs.contains(&component) {
+                if !gid_set.contains(&component) {
                     process_glyphs.push(component);
                 }
             }
         }
-    }
-
-    for glyph in all_glyphs {
-        gid_mapper.remap(glyph);
     }
 
     Ok(())

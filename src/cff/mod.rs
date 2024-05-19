@@ -151,7 +151,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
             IntegerNumber::from_i32_as_int5(w.len() as i32);
         // FDSelect
         w.extend(&build_fd_index(
-            ctx.mapper,
+            &ctx.mapper,
             table.cid_metadata.fd_select,
             &fd_remapper,
         )?);

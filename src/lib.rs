@@ -55,6 +55,7 @@ pub use crate::remapper::GidMapper;
 use crate::write::{Writeable, Writer};
 use crate::Error::{InvalidGidMapper, MalformedFont, UnknownKind};
 use std::borrow::Cow;
+use std::collections::BTreeSet;
 use std::fmt::{self, Debug, Display, Formatter};
 
 /// Subset a font face to include less glyphs and tables.
@@ -62,18 +63,12 @@ use std::fmt::{self, Debug, Display, Formatter};
 /// - The `data` must be in the OpenType font format.
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
-pub fn subset(data: &[u8], index: u32, mapper: &GidMapper) -> Result<Vec<u8>> {
-    let mut owned_mapper = mapper.clone();
-    let context = prepare_context(data, index, &mut owned_mapper)?;
-
+pub fn subset(data: &[u8], index: u32, gids: &[u16]) -> Result<(Vec<u8>, GidMapper)> {
+    let context = prepare_context(data, index, gids)?;
     _subset(context)
 }
 
-fn prepare_context<'a>(
-    data: &'a [u8],
-    index: u32,
-    mapper: &'a mut GidMapper,
-) -> Result<Context<'a>> {
+fn prepare_context<'a>(data: &'a [u8], index: u32, gids: &[u16]) -> Result<Context<'a>> {
     let face = parse(data, index)?;
     let kind = match (face.table(Tag::GLYF), face.table(Tag::CFF)) {
         (Some(_), _) => FontKind::TrueType,
@@ -81,16 +76,18 @@ fn prepare_context<'a>(
         _ => return Err(UnknownKind),
     };
 
-    let maxp = face.table(Tag::MAXP).ok_or(MalformedFont)?;
-    let mut r = Reader::new_at(maxp, 4);
-    let num_glyphs = r.read::<u16>().ok_or(MalformedFont)?;
-
-    if mapper.old_gids().any(|g| g >= num_glyphs) {
-        return Err(InvalidGidMapper);
-    }
+    let mut gid_set = BTreeSet::from_iter(gids.iter().copied());
+    // .notdef always is part of the subset.
+    gid_set.insert(0);
 
     if kind == FontKind::TrueType {
-        glyf::glyph_closure(&face, mapper)?;
+        glyf::glyph_closure(&face, &mut gid_set)?;
+    }
+
+    let mut mapper = GidMapper::new();
+
+    for gid in gid_set {
+        mapper.remap(gid);
     }
 
     Ok(Context {
@@ -102,7 +99,7 @@ fn prepare_context<'a>(
     })
 }
 
-fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
+fn _subset(mut ctx: Context) -> Result<(Vec<u8>, GidMapper)> {
     // See here for the required tables:
     // https://learn.microsoft.com/en-us/typography/opentype/spec/otff#required-tables
     // some of those are not strictly needed according to the PDF specification,
@@ -181,7 +178,7 @@ fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
 }
 
 /// Construct a brand new font.
-fn construct(mut ctx: Context) -> Vec<u8> {
+fn construct(mut ctx: Context) -> (Vec<u8>, GidMapper) {
     let mut cloned = ctx.face.records.clone();
     cloned.sort_by_key(|r| r.tag);
 
@@ -242,7 +239,7 @@ fn construct(mut ctx: Context) -> Vec<u8> {
         data[i..i + 4].copy_from_slice(&val.to_be_bytes());
     }
 
-    data
+    (data, ctx.mapper)
 }
 
 /// Calculate a checksum over the sliced data as a sum of u32s. If the data
@@ -263,7 +260,7 @@ struct Context<'a> {
     /// Original face.
     face: Face<'a>,
     /// A map from old gids to new gids, and the reverse
-    mapper: &'a GidMapper,
+    mapper: GidMapper,
     /// The kind of face.
     kind: FontKind,
     /// Subsetted tables.

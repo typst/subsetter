@@ -43,17 +43,8 @@ fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
 
     let gids: Vec<_> = parse_gids(gids, face.number_of_glyphs());
-    let mapper = {
-        let mut mapper = GidMapper::new();
 
-        for gid in &gids {
-            mapper.remap(*gid);
-        }
-
-        mapper
-    };
-
-    let subset = subset(&data, 0, &mapper)?;
+    let (subset, mapper) = subset(&data, 0, &gids)?;
 
     if SAVE_SUBSETS {
         save_font(&subset);
