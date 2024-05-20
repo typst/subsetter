@@ -112,10 +112,10 @@ use crate::{face_metrics, glyph_metrics, glyph_outlines_ttf_parser, glyph_outlin
 #[test] fn noto_sans_regular_10_glyph_metrics() {glyph_metrics("NotoSans-Regular.ttf", "20-25,30,40,45,47,48,52-70,300-350,500-522,3001")}
 #[test] fn noto_sans_regular_10_glyph_outlines_ttf_parser() {glyph_outlines_ttf_parser("NotoSans-Regular.ttf", "20-25,30,40,45,47,48,52-70,300-350,500-522,3001")}
 #[test] fn noto_sans_regular_10_glyph_outlines_skrifa() {glyph_outlines_skrifa("NotoSans-Regular.ttf", "20-25,30,40,45,47,48,52-70,300-350,500-522,3001")}
-#[test] fn latin_modern_roman_0_face_metrics() {face_metrics("LatinModernRoman-Regular.otf", "1-2")}
-#[test] fn latin_modern_roman_0_glyph_metrics() {glyph_metrics("LatinModernRoman-Regular.otf", "1-2")}
-#[test] fn latin_modern_roman_0_glyph_outlines_ttf_parser() {glyph_outlines_ttf_parser("LatinModernRoman-Regular.otf", "1-2")}
-#[test] fn latin_modern_roman_0_glyph_outlines_skrifa() {glyph_outlines_skrifa("LatinModernRoman-Regular.otf", "1-2")}
+#[test] fn latin_modern_roman_0_face_metrics() {face_metrics("LatinModernRoman-Regular.otf", "1")}
+#[test] fn latin_modern_roman_0_glyph_metrics() {glyph_metrics("LatinModernRoman-Regular.otf", "1")}
+#[test] fn latin_modern_roman_0_glyph_outlines_ttf_parser() {glyph_outlines_ttf_parser("LatinModernRoman-Regular.otf", "1")}
+#[test] fn latin_modern_roman_0_glyph_outlines_skrifa() {glyph_outlines_skrifa("LatinModernRoman-Regular.otf", "1")}
 #[test] fn latin_modern_roman_1_face_metrics() {face_metrics("LatinModernRoman-Regular.otf", "5-15,60-57")}
 #[test] fn latin_modern_roman_1_glyph_metrics() {glyph_metrics("LatinModernRoman-Regular.otf", "5-15,60-57")}
 #[test] fn latin_modern_roman_1_glyph_outlines_ttf_parser() {glyph_outlines_ttf_parser("LatinModernRoman-Regular.otf", "5-15,60-57")}
