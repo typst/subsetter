@@ -181,6 +181,17 @@ fn glyph_metrics(font_file: &str, gids: &str) {
             "{:?}",
             format!("metric glyph name didn't match for glyph {}.", glyph)
         );
+
+        if let Some(old_cff) = old_face.tables().cff {
+            let new_cff = new_face.tables().cff.unwrap();
+
+            assert_eq!(
+                old_cff.glyph_cid(GlyphId(glyph)),
+                new_cff.glyph_cid(GlyphId(mapped)),
+                "{:?}",
+                format!("metric glyph cid didn't match for glyph {}.", glyph)
+            );
+        }
     }
 }
 
