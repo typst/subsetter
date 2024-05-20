@@ -10,7 +10,6 @@ use operators::*;
 use std::fmt::{Debug, Formatter};
 
 pub type CharString<'a> = &'a [u8];
-pub type OwnedCharString = Vec<u8>;
 
 pub struct Decompiler<'a> {
     gsubr_handler: SubroutineHandler<'a>,
@@ -190,14 +189,6 @@ impl Debug for Program<'_> {
 }
 
 impl<'a> Program<'a> {
-    pub fn instructions(&self) -> &[Instruction<'a>] {
-        self.0.as_ref()
-    }
-
-    pub fn pop(&mut self) -> Option<Instruction> {
-        self.0.pop()
-    }
-
     pub fn push(&mut self, instruction: Instruction<'a>) {
         self.0.push(instruction);
     }
@@ -221,33 +212,6 @@ impl<'a> Program<'a> {
 
         w.finish()
     }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-}
-
-pub fn calc_subroutine_bias(len: u32) -> u16 {
-    if len < 1240 {
-        107
-    } else if len < 33900 {
-        1131
-    } else {
-        32768
-    }
-}
-
-pub fn unapply_bias(index: i32, bias: u16) -> Option<u32> {
-    let bias = i32::from(bias);
-
-    let index = index.checked_add(bias)?;
-    u32::try_from(index).ok()
-}
-
-pub fn apply_bias(index: i32, bias: u16) -> Option<i32> {
-    let bias = i32::from(bias);
-
-    index.checked_sub(bias)
 }
 
 #[allow(dead_code)]

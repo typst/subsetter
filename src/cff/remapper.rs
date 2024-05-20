@@ -49,15 +49,13 @@ mod tests {
         let mut sid_remapper = SidRemapper::new();
         assert_eq!(sid_remapper.remap(StringId(5)), StringId(5));
         assert_eq!(sid_remapper.remap(StringId(100)), StringId(100));
-        assert_eq!(sid_remapper.remap(StringId(400)), StringId(392));
-        assert_eq!(sid_remapper.remap(StringId(395)), StringId(393));
-        assert_eq!(sid_remapper.remap(StringId(502)), StringId(394));
+        assert_eq!(sid_remapper.remap(StringId(400)), StringId(391));
+        assert_eq!(sid_remapper.remap(StringId(395)), StringId(392));
+        assert_eq!(sid_remapper.remap(StringId(502)), StringId(393));
         assert_eq!(sid_remapper.remap(StringId(156)), StringId(156));
-        assert_eq!(sid_remapper.remap(StringId(480)), StringId(395));
-        assert_eq!(sid_remapper.remap(StringId(400)), StringId(392));
-        // TODO: Add edge case
-
-        assert_eq!(sid_remapper.get(StringId(395)), Some(StringId(393)));
+        assert_eq!(sid_remapper.remap(StringId(480)), StringId(394));
+        assert_eq!(sid_remapper.remap(StringId(400)), StringId(391));
+        assert_eq!(sid_remapper.get(StringId(395)), Some(StringId(392)));
 
         assert_eq!(
             sid_remapper.sids().collect::<Vec<_>>(),

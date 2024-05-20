@@ -19,11 +19,6 @@ impl<'a> ArgumentsStack<'a> {
     }
 
     #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.data.len() == 0
-    }
-
-    #[inline]
     pub fn push(&mut self, n: Number<'a>) -> Result<()> {
         if self.len() == MAX_OPERANDS_LEN {
             Err(MalformedFont)
@@ -31,11 +26,6 @@ impl<'a> ArgumentsStack<'a> {
             self.data.push(n);
             Ok(())
         }
-    }
-
-    #[inline]
-    pub fn at(&self, index: usize) -> Number {
-        self.data[index].clone()
     }
 
     #[inline]
@@ -48,10 +38,5 @@ impl<'a> ArgumentsStack<'a> {
         let mut ret_vec = vec![];
         std::mem::swap(&mut self.data, &mut ret_vec);
         ret_vec
-    }
-
-    #[inline]
-    pub fn clear(&mut self) {
-        self.data.clear()
     }
 }
