@@ -1,8 +1,10 @@
 use crate::cff::remapper::SidRemapper;
 use crate::cff::types::StringId;
+use crate::cff::FontKind;
 use crate::read::LazyArray16;
 use crate::read::{Readable, Reader};
 use crate::write::Writer;
+use crate::Error::{MalformedFont, SubsetError};
 use crate::GidMapper;
 
 #[derive(Clone, Copy, Debug)]
@@ -193,19 +195,24 @@ const EXPERT_SUBSET_ENCODING: &[u16] = &[
 
 pub(crate) fn write_charset(
     sid_remapper: &SidRemapper,
+    kind: &FontKind,
     charset: &Charset,
     gid_mapper: &GidMapper,
 ) -> crate::Result<Vec<u8>> {
-    // TODO: Explore using Format 1/2
     let mut w = Writer::new();
     // Format 0
     w.write::<u8>(0);
 
     // Skip 0
     for old_gid in gid_mapper.old_gids().skip(1) {
-        let sid = charset.gid_to_sid(old_gid).unwrap();
-        // TODO: need to remap SID in SID-keyed fonts.
-        w.write(sid)
+        let original_sid = charset.gid_to_sid(old_gid).ok_or(MalformedFont)?;
+        let new_sid = match kind {
+            // For SID-keyed fonts, we need to find out the remapped SID
+            FontKind::SID(_) => sid_remapper.get(original_sid).ok_or(SubsetError)?,
+            // For CID-keyed fonts, the SID actually represents CIDs, so it stays the same.
+            FontKind::CID(_) => original_sid,
+        };
+        w.write(new_sid)
     }
 
     Ok(w.finish())

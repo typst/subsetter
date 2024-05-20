@@ -1,4 +1,4 @@
-FONT="STIXTwoMath.otf"
+FONT="fonts/NotoSansCJKsc-Regular.otf"
 GIDS="5-30"
 
 fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap \
@@ -6,8 +6,8 @@ fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdm
  --notdef-outline --no-prune-unicode-ranges --no-prune-codepage-ranges &&
 fonttools ttx -f -o out_ft.xml out_ft.otf
 
-#cargo run -- $FONT out_ss.otf $GIDS &&
-#fonttools ttx -f -o out_ss.xml out_ss.otf
+cargo run -- $FONT out_ss.otf $GIDS &&
+fonttools ttx -f -o out_ss.xml out_ss.otf
 
 hb-subset $FONT --desubroutinize --gids=$GIDS --output-file=out_hb.otf
 fonttools ttx -f -o out_hb.xml out_hb.otf

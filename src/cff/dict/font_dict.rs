@@ -4,7 +4,7 @@ use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{create_index, parse_index, Index};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::types::{Number, StringId};
-use crate::cff::{dict, FontWriteContext};
+use crate::cff::{dict, CIDWriteContext, FontWriteContext};
 use crate::read::Reader;
 use crate::write::Writer;
 use crate::Error::{MalformedFont, SubsetError};

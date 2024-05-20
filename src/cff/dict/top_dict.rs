@@ -5,6 +5,7 @@ use crate::cff::types::{Number, StringId};
 use crate::cff::FontWriteContext;
 use crate::read::Reader;
 use crate::write::Writer;
+use crate::Error::SubsetError;
 use std::array;
 use std::collections::BTreeSet;
 use std::ops::Range;
@@ -103,10 +104,16 @@ pub(crate) fn write_top_dict_index(
                 operator.as_bytes(),
             ),
             FD_ARRAY => {
-                write(font_write_context.fd_array_offset.as_bytes(), operator.as_bytes())
+                let Some(cid_context) = &font_write_context.cid_context else {
+                    return Err(SubsetError);
+                };
+                write(cid_context.fd_array_offset.as_bytes(), operator.as_bytes())
             }
             FD_SELECT => {
-                write(font_write_context.fd_select_offset.as_bytes(), operator.as_bytes())
+                let Some(cid_context) = &font_write_context.cid_context else {
+                    return Err(SubsetError);
+                };
+                write(cid_context.fd_select_offset.as_bytes(), operator.as_bytes())
             }
             VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
             | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {
