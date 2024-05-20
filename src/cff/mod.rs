@@ -28,6 +28,7 @@ use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
 use crate::Error::SubsetError;
 use charset::charset_id;
 use std::collections::BTreeSet;
+use ttf_parser::GlyphId;
 use types::{IntegerNumber, StringId};
 
 #[derive(Clone, Debug)]
@@ -225,6 +226,10 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         subsetted_font = w.finish();
     }
 
+    let table = ttf_parser::cff::Table::parse(&subsetted_font).unwrap();
+    let mut sink = Sink(vec![]);
+    table.outline(GlyphId(2), &mut sink).unwrap();
+
     ctx.push(Tag::CFF, subsetted_font);
 
     Ok(())
@@ -234,7 +239,7 @@ fn write_sids(sid_remapper: &SidRemapper, strings: Index) -> Result<Vec<u8>> {
     for sid in sid_remapper.sids() {
         new_strings.push(
             strings
-                .get(sid.0.checked_sub(StringId::CUSTOM_SID).unwrap() as u32)
+                .get(sid.0.checked_sub(StringId::STANDARD_STRING_LEN).unwrap() as u32)
                 .unwrap()
                 .to_vec(),
         );

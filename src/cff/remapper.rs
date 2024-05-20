@@ -15,8 +15,8 @@ impl SidRemapper {
             return Some(old);
         } else {
             self.0
-                .get(old.0 - StringId::CUSTOM_SID)
-                .and_then(|n| n.checked_add(StringId::CUSTOM_SID))
+                .get(old.0 - StringId::STANDARD_STRING_LEN)
+                .and_then(|n| n.checked_add(StringId::STANDARD_STRING_LEN))
                 .map(StringId::from)
         }
     }
@@ -26,7 +26,8 @@ impl SidRemapper {
             return old;
         } else {
             StringId::from(
-                self.0.remap(old.0 - StringId::CUSTOM_SID) + StringId::CUSTOM_SID,
+                self.0.remap(old.0 - StringId::STANDARD_STRING_LEN)
+                    + StringId::STANDARD_STRING_LEN,
             )
         }
     }
@@ -34,7 +35,7 @@ impl SidRemapper {
     pub fn sids(&self) -> impl Iterator<Item = StringId> + '_ {
         self.0
             .sequential_iter()
-            .map(|n| StringId::from(n + StringId::CUSTOM_SID))
+            .map(|n| StringId::from(n + StringId::STANDARD_STRING_LEN))
     }
 }
 
@@ -54,6 +55,7 @@ mod tests {
         assert_eq!(sid_remapper.remap(StringId(156)), StringId(156));
         assert_eq!(sid_remapper.remap(StringId(480)), StringId(395));
         assert_eq!(sid_remapper.remap(StringId(400)), StringId(392));
+        // TODO: Add edge case
 
         assert_eq!(sid_remapper.get(StringId(395)), Some(StringId(393)));
 

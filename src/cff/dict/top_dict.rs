@@ -2,7 +2,7 @@ use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{create_index, parse_index};
 use crate::cff::remapper::SidRemapper;
 use crate::cff::types::{Number, StringId};
-use crate::cff::FontWriteContext;
+use crate::cff::{dict, FontWriteContext};
 use crate::read::Reader;
 use crate::write::Writer;
 use crate::Error::SubsetError;
@@ -137,7 +137,15 @@ pub(crate) fn write_top_dict_index(
                 w.write(operands[2].as_bytes());
                 write(&w.finish(), operator.as_bytes());
             }
-            PRIVATE => unimplemented!(),
+            PRIVATE => {
+                if let Some(offsets) = font_write_context.private_dicts_offsets.get(0) {
+                    let mut op_w = Writer::new();
+                    op_w.write(offsets.0.as_bytes());
+                    op_w.write(offsets.1.as_bytes());
+
+                    write(&op_w.finish(), PRIVATE.as_bytes());
+                }
+            }
             _ => {
                 dict_parser.parse_operands().unwrap();
                 let operands = dict_parser.operands();

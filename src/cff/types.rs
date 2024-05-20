@@ -299,10 +299,10 @@ fn parse_float_nibble(nibble: u8, mut idx: usize, data: &mut [u8]) -> Option<usi
 pub struct StringId(pub u16);
 
 impl StringId {
-    pub const CUSTOM_SID: u16 = 392;
+    pub const STANDARD_STRING_LEN: u16 = 391;
 
     pub fn is_standard_string(&self) -> bool {
-        self.0 < Self::CUSTOM_SID
+        self.0 < Self::STANDARD_STRING_LEN
     }
 }
 
@@ -345,7 +345,7 @@ impl Readable<'_> for U24 {
 impl Writeable for U24 {
     fn write(&self, w: &mut Writer) {
         let data = self.0.to_be_bytes();
-        w.write::<[u8; 3]>([data[0], data[1], data[2]]);
+        w.write::<[u8; 3]>([data[1], data[2], data[3]]);
     }
 }
 
@@ -353,6 +353,27 @@ impl Writeable for U24 {
 mod tests {
     use crate::cff::types::*;
     use crate::read::Reader;
+
+    #[test]
+    fn u24() {
+        let nums = [0u32, 45, 345, 54045, 32849324, 16777215];
+
+        for num in nums {
+            let wrapped = U24(num);
+
+            let mut w = Writer::new();
+            w.write(wrapped);
+            let first = w.finish();
+
+            let mut r = Reader::new(&first);
+            let rewritten = r.read::<U24>().unwrap();
+            let mut w = Writer::new();
+            w.write(rewritten);
+            let second = w.finish();
+
+            assert_eq!(first, second);
+        }
+    }
 
     #[test]
     fn size1_roundtrip() {

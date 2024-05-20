@@ -1,5 +1,5 @@
-FONT="fonts/NotoSansCJKsc-Regular.otf"
-GIDS="5-30"
+FONT="fonts/LatinModernRoman-Regular.otf"
+GIDS="0-800"
 
 fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap \
  --gids=$GIDS --glyph-names --desubroutinize --output-file=out_ft.otf \
@@ -9,8 +9,8 @@ fonttools ttx -f -o out_ft.xml out_ft.otf
 cargo run -- $FONT out_ss.otf $GIDS &&
 fonttools ttx -f -o out_ss.xml out_ss.otf
 
-hb-subset $FONT --desubroutinize --gids=$GIDS --output-file=out_hb.otf
-fonttools ttx -f -o out_hb.xml out_hb.otf
+#hb-subset $FONT --desubroutinize --gids=$GIDS --output-file=out_hb.otf
+#fonttools ttx -f -o out_hb.xml out_hb.otf
 
 #cargo run -- $FONT out_ss.otf $GIDS &&
 #fonttools ttx -f -o /Users/lstampfl/Programming/GitHub/subsetter/out_ss.ttx /Users/lstampfl/Programming/GitHub/subsetter/out_ss.otf &&
