@@ -13,20 +13,28 @@ mod cid_font;
 mod operator;
 mod subroutines;
 mod types;
+mod sid_font;
 
 use super::*;
-use crate::cff::charset::{parse_charset, write_charset, Charset};
+use crate::cff::charset::{Charset, parse_charset, write_charset};
 use crate::cff::charstring::Decompiler;
 use crate::cff::cid_font::{build_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::write_font_dict_index;
 use crate::cff::dict::private_dict::write_private_dicts;
-use crate::cff::dict::top_dict::{parse_top_dict, write_top_dict_index, TopDictData};
-use crate::cff::index::{create_index, parse_index, skip_index, Index};
+use crate::cff::dict::top_dict::{parse_top_dict, TopDictData, write_top_dict_index};
+use crate::cff::index::{create_index, Index, parse_index, skip_index};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
 use charset::charset_id;
 use std::collections::BTreeSet;
 use types::{IntegerNumber, StringId};
+use crate::cff::sid_font::SIDMetadata;
+
+#[derive(Clone, Debug)]
+pub(crate) enum FontKind<'a> {
+    SID(SIDMetadata<'a>),
+    CID(CIDMetadata<'a>),
+}
 
 #[derive(Clone)]
 pub struct Table<'a> {
@@ -38,7 +46,22 @@ pub struct Table<'a> {
     global_subrs: Index<'a>,
     charset: Charset<'a>,
     char_strings: Index<'a>,
-    cid_metadata: CIDMetadata<'a>,
+    font_kind: FontKind<'a>,
+}
+
+struct SIDWriteContext<'a> {
+    private_dict_offset: (IntegerNumber<'a>, IntegerNumber<'a>)
+}
+
+struct CIDWriteContext<'a> {
+    fd_array_offset: IntegerNumber<'a>,
+    fd_select_offset: IntegerNumber<'a>,
+    private_dicts_offsets: Vec<(IntegerNumber<'a>, IntegerNumber<'a>)>,
+}
+
+enum ContextType<'a> {
+    SIDWriteContext(SIDWriteContext<'a>),
+    CIDWriteContext(CIDWriteContext<'a>),
 }
 
 struct FontWriteContext<'a> {
@@ -46,29 +69,40 @@ struct FontWriteContext<'a> {
     charset_offset: IntegerNumber<'a>,
     encoding_offset: IntegerNumber<'a>,
     char_strings_offset: IntegerNumber<'a>,
-    // pub(crate) private: Option<Range<usize>>,
-    fd_array_offset: IntegerNumber<'a>,
-    fd_select_offset: IntegerNumber<'a>,
-    private_dicts_offsets: Vec<(IntegerNumber<'a>, IntegerNumber<'a>)>,
-    lsubrs_offsets: IntegerNumber<'a>,
+    context_type: ContextType<'a>
 }
 
 impl FontWriteContext<'_> {
-    pub fn new(num_font_dicts: u8) -> Self {
+    pub fn new_cid(num_font_dicts: u8) -> Self {
         Self {
             char_strings_offset: IntegerNumber::from_i32_as_int5(0),
             encoding_offset: IntegerNumber::from_i32_as_int5(0),
             charset_offset: IntegerNumber::from_i32_as_int5(0),
-            fd_select_offset: IntegerNumber::from_i32_as_int5(0),
-            fd_array_offset: IntegerNumber::from_i32_as_int5(0),
-            lsubrs_offsets: IntegerNumber::from_i32_as_int5(0),
-            private_dicts_offsets: vec![
-                (
+            context_type: ContextType::CIDWriteContext(CIDWriteContext {
+                fd_select_offset: IntegerNumber::from_i32_as_int5(0),
+                fd_array_offset: IntegerNumber::from_i32_as_int5(0),
+                private_dicts_offsets: vec![
+                    (
+                        IntegerNumber::from_i32_as_int5(0),
+                        IntegerNumber::from_i32_as_int5(0)
+                    );
+                    num_font_dicts as usize
+                ],
+            })
+        }
+    }
+
+    pub fn new_sid() -> Self {
+        Self {
+            char_strings_offset: IntegerNumber::from_i32_as_int5(0),
+            encoding_offset: IntegerNumber::from_i32_as_int5(0),
+            charset_offset: IntegerNumber::from_i32_as_int5(0),
+            context_type: ContextType::SIDWriteContext(SIDWriteContext {
+                private_dict_offset:  (
                     IntegerNumber::from_i32_as_int5(0),
                     IntegerNumber::from_i32_as_int5(0)
-                );
-                num_font_dicts as usize
-            ],
+                )
+            })
         }
     }
 }
@@ -82,13 +116,20 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
     };
 
     let lsubrs = {
-        let subroutines = table
-            .cid_metadata
-            .font_dicts
-            .iter()
-            .map(|font_dict| font_dict.local_subrs.into_iter().collect::<Vec<_>>())
-            .collect::<Vec<_>>();
-        SubroutineCollection::new(subroutines)
+        match table.font_kind {
+            FontKind::CID(cid) => {
+                let subroutines = cid
+                    .font_dicts
+                    .iter()
+                    .map(|font_dict| font_dict.local_subrs.into_iter().collect::<Vec<_>>())
+                    .collect::<Vec<_>>();
+                SubroutineCollection::new(subroutines)
+            }
+            FontKind::SID(sid) => {
+                let subroutines = sid.local_subrs.into_iter().collect::<Vec<_>>();
+                SubroutineCollection::new(vec![subroutines])
+            }
+        }
     };
 
     let mut used_fds = BTreeSet::new();
@@ -96,8 +137,14 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
     let mut char_strings = vec![];
 
     for old_gid in ctx.mapper.old_gids() {
-        let fd_index = table.cid_metadata.fd_select.font_dict_index(old_gid).unwrap();
-        used_fds.insert(fd_index);
+        let fd_index = match table.font_kind {
+            FontKind::CID(ref cid) => {
+                let fd_index = cid.fd_select.font_dict_index(old_gid).unwrap();
+                used_fds.insert(fd_index);
+                fd_index
+            }
+            FontKind::SID(_) => 0
+        };
 
         let decompiler = Decompiler::new(
             gsubrs.get_handler(),
@@ -175,12 +222,6 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
             &mut w,
         )?;
 
-        // Local Subr INDEX
-        // Again, always empty since we desubroutinize.
-        font_write_context.lsubrs_offsets =
-            IntegerNumber::from_i32_as_int5(w.len() as i32);
-        w.extend(&create_index(vec![])?);
-
         subsetted_font = w.finish();
     }
 
@@ -214,9 +255,16 @@ fn get_sid_remapper(table: &Table) -> SidRemapper {
         sid_remapper.remap(*sid);
     }
 
-    for font_dict in &table.cid_metadata.font_dicts {
-        if let Some(sid) = font_dict.font_name_sid {
-            sid_remapper.remap(sid);
+    match table.font_kind {
+        FontKind::SID(sid) => {
+
+        }
+        FontKind::CID(ref cid) => {
+            for font_dict in &cid.font_dicts {
+                if let Some(sid) = font_dict.font_name_sid {
+                    sid_remapper.remap(sid);
+                }
+            }
         }
     }
 
@@ -288,12 +336,6 @@ impl<'a> Table<'a> {
             cid_metadata,
         })
     }
-}
-
-/// Enumerates Charset IDs defined in the Adobe Technical Note #5176, Table 16
-mod encoding_id {
-    pub const STANDARD: usize = 0;
-    pub const EXPERT: usize = 1;
 }
 
 #[derive(Debug, Default, PartialEq)]
