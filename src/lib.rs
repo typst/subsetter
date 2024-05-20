@@ -105,14 +105,11 @@ fn _subset(mut ctx: Context) -> Result<(Vec<u8>, GidMapper)> {
     // some of those are not strictly needed according to the PDF specification,
     // but it's still better to include them.
 
-    // It's important that we process glyf and CFF first, because they might add
-    // additional GIDs that need to be included in the subset (because they are referenced
-    // indirectly, for example).
-
-    if ctx.kind == FontKind::Cff {
-        // cff::subset(&mut ctx);
-        // cff::discover(&mut ctx)?;
-    }
+    // Of the above tables, we are not including the following ones:
+    // - CFF2: Since we don't support CFF2
+    // - VORG: PDF doesn't use that table.
+    // - CMAP: CID fonts in PDF define their own cmaps, so we don't need to include
+    // it in the font program itself (see page 468 in the PDF spec.)
 
     if ctx.kind == FontKind::TrueType {
         // LOCA will be handled by GLYF
@@ -125,16 +122,9 @@ fn _subset(mut ctx: Context) -> Result<(Vec<u8>, GidMapper)> {
 
     if ctx.kind == FontKind::Cff {
         ctx.process(Tag::CFF)?;
-        // Typst doesn't support CFF2 or vertical writing anyway,
-        // so we don't need those.
-        // ctx.process(Tag::CFF2)?;
-        // ctx.process(Tag::VORG)?;
     }
 
     // Required tables.
-    // CMAP tables will be encoded separately into the PDF,
-    // so not needed.
-    // ctx.process(Tag::CMAP)?;
     ctx.process(Tag::HEAD)?;
     ctx.process(Tag::HMTX)?;
     ctx.process(Tag::MAXP)?;
