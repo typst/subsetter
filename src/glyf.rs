@@ -155,6 +155,7 @@ fn remap_component_glyph(mapper: &GidMapper, data: &[u8]) -> Result<Vec<u8>> {
     const MORE_COMPONENTS: u16 = 0x0020;
     const WE_HAVE_AN_X_AND_Y_SCALE: u16 = 0x0040;
     const WE_HAVE_A_TWO_BY_TWO: u16 = 0x0080;
+    const WE_HAVE_INSTRUCTIONS: u16 = 0x0100;
 
     let mut done;
 
@@ -187,6 +188,10 @@ fn remap_component_glyph(mapper: &GidMapper, data: &[u8]) -> Result<Vec<u8>> {
         done = flags & MORE_COMPONENTS == 0;
 
         if done {
+            if flags & WE_HAVE_INSTRUCTIONS != 0 {
+                w.write(r.tail().ok_or(MalformedFont)?);
+            }
+
             break;
         }
     }
