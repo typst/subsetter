@@ -28,7 +28,6 @@ use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
 use crate::Error::SubsetError;
 use charset::charset_id;
 use std::collections::BTreeSet;
-use ttf_parser::GlyphId;
 use types::{IntegerNumber, StringId};
 
 #[derive(Clone, Debug)]

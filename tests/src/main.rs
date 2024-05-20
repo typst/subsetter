@@ -1,7 +1,12 @@
 use sha2::{Digest, Sha256};
 use std::error::Error;
 use std::fs;
+use std::panic::Location;
 use std::path::PathBuf;
+use skrifa::MetadataProvider;
+use skrifa::outline::{DrawSettings, HintingInstance, HintingMode, OutlinePen};
+use skrifa::prelude::{LocationRef, Size};
+use skrifa::raw::TableProvider;
 use subsetter::{subset, GidMapper};
 use ttf_parser::GlyphId;
 
@@ -195,17 +200,48 @@ fn glyph_metrics(font_file: &str, gids: &str) {
     }
 }
 
-pub fn glyph_outlines(font_file: &str, gids: &str) {
+pub fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
+    let ctx = get_test_context(font_file, gids).unwrap();
+    let old_face = skrifa::FontRef::new(&ctx.font).unwrap();
+    let new_face = skrifa::FontRef::new(&ctx.subset).unwrap();
+    let hinting_instance = HintingInstance::new(
+        &old_face.outline_glyphs(),
+        Size::new(150.0),
+        LocationRef::default(),
+        HintingMode::Smooth { lcd_subpixel: None, preserve_linear_metrics: false }
+    ).unwrap();
+
+    let mut sink1 = Sink(vec![]);
+    let mut sink2 = Sink(vec![]);
+
+    let num_glyphs = old_face.maxp().unwrap().num_glyphs();
+
+    for glyph in (0..num_glyphs).filter(|g| ctx.gids.contains(g)) {
+        let new_glyph = ctx.mapper.get(glyph).unwrap();
+        let settings = DrawSettings::hinted(&hinting_instance, false);
+        let glyph1 = old_face.outline_glyphs().get(skrifa::GlyphId::new(glyph)).expect(&format!("failed to find glyph {} in old face", glyph));
+        glyph1.draw(settings, &mut sink1).unwrap();
+
+        let settings = DrawSettings::hinted(&hinting_instance, false);
+        let glyph2 = new_face.outline_glyphs().get(skrifa::GlyphId::new(new_glyph)).expect(&format!("failed to find glyph {} in new face", glyph));
+        glyph2.draw(settings, &mut sink2).unwrap();
+
+        assert_eq!(sink1, sink2, "glyph {} drawn didn't match.", glyph);
+    }
+}
+
+pub fn glyph_outlines_ttf_parser(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
 
     for glyph in (0..old_face.number_of_glyphs()).filter(|g| ctx.gids.contains(g)) {
+        let new_glyph = ctx.mapper.get(glyph).unwrap();
         let mut sink1 = Sink::default();
         let mut sink2 = Sink::default();
         old_face.outline_glyph(GlyphId(glyph), &mut sink1);
-        new_face.outline_glyph(GlyphId(ctx.mapper.get(glyph).unwrap()), &mut sink2);
-        assert_eq!(sink1, sink2);
+        new_face.outline_glyph(GlyphId(new_glyph), &mut sink2);
+        assert_eq!(sink1, sink2, "glyph {} drawn with ttf-parser didn't match.", glyph);
     }
 }
 
@@ -219,6 +255,28 @@ enum Inst {
     QuadTo(f32, f32, f32, f32),
     CurveTo(f32, f32, f32, f32, f32, f32),
     Close,
+}
+
+impl OutlinePen for Sink {
+    fn move_to(&mut self, x: f32, y: f32) {
+        self.0.push(Inst::MoveTo(x, y));
+    }
+
+    fn line_to(&mut self, x: f32, y: f32) {
+        self.0.push(Inst::LineTo(x, y));
+    }
+
+    fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
+        self.0.push(Inst::QuadTo(x1, y1, x, y));
+    }
+
+    fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
+        self.0.push(Inst::CurveTo(x1, y1, x2, y2, x, y));
+    }
+
+    fn close(&mut self) {
+        self.0.push(Inst::Close);
+    }
 }
 
 impl ttf_parser::OutlineBuilder for Sink {

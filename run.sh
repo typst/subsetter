@@ -1,5 +1,5 @@
-FONT="fonts/LatinModernRoman-Regular.otf"
-GIDS="65532"
+FONT="fonts/ClickerScript-Regular.ttf"
+GIDS="0"
 
 fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap \
  --gids=$GIDS --glyph-names --desubroutinize --output-file=out_ft.otf \
