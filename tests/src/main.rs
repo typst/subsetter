@@ -1,12 +1,12 @@
 use sha2::{Digest, Sha256};
+use skrifa::outline::{DrawSettings, HintingInstance, HintingMode, OutlinePen};
+use skrifa::prelude::{LocationRef, Size};
+use skrifa::raw::TableProvider;
+use skrifa::MetadataProvider;
 use std::error::Error;
 use std::fs;
 use std::panic::Location;
 use std::path::PathBuf;
-use skrifa::MetadataProvider;
-use skrifa::outline::{DrawSettings, HintingInstance, HintingMode, OutlinePen};
-use skrifa::prelude::{LocationRef, Size};
-use skrifa::raw::TableProvider;
 use subsetter::{subset, GidMapper};
 use ttf_parser::GlyphId;
 
@@ -208,8 +208,9 @@ pub fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
         &old_face.outline_glyphs(),
         Size::new(150.0),
         LocationRef::default(),
-        HintingMode::Smooth { lcd_subpixel: None, preserve_linear_metrics: false }
-    ).unwrap();
+        HintingMode::Smooth { lcd_subpixel: None, preserve_linear_metrics: false },
+    )
+    .unwrap();
 
     let mut sink1 = Sink(vec![]);
     let mut sink2 = Sink(vec![]);
@@ -219,11 +220,17 @@ pub fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
     for glyph in (0..num_glyphs).filter(|g| ctx.gids.contains(g)) {
         let new_glyph = ctx.mapper.get(glyph).unwrap();
         let settings = DrawSettings::hinted(&hinting_instance, false);
-        let glyph1 = old_face.outline_glyphs().get(skrifa::GlyphId::new(glyph)).expect(&format!("failed to find glyph {} in old face", glyph));
+        let glyph1 = old_face
+            .outline_glyphs()
+            .get(skrifa::GlyphId::new(glyph))
+            .expect(&format!("failed to find glyph {} in old face", glyph));
         glyph1.draw(settings, &mut sink1).unwrap();
 
         let settings = DrawSettings::hinted(&hinting_instance, false);
-        let glyph2 = new_face.outline_glyphs().get(skrifa::GlyphId::new(new_glyph)).expect(&format!("failed to find glyph {} in new face", glyph));
+        let glyph2 = new_face
+            .outline_glyphs()
+            .get(skrifa::GlyphId::new(new_glyph))
+            .expect(&format!("failed to find glyph {} in new face", glyph));
         glyph2.draw(settings, &mut sink2).unwrap();
 
         assert_eq!(sink1, sink2, "glyph {} drawn didn't match.", glyph);
