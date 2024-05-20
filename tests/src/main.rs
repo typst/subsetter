@@ -76,58 +76,66 @@ fn parse_gids(gids: &str, max: u16) -> Vec<u16> {
     gids
 }
 
-/// Check that for each character that was mapped to a gid that is in the subset,
-/// a corresponding map also exists in the new face.
-// fn cmap(font_file: &str, gids: &str) {
-//     let ctx = get_test_context(font_file, gids).unwrap();
-//     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
-//     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
-//     let mut all_chars = vec![];
-//
-//     old_face.tables().cmap.unwrap().subtables.into_iter().for_each(|s| {
-//         s.codepoints(|c| all_chars.push(c));
-//     });
-//
-//     let relevant_chars = all_chars
-//         .iter()
-//         .map(|c| char::from_u32(*c).unwrap())
-//         .filter_map(|c| match old_face.glyph_index(c) {
-//             Some(g) if ctx.gids.contains(&g.0) => Some((c, g)),
-//             _ => None,
-//         })
-//         .collect::<Vec<_>>();
-//
-//     for (c, gid) in relevant_chars {
-//         let mapped_gid = ctx.mapper.get(gid.0);
-//         let cur_gid = new_face.glyph_index(c).map(|g| g.0);
-//         assert_eq!((c, mapped_gid), (c, cur_gid));
-//     }
-// }
-
 fn face_metrics(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
 
-    assert_eq!(old_face.width(), new_face.width());
-    assert_eq!(old_face.height(), new_face.height());
-    assert_eq!(old_face.ascender(), new_face.ascender());
-    assert_eq!(old_face.descender(), new_face.descender());
-    assert_eq!(old_face.style(), new_face.style());
-    assert_eq!(old_face.capital_height(), new_face.capital_height());
-    assert_eq!(old_face.is_italic(), new_face.is_italic());
-    assert_eq!(old_face.is_bold(), new_face.is_bold());
-    assert_eq!(old_face.is_monospaced(), new_face.is_monospaced());
-    assert_eq!(old_face.is_oblique(), new_face.is_oblique());
-    assert_eq!(old_face.is_regular(), new_face.is_regular());
-    assert_eq!(old_face.x_height(), new_face.x_height());
-    assert_eq!(old_face.strikeout_metrics(), new_face.strikeout_metrics());
-    assert_eq!(old_face.subscript_metrics(), new_face.subscript_metrics());
-    assert_eq!(old_face.superscript_metrics(), new_face.superscript_metrics());
-    assert_eq!(old_face.typographic_ascender(), new_face.typographic_ascender());
-    assert_eq!(old_face.typographic_descender(), new_face.typographic_descender());
-    assert_eq!(old_face.typographic_line_gap(), new_face.typographic_line_gap());
-    assert_eq!(old_face.units_per_em(), new_face.units_per_em());
+    assert_eq!(old_face.width(), new_face.width(), "face width didn't match");
+    assert_eq!(old_face.height(), new_face.height(), "face height didn't match");
+    assert_eq!(old_face.ascender(), new_face.ascender(), "face ascender didn't match");
+    assert_eq!(old_face.descender(), new_face.descender(), "face descender didn't match");
+    assert_eq!(old_face.style(), new_face.style(), "face style didn't match");
+    assert_eq!(
+        old_face.capital_height(),
+        new_face.capital_height(),
+        "face capital didn't match"
+    );
+    assert_eq!(old_face.is_italic(), new_face.is_italic(), "face italic didn't match");
+    assert_eq!(old_face.is_bold(), new_face.is_bold(), "face bold didn't match");
+    assert_eq!(
+        old_face.is_monospaced(),
+        new_face.is_monospaced(),
+        "face monospaced didn't match"
+    );
+    assert_eq!(old_face.is_oblique(), new_face.is_oblique(), "face oblique didn't match");
+    assert_eq!(old_face.is_regular(), new_face.is_regular(), "face regular didn't match");
+    assert_eq!(old_face.x_height(), new_face.x_height(), "face x_height didn't match");
+    assert_eq!(
+        old_face.strikeout_metrics(),
+        new_face.strikeout_metrics(),
+        "face strikeout metrics didn't match"
+    );
+    assert_eq!(
+        old_face.subscript_metrics(),
+        new_face.subscript_metrics(),
+        "face subscript metrics didn't match"
+    );
+    assert_eq!(
+        old_face.superscript_metrics(),
+        new_face.superscript_metrics(),
+        "face superscript matrics didn't match"
+    );
+    assert_eq!(
+        old_face.typographic_ascender(),
+        new_face.typographic_ascender(),
+        "face typographic ascender didn't match"
+    );
+    assert_eq!(
+        old_face.typographic_descender(),
+        new_face.typographic_descender(),
+        "face typographic descender didn't match"
+    );
+    assert_eq!(
+        old_face.typographic_line_gap(),
+        new_face.typographic_line_gap(),
+        "face typographic line gap didn't match"
+    );
+    assert_eq!(
+        old_face.units_per_em(),
+        new_face.units_per_em(),
+        "face units per em didn't match"
+    );
 }
 
 fn glyph_metrics(font_file: &str, gids: &str) {
@@ -146,26 +154,32 @@ fn glyph_metrics(font_file: &str, gids: &str) {
         assert_eq!(
             old_face.glyph_bounding_box(GlyphId(glyph)),
             new_face.glyph_bounding_box(GlyphId(mapped)),
-        );
-
-        assert_eq!(
-            old_face.glyph_hor_advance(GlyphId(glyph)),
-            new_face.glyph_hor_advance(GlyphId(mapped)),
+            "{:?}",
+            format!("metric glyph bounding box didn't match for glyph {}.", glyph)
         );
 
         assert_eq!(
             old_face.glyph_hor_side_bearing(GlyphId(glyph)),
             new_face.glyph_hor_side_bearing(GlyphId(mapped)),
+            "{:?}",
+            format!(
+                "metric glyph horizontal side bearing didn't match for glyph {}.",
+                glyph
+            )
         );
 
         assert_eq!(
             old_face.glyph_hor_advance(GlyphId(glyph)),
             new_face.glyph_hor_advance(GlyphId(mapped)),
+            "{:?}",
+            format!("metric glyph horizontal advance didn't match for glyph {}.", glyph)
         );
 
         assert_eq!(
             old_face.glyph_name(GlyphId(glyph)),
             new_face.glyph_name(GlyphId(mapped)),
+            "{:?}",
+            format!("metric glyph name didn't match for glyph {}.", glyph)
         );
     }
 }

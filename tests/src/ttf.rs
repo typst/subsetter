@@ -4,6 +4,21 @@
 
 use crate::{face_metrics, glyph_metrics, glyph_outlines};
 
+#[test] fn noto_sans_cjk_0_face_metrics() {face_metrics("NotoSansCJKsc-Regular.otf", "1-2")}
+#[test] fn noto_sans_cjk_0_glyph_metrics() {glyph_metrics("NotoSansCJKsc-Regular.otf", "1-2")}
+#[test] fn noto_sans_cjk_0_glyph_outlines() {glyph_outlines("NotoSansCJKsc-Regular.otf", "1-2")}
+#[test] fn noto_sans_cjk_1_face_metrics() {face_metrics("NotoSansCJKsc-Regular.otf", "4500-5746")}
+#[test] fn noto_sans_cjk_1_glyph_metrics() {glyph_metrics("NotoSansCJKsc-Regular.otf", "4500-5746")}
+#[test] fn noto_sans_cjk_1_glyph_outlines() {glyph_outlines("NotoSansCJKsc-Regular.otf", "4500-5746")}
+#[test] fn noto_sans_cjk_2_face_metrics() {face_metrics("NotoSansCJKsc-Regular.otf", "12000-14000,34-60,80-90")}
+#[test] fn noto_sans_cjk_2_glyph_metrics() {glyph_metrics("NotoSansCJKsc-Regular.otf", "12000-14000,34-60,80-90")}
+#[test] fn noto_sans_cjk_2_glyph_outlines() {glyph_outlines("NotoSansCJKsc-Regular.otf", "12000-14000,34-60,80-90")}
+#[test] fn noto_sans_cjk_3_face_metrics() {face_metrics("NotoSansCJKsc-Regular.otf", "45-90,16000-16897,23569-25697")}
+#[test] fn noto_sans_cjk_3_glyph_metrics() {glyph_metrics("NotoSansCJKsc-Regular.otf", "45-90,16000-16897,23569-25697")}
+#[test] fn noto_sans_cjk_3_glyph_outlines() {glyph_outlines("NotoSansCJKsc-Regular.otf", "45-90,16000-16897,23569-25697")}
+#[test] fn noto_sans_cjk_4_face_metrics() {face_metrics("NotoSansCJKsc-Regular.otf", "65532")}
+#[test] fn noto_sans_cjk_4_glyph_metrics() {glyph_metrics("NotoSansCJKsc-Regular.otf", "65532")}
+#[test] fn noto_sans_cjk_4_glyph_outlines() {glyph_outlines("NotoSansCJKsc-Regular.otf", "65532")}
 #[test] fn mplus1p_regular_0_face_metrics() {face_metrics("MPLUS1p-Regular.ttf", "0,1")}
 #[test] fn mplus1p_regular_0_glyph_metrics() {glyph_metrics("MPLUS1p-Regular.ttf", "0,1")}
 #[test] fn mplus1p_regular_0_glyph_outlines() {glyph_outlines("MPLUS1p-Regular.ttf", "0,1")}

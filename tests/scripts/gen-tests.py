@@ -28,6 +28,7 @@ def main():
                     for function in functions:
                         function_name = f"{p.stem}_{i}_{function}"
                         parts = line.split(";")
+                        print(parts)
 
                         font_file = parts[0]
                         gids = parts[1]

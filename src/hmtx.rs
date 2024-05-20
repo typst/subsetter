@@ -25,7 +25,8 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
             let offset = if has_advance_width {
                 old_gid as usize * 4
             } else {
-                (num_h_metrics * 4 + (old_gid - num_h_metrics) * 2) as usize
+                let num_h_metrics = num_h_metrics as usize;
+                num_h_metrics * 4 + (old_gid as usize - num_h_metrics) * 2
             };
 
             let mut r = Reader::new(hmtx.get(offset..).ok_or(MalformedFont)?);

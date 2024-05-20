@@ -1,5 +1,5 @@
 FONT="fonts/LatinModernRoman-Regular.otf"
-GIDS="0-800"
+GIDS="65532"
 
 fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap \
  --gids=$GIDS --glyph-names --desubroutinize --output-file=out_ft.otf \
