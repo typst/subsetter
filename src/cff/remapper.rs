@@ -12,7 +12,7 @@ impl SidRemapper {
 
     pub fn get(&self, old: StringId) -> Option<StringId> {
         if old.is_standard_string() {
-            return Some(old);
+            Some(old)
         } else {
             self.0
                 .get(old.0 - StringId::STANDARD_STRING_LEN)
@@ -23,7 +23,7 @@ impl SidRemapper {
 
     pub fn remap(&mut self, old: StringId) -> StringId {
         if old.is_standard_string() {
-            return old;
+            old
         } else {
             StringId::from(
                 self.0.remap(old.0 - StringId::STANDARD_STRING_LEN)

@@ -53,7 +53,7 @@ mod write;
 use crate::read::{Readable, Reader};
 pub use crate::remapper::GidMapper;
 use crate::write::{Writeable, Writer};
-use crate::Error::{InvalidGidMapper, MalformedFont, UnknownKind};
+use crate::Error::{MalformedFont, UnknownKind};
 use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::fmt::{self, Debug, Display, Formatter};

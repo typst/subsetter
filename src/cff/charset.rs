@@ -208,9 +208,9 @@ pub(crate) fn write_charset(
         let original_sid = charset.gid_to_sid(old_gid).ok_or(MalformedFont)?;
         let new_sid = match kind {
             // For SID-keyed fonts, we need to find out the remapped SID
-            FontKind::SID(_) => sid_remapper.get(original_sid).ok_or(SubsetError)?,
+            FontKind::Sid(_) => sid_remapper.get(original_sid).ok_or(SubsetError)?,
             // For CID-keyed fonts, the SID actually represents CIDs, so it stays the same.
-            FontKind::CID(_) => original_sid,
+            FontKind::Cid(_) => original_sid,
         };
         w.write(new_sid)
     }

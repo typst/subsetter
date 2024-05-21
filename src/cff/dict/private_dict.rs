@@ -20,11 +20,8 @@ pub fn parse_subr_offset(data: &[u8]) -> Option<usize> {
     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
 
     while let Some(operator) = dict_parser.parse_next() {
-        match operator {
-            SUBRS => {
-                return Some(dict_parser.parse_offset()?);
-            }
-            _ => {}
+        if operator == SUBRS {
+            return dict_parser.parse_offset();
         }
     }
 

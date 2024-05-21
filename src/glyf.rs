@@ -119,7 +119,7 @@ fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> 
         let num_contours = r.read::<i16>().ok_or(MalformedFont)?;
 
         let glyph_data = if num_contours < 0 {
-            Cow::Owned(remap_component_glyph(&ctx.mapper, &glyph_data)?)
+            Cow::Owned(remap_component_glyph(&ctx.mapper, glyph_data)?)
         } else {
             // Simple glyphs don't need any subsetting.
             Cow::Borrowed(glyph_data)

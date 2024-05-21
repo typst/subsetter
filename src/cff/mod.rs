@@ -32,8 +32,8 @@ use types::{IntegerNumber, StringId};
 
 #[derive(Clone, Debug)]
 pub(crate) enum FontKind<'a> {
-    SID(SIDMetadata<'a>),
-    CID(CIDMetadata<'a>),
+    Sid(SIDMetadata<'a>),
+    Cid(CIDMetadata<'a>),
 }
 
 #[derive(Clone)]
@@ -97,7 +97,7 @@ impl FontWriteContext<'_> {
     }
 }
 
-pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
+pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let table = Table::parse(ctx).unwrap();
 
     let gsubrs = {
@@ -107,7 +107,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
 
     let lsubrs = {
         match &table.font_kind {
-            FontKind::CID(cid) => {
+            FontKind::Cid(cid) => {
                 let subroutines = cid
                     .font_dicts
                     .iter()
@@ -117,7 +117,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
                     .collect::<Vec<_>>();
                 SubroutineCollection::new(subroutines)
             }
-            FontKind::SID(sid) => {
+            FontKind::Sid(sid) => {
                 let subroutines = sid.local_subrs.into_iter().collect::<Vec<_>>();
                 SubroutineCollection::new(vec![subroutines])
             }
@@ -130,12 +130,12 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
 
     for old_gid in ctx.mapper.old_gids() {
         let fd_index = match &table.font_kind {
-            FontKind::CID(ref cid) => {
+            FontKind::Cid(ref cid) => {
                 let fd_index = cid.fd_select.font_dict_index(old_gid).unwrap();
                 used_fds.insert(fd_index);
                 fd_index
             }
-            FontKind::SID(_) => 0,
+            FontKind::Sid(_) => 0,
         };
 
         let decompiler = Decompiler::new(
@@ -153,8 +153,8 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
     }
 
     let mut font_write_context = match table.font_kind {
-        FontKind::SID(_) => FontWriteContext::new_sid(),
-        FontKind::CID(_) => FontWriteContext::new_cid(fd_remapper.len()),
+        FontKind::Sid(_) => FontWriteContext::new_sid(),
+        FontKind::Cid(_) => FontWriteContext::new_cid(fd_remapper.len()),
     };
     let mut subsetted_font = vec![];
 
@@ -190,7 +190,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         );
 
         if let Some(ref mut cid) = font_write_context.cid_context {
-            let FontKind::CID(ref cid_metadata) = table.font_kind else {
+            let FontKind::Cid(ref cid_metadata) = table.font_kind else {
                 return Err(SubsetError);
             };
 
@@ -204,7 +204,7 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
                 &fd_remapper,
                 &sid_remapper,
                 &mut font_write_context,
-                &cid_metadata,
+                cid_metadata,
             )?);
         }
 
@@ -214,11 +214,11 @@ pub fn subset<'a>(ctx: &mut Context<'a>) -> Result<()> {
         w.extend(&create_index(char_strings.iter().map(|p| p.compile()).collect())?);
 
         match table.font_kind {
-            FontKind::SID(ref sid) => {
+            FontKind::Sid(ref sid) => {
                 write_sid_private_dicts(&mut font_write_context, sid, &mut w)?
             }
-            FontKind::CID(ref cid) => {
-                write_private_dicts(&fd_remapper, &mut font_write_context, &cid, &mut w)?;
+            FontKind::Cid(ref cid) => {
+                write_private_dicts(&fd_remapper, &mut font_write_context, cid, &mut w)?;
             }
         }
 
@@ -249,14 +249,14 @@ fn get_sid_remapper(table: &Table, gid_remapper: &GidMapper) -> SidRemapper {
     }
 
     match table.font_kind {
-        FontKind::SID(_) => {
+        FontKind::Sid(_) => {
             for gid in gid_remapper.old_gids() {
                 if let Some(sid) = table.charset.gid_to_sid(gid) {
                     sid_remapper.remap(sid);
                 }
             }
         }
-        FontKind::CID(ref cid) => {
+        FontKind::Cid(ref cid) => {
             for font_dict in &cid.font_dicts {
                 if let Some(sid) = font_dict.font_name_sid {
                     sid_remapper.remap(sid);
@@ -318,12 +318,12 @@ impl<'a> Table<'a> {
         };
 
         let font_kind = if top_dict_data.has_ros {
-            FontKind::CID(
+            FontKind::Cid(
                 cid_font::parse_cid_metadata(cff, &top_dict_data, number_of_glyphs)
                     .ok_or(MalformedFont)?,
             )
         } else {
-            FontKind::SID(sid_font::parse_sid_metadata(cff, &top_dict_data))
+            FontKind::Sid(sid_font::parse_sid_metadata(cff, &top_dict_data))
         };
 
         Ok(Self {

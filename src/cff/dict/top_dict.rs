@@ -22,7 +22,7 @@ pub struct TopDictData {
     pub(crate) has_ros: bool, // pub(crate) font_name: Option<StringId>,
 }
 
-pub fn parse_top_dict<'a>(r: &mut Reader<'_>) -> Option<TopDictData> {
+pub fn parse_top_dict(r: &mut Reader<'_>) -> Option<TopDictData> {
     use super::operators::*;
     let mut top_dict = TopDictData::default();
 
@@ -138,7 +138,7 @@ pub(crate) fn write_top_dict_index(
                 write(&w.finish(), operator.as_bytes());
             }
             PRIVATE => {
-                if let Some(offsets) = font_write_context.private_dicts_offsets.get(0) {
+                if let Some(offsets) = font_write_context.private_dicts_offsets.first() {
                     let mut op_w = Writer::new();
                     op_w.write(offsets.0.as_bytes());
                     op_w.write(offsets.1.as_bytes());

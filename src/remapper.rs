@@ -41,12 +41,11 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
     }
 
     fn new_with_count(count: C) -> Self {
-        let mapper = Self {
+        Self {
             counter: count,
             forward: BTreeMap::new(),
             backward: Vec::new(),
-        };
-        mapper
+        }
     }
 
     pub fn get(&self, old: T) -> Option<T> {
@@ -100,11 +99,11 @@ impl GidMapper {
     }
 
     pub fn iter(&self) -> GidIterator {
-        return GidIterator {
+        GidIterator {
             current: 0,
             max: self.num_gids(),
             entries: &self.0.backward,
-        };
+        }
     }
 
     // Returned gids are sorted by their new ID.

@@ -107,7 +107,7 @@ impl<'a> IntegerNumber<'a> {
             )),
             29 => Some(IntegerNumber(
                 Cow::Borrowed(byte_reader.read_bytes(5)?),
-                i32::from(r.read::<i32>()?),
+                r.read::<i32>()?,
             )),
             32..=246 => {
                 let n = i32::from(b0) - 139;
@@ -136,20 +136,20 @@ impl<'a> IntegerNumber<'a> {
     }
 
     pub fn from_i32(num: i32) -> Self {
-        if num >= -107 && num <= 107 {
+        if (-107..=107).contains(&num) {
             let b0 = u8::try_from(num + 139).unwrap();
             Self(Cow::Owned(vec![b0]), num)
-        } else if num >= 108 && num <= 1131 {
+        } else if (108..=1131).contains(&num) {
             let temp = num - 108;
             let b0 = u8::try_from(temp / 256 + 247).unwrap();
             let b1 = u8::try_from(temp % 256).unwrap();
             Self(Cow::Owned(vec![b0, b1]), num)
-        } else if num >= -1131 && num <= -108 {
+        } else if (-1131..=-108).contains(&num) {
             let temp = -num - 108;
             let b0 = u8::try_from(temp / 256 + 251).unwrap();
             let b1 = u8::try_from(temp % 256).unwrap();
             Self(Cow::Owned(vec![b0, b1]), num)
-        } else if num >= -32768 && num <= 32767 {
+        } else if (-32768..=32767).contains(&num) {
             let bytes = i16::try_from(num).unwrap().to_be_bytes();
             Self(Cow::Owned(vec![28, bytes[0], bytes[1]]), num)
         } else {
@@ -165,9 +165,9 @@ impl<'a> IntegerNumber<'a> {
 
 #[derive(Clone)]
 pub enum Number<'a> {
-    RealNumber(RealNumber<'a>),
-    IntegerNumber(IntegerNumber<'a>),
-    FixedNumber(FixedNumber<'a>),
+    Real(RealNumber<'a>),
+    Integer(IntegerNumber<'a>),
+    Fixed(FixedNumber<'a>),
 }
 
 impl Default for Number<'_> {
@@ -185,9 +185,9 @@ impl Debug for Number<'_> {
 impl<'a> Number<'a> {
     pub fn as_bytes(&self) -> &[u8] {
         match self {
-            Number::RealNumber(real_num) => real_num.as_bytes(),
-            Number::IntegerNumber(int_num) => int_num.as_bytes(),
-            Number::FixedNumber(fixed_num) => fixed_num.as_bytes(),
+            Number::Real(real_num) => real_num.as_bytes(),
+            Number::Integer(int_num) => int_num.as_bytes(),
+            Number::Fixed(fixed_num) => fixed_num.as_bytes(),
         }
     }
 
@@ -201,45 +201,45 @@ impl<'a> Number<'a> {
 
     fn parse_number(r: &mut Reader<'a>, charstring_num: bool) -> Option<Number<'a>> {
         match r.peak::<u8>()? {
-            30 => Some(Number::RealNumber(RealNumber::parse(r)?)),
+            30 => Some(Number::Real(RealNumber::parse(r)?)),
             255 => {
                 if charstring_num {
-                    return Some(Number::FixedNumber(FixedNumber::parse(r)?));
+                    return Some(Number::Fixed(FixedNumber::parse(r)?));
                 }
 
-                return None;
+                None
             }
-            _ => Some(Number::IntegerNumber(IntegerNumber::parse(r)?)),
+            _ => Some(Number::Integer(IntegerNumber::parse(r)?)),
         }
     }
 
     pub fn from_i32(num: i32) -> Self {
-        Number::IntegerNumber(IntegerNumber::from_i32(num))
+        Number::Integer(IntegerNumber::from_i32(num))
     }
 
     pub fn zero() -> Self {
-        Number::IntegerNumber(IntegerNumber::from_i32(0))
+        Number::Integer(IntegerNumber::from_i32(0))
     }
 
     pub fn as_f64(&self) -> f64 {
         match self {
-            Number::IntegerNumber(int) => int.as_i32() as f64,
-            Number::RealNumber(real) => real.1 as f64,
-            Number::FixedNumber(fixed) => fixed.as_f32() as f64,
+            Number::Integer(int) => int.as_i32() as f64,
+            Number::Real(real) => real.1 as f64,
+            Number::Fixed(fixed) => fixed.as_f32() as f64,
         }
     }
 
     pub fn as_i32(&self) -> Option<i32> {
         match self {
-            Number::IntegerNumber(int) => Some(int.as_i32()),
-            Number::RealNumber(rn) => {
+            Number::Integer(int) => Some(int.as_i32()),
+            Number::Real(rn) => {
                 if rn.1.fract() == 0.0 {
                     Some(rn.1 as i32)
                 } else {
                     None
                 }
             }
-            Number::FixedNumber(fixn) => {
+            Number::Fixed(fixn) => {
                 let num = fixn.as_f32();
                 if num.fract() == 0.0 {
                     Some(num as i32)

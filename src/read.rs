@@ -75,7 +75,7 @@ impl<'a> Reader<'a> {
 
     /// Skip the next `n` bytes from the stream.
     pub fn skip_bytes(&mut self, n: usize) {
-        self.read_bytes(n).map(|_| ());
+        self.read_bytes(n);
     }
 }
 

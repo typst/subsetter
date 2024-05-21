@@ -19,7 +19,7 @@ pub struct Decompiler<'a> {
     hint_mask_bytes: u16,
 }
 
-impl<'a, 'b> Decompiler<'a> {
+impl<'a> Decompiler<'a> {
     pub fn new(
         gsubr_handler: SubroutineHandler<'a>,
         lsubr_handler: SubroutineHandler<'a>,
@@ -205,7 +205,7 @@ impl<'a> Program<'a> {
                     w.write(op.as_bytes());
                 }
                 Instruction::HintMask(hm) => {
-                    w.extend(*hm);
+                    w.extend(hm);
                 }
             }
         }

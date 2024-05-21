@@ -8,10 +8,7 @@ impl<'a> SubroutineCollection<'a> {
     pub fn new(subroutines: Vec<Vec<CharString<'a>>>) -> Self {
         debug_assert!(subroutines.len() <= 255);
         Self {
-            subroutines: subroutines
-                .into_iter()
-                .map(|c| SubroutineContainer::new(c))
-                .collect(),
+            subroutines: subroutines.into_iter().map(SubroutineContainer::new).collect(),
         }
     }
 
