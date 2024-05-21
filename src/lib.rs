@@ -77,18 +77,14 @@ fn prepare_context<'a>(data: &'a [u8], index: u32, gids: &[u16]) -> Result<Conte
     };
 
     let mut gid_set = BTreeSet::from_iter(gids.iter().copied());
-    // .notdef always is part of the subset.
-    gid_set.insert(0);
 
     if kind == FontKind::TrueType {
         glyf::glyph_closure(&face, &mut gid_set)?;
     }
 
-    let mut mapper = GlyphRemapper::new();
-
-    for gid in gid_set {
-        mapper.remap(gid);
-    }
+    let mapper = GlyphRemapper::new_from_glyphs(
+        gid_set.into_iter().collect::<Vec<_>>().as_slice(),
+    );
 
     Ok(Context {
         face,

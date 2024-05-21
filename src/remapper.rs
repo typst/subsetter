@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Add;
 
 /// A structure that allows to remap numeric types to new
@@ -100,13 +100,32 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
 #[derive(Clone)]
 pub struct GlyphRemapper(Remapper<u16, u16>);
 
+impl Default for GlyphRemapper {
+    fn default() -> Self {
+        let mut remapper = Remapper::new();
+        // .notdef is always a part of a subset.
+        remapper.remap(0);
+        GlyphRemapper(remapper)
+    }
+}
+
 impl GlyphRemapper {
     /// Create a new instance of a glyph remapper.
     pub fn new() -> Self {
-        let mut remapper = Remapper::new();
-        // We always map
-        remapper.remap(0);
-        GlyphRemapper(remapper)
+        Self::default()
+    }
+
+    /// Create a remapper from an existing set of glyphs. The method
+    /// will ensure that the mapping is monotonically increasing.
+    pub fn new_from_glyphs(glyphs: &[u16]) -> Self {
+        let mut map = Self::new();
+        let sorted = BTreeSet::from_iter(glyphs);
+
+        for glyph in sorted {
+            map.remap(*glyph);
+        }
+
+        map
     }
 
     /// Return the number of glyph IDs that have been remapped so far.

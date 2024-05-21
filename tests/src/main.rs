@@ -1,10 +1,8 @@
-use sha2::{Digest, Sha256};
 use skrifa::outline::{DrawSettings, HintingInstance, HintingMode, OutlinePen};
 use skrifa::prelude::{LocationRef, Size};
 use skrifa::raw::TableProvider;
 use skrifa::MetadataProvider;
 use std::error::Error;
-use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use subsetter::{subset, GlyphRemapper};
