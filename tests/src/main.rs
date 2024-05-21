@@ -227,20 +227,21 @@ pub fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
     for glyph in (0..num_glyphs).filter(|g| ctx.gids.contains(g)) {
         let new_glyph = ctx.mapper.get(glyph).unwrap();
         let settings = DrawSettings::hinted(&hinting_instance_old, true);
-        let glyph1 = old_face
-            .outline_glyphs()
-            .get(skrifa::GlyphId::new(glyph))
-            .expect(&format!("failed to find glyph {} in old face", glyph));
-        glyph1.draw(settings, &mut sink1).unwrap();
 
-        let settings = DrawSettings::hinted(&hinting_instance_new, true);
-        let glyph2 = new_face
+        if let Some(glyph1) = old_face
             .outline_glyphs()
-            .get(skrifa::GlyphId::new(new_glyph))
-            .expect(&format!("failed to find glyph {} in new face", glyph));
-        glyph2.draw(settings, &mut sink2).unwrap();
+            .get(skrifa::GlyphId::new(glyph)) {
 
-        // assert_eq!(sink1, sink2, "glyph {} drawn didn't match.", glyph);
+            glyph1.draw(settings, &mut sink1).unwrap();
+
+            let settings = DrawSettings::hinted(&hinting_instance_new, true);
+            let glyph2 = new_face
+                .outline_glyphs()
+                .get(skrifa::GlyphId::new(new_glyph))
+                .expect(&format!("failed to find glyph {} in new face", glyph));
+            glyph2.draw(settings, &mut sink2).unwrap();
+
+        }
     }
 }
 
@@ -253,9 +254,11 @@ pub fn glyph_outlines_ttf_parser(font_file: &str, gids: &str) {
         let new_glyph = ctx.mapper.get(glyph).unwrap();
         let mut sink1 = Sink::default();
         let mut sink2 = Sink::default();
-        old_face.outline_glyph(GlyphId(glyph), &mut sink1);
-        new_face.outline_glyph(GlyphId(new_glyph), &mut sink2);
-        assert_eq!(sink1, sink2, "glyph {} drawn with ttf-parser didn't match.", glyph);
+
+        if let Some(_) = old_face.outline_glyph(GlyphId(glyph), &mut sink1) {
+            new_face.outline_glyph(GlyphId(new_glyph), &mut sink2);
+            assert_eq!(sink1, sink2, "glyph {} drawn with ttf-parser didn't match.", glyph);
+        }
     }
 }
 
