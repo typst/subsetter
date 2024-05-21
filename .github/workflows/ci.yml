@@ -8,8 +8,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
       - name: Install fonttools
-        run: pip install fonttools=4.51
+        run: pip install fonttools==4.51
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo build --release
         name: Build
