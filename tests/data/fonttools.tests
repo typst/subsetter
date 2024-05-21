@@ -1,0 +1,11 @@
+// These tests will check whether the fonttools output of a subsetted fonts
+// matches the expected output.
+
+ClickerScript-Regular.ttf;5,8,10,100-104
+DejaVuSansMono.ttf;100-105,140-155
+LatinModernRoman-Regular.otf;307,309,314,221
+MPLUS1p-Regular.ttf;3,45-50
+NotoSansCJKsc-Regular.otf;6543-6550,371-375
+NotoSans-Regular.ttf;567-570,2345-2350
+Roboto-Regular.ttf;456,460-463
+

@@ -4,17 +4,21 @@ use skrifa::prelude::{LocationRef, Size};
 use skrifa::raw::TableProvider;
 use skrifa::MetadataProvider;
 use std::error::Error;
-use std::fs;
-use std::path::PathBuf;
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use subsetter::{subset, GidMapper};
 use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
 mod subsets;
 
+#[rustfmt::skip]
+mod font_tools;
+
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-const SAVE_SUBSETS: bool = false;
+const FONT_TOOLS_REF: bool = false;
 
 struct TestContext {
     font: Vec<u8>,
@@ -23,36 +27,102 @@ struct TestContext {
     gids: Vec<u16>,
 }
 
-fn save_font(font: &[u8]) {
+fn test_font_tools(font_file: &str, gids: &str, num: u16) {
     let mut font_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    font_path.push("tests");
-    font_path.push("subsets");
+    font_path.push("tests/ttx");
     let _ = std::fs::create_dir_all(&font_path);
 
-    let mut hasher = Sha256::new();
-    hasher.update(font);
-    let hash = hex::encode(&hasher.finalize()[..]);
+    let name = Path::new(font_file);
+    let stem = name.file_stem().unwrap().to_string_lossy().to_string();
+    let ttx_name = format!("{}_{}.ttx", stem, num);
+    let ttx_ref_name = format!("{}_{}_ref.ttx", stem, num);
+    let otf_name = format!("{}_{}.otf", stem, num);
+    let otf_ref_name = format!("{}_{}_ref.otf", stem, num);
+    let otf_path: PathBuf = [font_path.to_string_lossy().to_string(), otf_name.clone()]
+        .iter()
+        .collect();
+    let otf_ref_path: PathBuf =
+        [font_path.to_string_lossy().to_string(), otf_ref_name.clone()]
+            .iter()
+            .collect();
+    let ttx_path: PathBuf = [font_path.to_string_lossy().to_string(), ttx_name.clone()]
+        .iter()
+        .collect();
+    let ttx_ref_path: PathBuf =
+        [font_path.to_string_lossy().to_string(), ttx_ref_name.clone()]
+            .iter()
+            .collect();
 
-    font_path.push(hash);
-    fs::write(&font_path, font).unwrap();
+    eprintln!("{:?}", otf_path);
+
+    let data = read_file(font_file);
+    let face = ttf_parser::Face::parse(&data, 0).unwrap();
+    let gids_vec: Vec<_> = parse_gids(gids, face.number_of_glyphs());
+    let (subset, _) = subset(&data, 0, &gids_vec).unwrap();
+
+    std::fs::write(otf_path.clone(), subset).unwrap();
+
+    if FONT_TOOLS_REF {
+        let font_path = get_font_path(font_file);
+        Command::new("fonttools")
+            .args([
+                "subset",
+                font_path.to_str().unwrap(),
+                "--drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap",
+                &format!("--gids={}", gids),
+                "--glyph-names",
+                "--desubroutinize",
+                "--notdef-outline",
+                "--no-prune-unicode-ranges",
+                "--no-prune-codepage-ranges",
+                &format!("--output-file={}", otf_ref_path.to_str().unwrap()),
+            ])
+            .output()
+            .unwrap();
+
+        Command::new("fonttools")
+            .args([
+                "ttx",
+                "-f",
+                "-o",
+                ttx_ref_path.clone().to_str().unwrap(),
+                otf_ref_path.clone().to_str().unwrap(),
+            ])
+            .output()
+            .unwrap();
+    }
+
+    if !ttx_path.exists() {
+        Command::new("fonttools")
+            .args([
+                "ttx",
+                "-f",
+                "-o",
+                ttx_path.clone().to_str().unwrap(),
+                otf_path.clone().to_str().unwrap(),
+            ])
+            .output()
+            .unwrap();
+    }
 }
 
-fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
+fn get_font_path(font_file: &str) -> PathBuf {
     let mut font_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     font_path.push("fonts");
     font_path.push(font_file);
+    font_path
+}
 
-    let data = std::fs::read(font_path)?;
+fn read_file(font_file: &str) -> Vec<u8> {
+    let font_path = get_font_path(font_file);
+    std::fs::read(font_path).unwrap()
+}
 
+fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
+    let data = read_file(font_file);
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
-
     let gids: Vec<_> = parse_gids(gids, face.number_of_glyphs());
-
     let (subset, mapper) = subset(&data, 0, &gids)?;
-
-    if SAVE_SUBSETS {
-        save_font(&subset);
-    }
 
     Ok(TestContext { font: data, subset, mapper, gids })
 }
@@ -71,7 +141,7 @@ fn parse_gids(gids: &str, max: u16) -> Vec<u16> {
             let first = range[0].parse::<u16>().unwrap();
             let second = range[1].parse::<u16>().unwrap();
 
-            gids.extend(first..second);
+            gids.extend(first..=second);
         } else {
             gids.push(el.parse::<u16>().unwrap());
         }
