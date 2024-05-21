@@ -1,7 +1,7 @@
 use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{create_index, parse_index};
-use crate::cff::remapper::SidRemapper;
 use crate::cff::number::{Number, StringId};
+use crate::cff::remapper::SidRemapper;
 use crate::cff::FontWriteContext;
 use crate::read::Reader;
 use crate::write::Writer;
@@ -84,41 +84,39 @@ pub(crate) fn write_top_dict_index(
     let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
 
-    let mut write = |operands: &[u8], operator: &[u8]| {
-        for operand in operands {
-            w.write(*operand);
-        }
-        w.write(operator);
-    };
-
     while let Some(operator) = dict_parser.parse_next() {
         match operator {
             CHARSET => {
-                write(font_write_context.charset_offset.as_bytes(), operator.as_bytes())
+                font_write_context.charset_offset.write_as_5_bytes(&mut w);
+                w.write(operator)
             }
             ENCODING => {
-                write(font_write_context.encoding_offset.as_bytes(), operator.as_bytes())
+                font_write_context.encoding_offset.write_as_5_bytes(&mut w);
+                w.write(operator);
             }
-            CHAR_STRINGS => write(
-                font_write_context.char_strings_offset.as_bytes(),
-                operator.as_bytes(),
-            ),
+            CHAR_STRINGS => {
+                font_write_context.char_strings_offset.write_as_5_bytes(&mut w);
+                w.write(operator);
+            }
             FD_ARRAY => {
                 let Some(cid_context) = &font_write_context.cid_context else {
                     return Err(SubsetError);
                 };
-                write(cid_context.fd_array_offset.as_bytes(), operator.as_bytes())
+                cid_context.fd_array_offset.write_as_5_bytes(&mut w);
+                w.write(operator);
             }
             FD_SELECT => {
                 let Some(cid_context) = &font_write_context.cid_context else {
                     return Err(SubsetError);
                 };
-                write(cid_context.fd_select_offset.as_bytes(), operator.as_bytes())
+                cid_context.fd_select_offset.write_as_5_bytes(&mut w);
+                w.write(&operator);
             }
             VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
             | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {
                 let sid = sid_remapper.get(dict_parser.parse_sid().unwrap()).unwrap();
-                write(Number::from_i32(sid.0 as i32).as_bytes(), operator.as_bytes())
+                w.write(Number::from_i32(sid.0 as i32));
+                w.write(operator);
             }
             ROS => {
                 dict_parser.parse_operands().unwrap();
@@ -131,32 +129,24 @@ pub(crate) fn write_top_dict_index(
                     .get(StringId(u16::try_from(operands[1].as_u32().unwrap()).unwrap()))
                     .unwrap();
 
-                let mut w = Writer::new();
-                w.write(Number::from_i32(arg1.0 as i32).as_bytes());
-                w.write(Number::from_i32(arg2.0 as i32).as_bytes());
-                w.write(operands[2].as_bytes());
-                write(&w.finish(), operator.as_bytes());
+                w.write(Number::from_i32(arg1.0 as i32));
+                w.write(Number::from_i32(arg2.0 as i32));
+                w.write(&operands[2]);
+                w.write(operator);
             }
             PRIVATE => {
                 if let Some(offsets) = font_write_context.private_dicts_offsets.first() {
-                    let mut op_w = Writer::new();
-                    op_w.write(offsets.0.as_bytes());
-                    op_w.write(offsets.1.as_bytes());
-
-                    write(&op_w.finish(), PRIVATE.as_bytes());
+                    offsets.0.write_as_5_bytes(&mut w);
+                    offsets.1.write_as_5_bytes(&mut w);
+                    w.write(PRIVATE);
                 }
             }
             _ => {
                 dict_parser.parse_operands().unwrap();
                 let operands = dict_parser.operands();
 
-                let mut w = Writer::new();
-
-                for operand in operands {
-                    w.write(operand.as_bytes());
-                }
-
-                write(&w.finish(), operator.as_bytes());
+                w.write(operands);
+                w.write(operator);
             }
         }
     }

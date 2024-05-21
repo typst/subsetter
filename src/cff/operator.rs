@@ -1,3 +1,4 @@
+use crate::write::{Writeable, Writer};
 use std::fmt::{Display, Formatter};
 
 pub const TWO_BYTE_OPERATOR_MARK: u8 = 12;
@@ -20,6 +21,15 @@ impl Display for Operator {
     }
 }
 
+impl Writeable for Operator {
+    fn write(&self, w: &mut Writer) {
+        match &self.0 {
+            OperatorType::OneByteOperator(b) => w.write(b),
+            OperatorType::TwoByteOperator(b) => w.write(b),
+        }
+    }
+}
+
 impl Operator {
     pub const fn from_one_byte(b: u8) -> Self {
         Self(OperatorType::OneByteOperator([b]))
@@ -27,12 +37,5 @@ impl Operator {
 
     pub fn from_two_byte(b: u8) -> Self {
         Self(OperatorType::TwoByteOperator([TWO_BYTE_OPERATOR_MARK, b]))
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        match &self.0 {
-            OperatorType::OneByteOperator(b) => b,
-            OperatorType::TwoByteOperator(b) => b,
-        }
     }
 }

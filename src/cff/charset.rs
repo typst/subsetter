@@ -1,5 +1,5 @@
-use crate::cff::remapper::SidRemapper;
 use crate::cff::number::StringId;
+use crate::cff::remapper::SidRemapper;
 use crate::cff::FontKind;
 use crate::read::LazyArray16;
 use crate::read::{Readable, Reader};

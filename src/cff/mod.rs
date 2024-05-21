@@ -9,10 +9,10 @@ mod index;
 mod remapper;
 // mod top_dict;
 mod cid_font;
+mod number;
 mod operator;
 mod sid_font;
 mod subroutines;
-mod number;
 
 use super::*;
 use crate::cff::charset::{parse_charset, write_charset, Charset};
@@ -27,8 +27,8 @@ use crate::cff::sid_font::SIDMetadata;
 use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
 use crate::Error::SubsetError;
 use charset::charset_id;
-use std::collections::BTreeSet;
 use number::{IntegerNumber, StringId};
+use std::collections::BTreeSet;
 
 #[derive(Clone, Debug)]
 pub(crate) enum FontKind<'a> {
@@ -49,49 +49,43 @@ pub struct Table<'a> {
     font_kind: FontKind<'a>,
 }
 
-struct CIDWriteContext<'a> {
-    fd_array_offset: IntegerNumber<'a>,
-    fd_select_offset: IntegerNumber<'a>,
+struct CIDWriteContext {
+    fd_array_offset: IntegerNumber,
+    fd_select_offset: IntegerNumber,
 }
 
-struct FontWriteContext<'a> {
+struct FontWriteContext {
     // TOP DICT DATA
-    charset_offset: IntegerNumber<'a>,
-    encoding_offset: IntegerNumber<'a>,
-    char_strings_offset: IntegerNumber<'a>,
-    private_dicts_offsets: Vec<(IntegerNumber<'a>, IntegerNumber<'a>)>,
-    cid_context: Option<CIDWriteContext<'a>>,
+    charset_offset: IntegerNumber,
+    encoding_offset: IntegerNumber,
+    char_strings_offset: IntegerNumber,
+    private_dicts_offsets: Vec<(IntegerNumber, IntegerNumber)>,
+    cid_context: Option<CIDWriteContext>,
 }
 
-impl FontWriteContext<'_> {
+impl FontWriteContext {
     pub fn new_cid(num_font_dicts: u8) -> Self {
         Self {
-            char_strings_offset: IntegerNumber::from_i32_as_int5(0),
-            encoding_offset: IntegerNumber::from_i32_as_int5(0),
-            charset_offset: IntegerNumber::from_i32_as_int5(0),
+            char_strings_offset: IntegerNumber(0),
+            encoding_offset: IntegerNumber(0),
+            charset_offset: IntegerNumber(0),
             private_dicts_offsets: vec![
-                (
-                    IntegerNumber::from_i32_as_int5(0),
-                    IntegerNumber::from_i32_as_int5(0)
-                );
+                (IntegerNumber(0), IntegerNumber(0));
                 num_font_dicts as usize
             ],
             cid_context: Some(CIDWriteContext {
-                fd_select_offset: IntegerNumber::from_i32_as_int5(0),
-                fd_array_offset: IntegerNumber::from_i32_as_int5(0),
+                fd_select_offset: IntegerNumber(0),
+                fd_array_offset: IntegerNumber(0),
             }),
         }
     }
 
     pub fn new_sid() -> Self {
         Self {
-            char_strings_offset: IntegerNumber::from_i32_as_int5(0),
-            encoding_offset: IntegerNumber::from_i32_as_int5(0),
-            charset_offset: IntegerNumber::from_i32_as_int5(0),
-            private_dicts_offsets: vec![(
-                IntegerNumber::from_i32_as_int5(0),
-                IntegerNumber::from_i32_as_int5(0),
-            )],
+            char_strings_offset: IntegerNumber(0),
+            encoding_offset: IntegerNumber(0),
+            charset_offset: IntegerNumber(0),
+            private_dicts_offsets: vec![(IntegerNumber(0), IntegerNumber(0))],
             cid_context: None,
         }
     }
@@ -181,8 +175,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
         // Note: We desubroutinized, so no global subroutines and thus empty index.
         w.extend(&create_index(vec![]).unwrap());
 
-        font_write_context.charset_offset =
-            IntegerNumber::from_i32_as_int5(w.len() as i32);
+        font_write_context.charset_offset = IntegerNumber(w.len() as i32);
         // Charsets
         w.extend(
             &write_charset(&sid_remapper, &table.font_kind, &table.charset, &ctx.mapper)
@@ -194,12 +187,12 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
                 return Err(SubsetError);
             };
 
-            cid.fd_select_offset = IntegerNumber::from_i32_as_int5(w.len() as i32);
+            cid.fd_select_offset = IntegerNumber(w.len() as i32);
             // FDSelect
             w.extend(&build_fd_index(&ctx.mapper, cid_metadata.fd_select, &fd_remapper)?);
 
             // FD Array
-            cid.fd_array_offset = IntegerNumber::from_i32_as_int5(w.len() as i32);
+            cid.fd_array_offset = IntegerNumber(w.len() as i32);
             w.extend(&write_font_dict_index(
                 &fd_remapper,
                 &sid_remapper,
@@ -209,8 +202,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
         }
 
         // Charstrings INDEX
-        font_write_context.char_strings_offset =
-            IntegerNumber::from_i32_as_int5(w.len() as i32);
+        font_write_context.char_strings_offset = IntegerNumber(w.len() as i32);
         w.extend(&create_index(char_strings.iter().map(|p| p.compile()).collect())?);
 
         match table.font_kind {

@@ -56,9 +56,23 @@ impl Writeable for u8 {
     }
 }
 
-impl Writeable for &[u8] {
+impl<T> Writeable for &[T]
+where
+    T: Writeable,
+{
     fn write(&self, w: &mut Writer) {
-        w.extend(self);
+        for el in *self {
+            w.write(el);
+        }
+    }
+}
+
+impl<T> Writeable for &T
+where
+    T: Writeable,
+{
+    fn write(&self, w: &mut Writer) {
+        T::write(self, w)
     }
 }
 

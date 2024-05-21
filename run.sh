@@ -1,5 +1,5 @@
-FONT="fonts/LatinModernRoman-Regular.otf"
-GIDS="1-2"
+FONT="fonts/NotoSansCJKsc-Regular.otf"
+GIDS="1"
 
 fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap \
  --gids=$GIDS --glyph-names --desubroutinize --output-file=out_ft.otf \

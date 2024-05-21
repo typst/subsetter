@@ -2,8 +2,9 @@ use crate::cff::cid_font::CIDMetadata;
 use crate::cff::dict::private_dict::parse_subr_offset;
 use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{create_index, parse_index, Index};
-use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::number::{Number, StringId};
+use crate::cff::operator::Operator;
+use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::{dict, FontWriteContext};
 use crate::read::Reader;
 use crate::write::Writer;
@@ -60,19 +61,16 @@ pub(crate) fn write_font_dict_index(
         let dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
         let mut w = Writer::new();
 
-        let mut write = |operands: &[u8], operator: &[u8]| {
+        let mut write = |operands: &[Number], operator: Operator| {
             for operand in operands {
-                w.write(*operand);
+                w.write(operand);
             }
             w.write(operator);
         };
 
         if let Some(sid) = dict.font_name_sid {
             let new_sid = sid_remapper.get(sid).ok_or(MalformedFont)?;
-            write(
-                Number::from_i32(new_sid.0 as i32).as_bytes(),
-                dict::operators::FONT_NAME.as_bytes(),
-            );
+            write(&[Number::from_i32(new_sid.0 as i32)], dict::operators::FONT_NAME);
         }
 
         // TODO: Offsets can be u32?
@@ -82,10 +80,11 @@ pub(crate) fn write_font_dict_index(
             .ok_or(SubsetError)?;
 
         let mut op_w = Writer::new();
-        op_w.write(private_dict_offset.0.as_bytes());
-        op_w.write(private_dict_offset.1.as_bytes());
+        op_w.write(&private_dict_offset.0);
+        op_w.write(&private_dict_offset.1);
 
-        write(&op_w.finish(), dict::operators::PRIVATE.as_bytes());
+        w.write(op_w.finish().as_slice());
+        w.write(dict::operators::PRIVATE);
         dicts.push(w.finish());
     }
 

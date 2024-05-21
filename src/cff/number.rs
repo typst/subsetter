@@ -1,13 +1,12 @@
 use crate::read::{Readable, Reader};
 use crate::write::{Writeable, Writer};
-use std::borrow::Cow;
 use std::fmt::{Debug, Formatter};
 
 const FLOAT_STACK_LEN: usize = 64;
 const END_OF_FLOAT_FLAG: u8 = 0xf;
 
 #[derive(Clone)]
-pub struct RealNumber<'a>(Cow<'a, [u8]>, f32);
+pub struct RealNumber<'a>(&'a [u8], f32);
 
 impl Debug for RealNumber<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -16,42 +15,44 @@ impl Debug for RealNumber<'_> {
 }
 
 #[derive(Clone)]
-pub struct IntegerNumber<'a>(Cow<'a, [u8]>, i32);
+pub struct IntegerNumber(pub i32);
 
-impl Debug for IntegerNumber<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.1)
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct FixedNumber<'a>(i32, &'a [u8]);
-
-impl Debug for FixedNumber<'_> {
+impl Debug for IntegerNumber {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl<'a> FixedNumber<'a> {
+#[derive(Clone, Copy)]
+pub struct FixedNumber(i32);
+
+impl Debug for FixedNumber {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl FixedNumber {
     pub fn as_f32(&self) -> f32 {
         self.0 as f32 / 65536.0
     }
 
-    pub fn parse(r: &mut Reader<'a>) -> Option<Self> {
-        let mut byte_reader = r.clone();
+    pub fn parse(r: &mut Reader<'_>) -> Option<Self> {
         let b0 = r.read::<u8>()?;
 
-        if b0 == 255 {
-            let num = r.read::<i32>()?;
-            return Some(FixedNumber(num, byte_reader.read_bytes(5)?));
+        if b0 != 255 {
+            return None;
         }
 
-        None
+        let num = r.read::<i32>()?;
+        Some(FixedNumber(num))
     }
+}
 
-    pub fn as_bytes(&self) -> &'a [u8] {
-        self.1
+impl Writeable for FixedNumber {
+    fn write(&self, w: &mut Writer) {
+        w.write(255);
+        w.write(self.0);
     }
 }
 
@@ -63,8 +64,11 @@ impl<'a> RealNumber<'a> {
         let mut data = [0u8; FLOAT_STACK_LEN];
         let mut idx = 0;
 
-        // Skip the prefix
-        r.read::<u8>()?;
+        let b0 = r.read::<u8>()?;
+
+        if b0 != 30 {
+            return None;
+        }
 
         loop {
             let b1: u8 = r.read()?;
@@ -88,86 +92,75 @@ impl<'a> RealNumber<'a> {
         let n = s.parse().ok()?;
         let end = r.offset();
 
-        Some(RealNumber(Cow::Borrowed(bytes_reader.read_bytes(end - start).unwrap()), n))
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_ref()
+        Some(RealNumber(bytes_reader.read_bytes(end - start)?, n))
     }
 }
 
-impl<'a> IntegerNumber<'a> {
-    pub fn parse(r: &mut Reader<'a>) -> Option<IntegerNumber<'a>> {
-        let mut byte_reader = r.clone();
+impl Writeable for RealNumber<'_> {
+    fn write(&self, w: &mut Writer) {
+        w.write(self.0);
+    }
+}
+
+impl IntegerNumber {
+    pub fn parse(r: &mut Reader<'_>) -> Option<IntegerNumber> {
         let b0 = r.read::<u8>()?;
         match b0 {
-            28 => Some(IntegerNumber(
-                Cow::Borrowed(byte_reader.read_bytes(3)?),
-                i32::from(r.read::<i16>()?),
-            )),
-            29 => Some(IntegerNumber(
-                Cow::Borrowed(byte_reader.read_bytes(5)?),
-                r.read::<i32>()?,
-            )),
+            28 => Some(IntegerNumber(i32::from(r.read::<i16>()?))),
+            29 => Some(IntegerNumber(r.read::<i32>()?)),
             32..=246 => {
                 let n = i32::from(b0) - 139;
-                Some(IntegerNumber(Cow::Borrowed(byte_reader.read_bytes(1)?), n))
+                Some(IntegerNumber(n))
             }
             247..=250 => {
                 let b1 = i32::from(r.read::<u8>()?);
                 let n = (i32::from(b0) - 247) * 256 + b1 + 108;
-                Some(IntegerNumber(Cow::Borrowed(byte_reader.read_bytes(2)?), n))
+                Some(IntegerNumber(n))
             }
             251..=254 => {
                 let b1 = i32::from(r.read::<u8>()?);
                 let n = -(i32::from(b0) - 251) * 256 - b1 - 108;
-                Some(IntegerNumber(Cow::Borrowed(byte_reader.read_bytes(2)?), n))
+                Some(IntegerNumber(n))
             }
             _ => None,
         }
     }
 
-    pub fn as_i32(&self) -> i32 {
-        self.1
+    pub fn write_as_5_bytes(&self, w: &mut Writer) {
+        let bytes = self.0.to_be_bytes();
+        w.write([29, bytes[0], bytes[1], bytes[2], bytes[3]]);
     }
+}
 
-    pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_ref()
-    }
-
-    pub fn from_i32(num: i32) -> Self {
-        if (-107..=107).contains(&num) {
-            let b0 = u8::try_from(num + 139).unwrap();
-            Self(Cow::Owned(vec![b0]), num)
-        } else if (108..=1131).contains(&num) {
-            let temp = num - 108;
+impl Writeable for IntegerNumber {
+    fn write(&self, w: &mut Writer) {
+        if (-107..=107).contains(&self.0) {
+            let b0 = u8::try_from(self.0 + 139).unwrap();
+            w.write(b0);
+        } else if (108..=1131).contains(&self.0) {
+            let temp = self.0 - 108;
             let b0 = u8::try_from(temp / 256 + 247).unwrap();
             let b1 = u8::try_from(temp % 256).unwrap();
-            Self(Cow::Owned(vec![b0, b1]), num)
-        } else if (-1131..=-108).contains(&num) {
-            let temp = -num - 108;
+            w.write([b0, b1]);
+        } else if (-1131..=-108).contains(&self.0) {
+            let temp = -self.0 - 108;
             let b0 = u8::try_from(temp / 256 + 251).unwrap();
             let b1 = u8::try_from(temp % 256).unwrap();
-            Self(Cow::Owned(vec![b0, b1]), num)
-        } else if (-32768..=32767).contains(&num) {
-            let bytes = i16::try_from(num).unwrap().to_be_bytes();
-            Self(Cow::Owned(vec![28, bytes[0], bytes[1]]), num)
+            w.write([b0, b1])
+        } else if (-32768..=32767).contains(&self.0) {
+            let bytes = i16::try_from(self.0).unwrap().to_be_bytes();
+            w.write([28, bytes[0], bytes[1]])
         } else {
-            IntegerNumber::from_i32_as_int5(num)
+            self.write_as_5_bytes(w)
         }
-    }
-
-    pub fn from_i32_as_int5(num: i32) -> Self {
-        let bytes = num.to_be_bytes();
-        Self(Cow::Owned(vec![29, bytes[0], bytes[1], bytes[2], bytes[3]]), num)
     }
 }
 
 #[derive(Clone)]
 pub enum Number<'a> {
     Real(RealNumber<'a>),
-    Integer(IntegerNumber<'a>),
-    Fixed(FixedNumber<'a>),
+    Integer(IntegerNumber),
+    Fixed(FixedNumber),
 }
 
 impl Default for Number<'_> {
@@ -182,15 +175,17 @@ impl Debug for Number<'_> {
     }
 }
 
-impl<'a> Number<'a> {
-    pub fn as_bytes(&self) -> &[u8] {
+impl Writeable for Number<'_> {
+    fn write(&self, w: &mut Writer) {
         match self {
-            Number::Real(real_num) => real_num.as_bytes(),
-            Number::Integer(int_num) => int_num.as_bytes(),
-            Number::Fixed(fixed_num) => fixed_num.as_bytes(),
+            Number::Real(real_num) => real_num.write(w),
+            Number::Integer(int_num) => int_num.write(w),
+            Number::Fixed(fixed_num) => fixed_num.write(w),
         }
     }
+}
 
+impl<'a> Number<'a> {
     pub fn parse_cff_number(r: &mut Reader<'a>) -> Option<Number<'a>> {
         Self::parse_number(r, false)
     }
@@ -214,16 +209,16 @@ impl<'a> Number<'a> {
     }
 
     pub fn from_i32(num: i32) -> Self {
-        Number::Integer(IntegerNumber::from_i32(num))
+        Number::Integer(IntegerNumber(num))
     }
 
     pub fn zero() -> Self {
-        Number::Integer(IntegerNumber::from_i32(0))
+        Number::Integer(IntegerNumber(0))
     }
 
     pub fn as_f64(&self) -> f64 {
         match self {
-            Number::Integer(int) => int.as_i32() as f64,
+            Number::Integer(int) => int.0 as f64,
             Number::Real(real) => real.1 as f64,
             Number::Fixed(fixed) => fixed.as_f32() as f64,
         }
@@ -231,7 +226,7 @@ impl<'a> Number<'a> {
 
     pub fn as_i32(&self) -> Option<i32> {
         match self {
-            Number::Integer(int) => Some(int.as_i32()),
+            Number::Integer(int) => Some(int.0),
             Number::Real(rn) => {
                 if rn.1.fract() == 0.0 {
                     Some(rn.1 as i32)
@@ -368,7 +363,7 @@ mod tests {
             let mut r = Reader::new(&first);
             let rewritten = r.read::<U24>().unwrap();
             let mut w = Writer::new();
-            w.write(rewritten);
+            w.write(&rewritten);
             let second = w.finish();
 
             assert_eq!(first, second);
@@ -380,23 +375,18 @@ mod tests {
         let nums = [0, 1, -1, 93, 107, -107];
 
         for num in nums {
-            let integer = IntegerNumber::from_i32(num);
-            let bytes = integer.as_bytes();
-            let reader = Reader::new(bytes);
+            let integer = IntegerNumber(num);
+            let mut w = Writer::new();
+            w.write(integer);
+            let buffer = w.finish();
+            let mut reader = Reader::new(&buffer);
 
-            let reparsed = IntegerNumber::parse(&mut reader.clone()).unwrap();
-            assert_eq!(reparsed.as_bytes().len(), 1);
-            assert_eq!(reparsed.as_i32(), num);
-        }
-
-        for num in nums {
-            let integer = Number::from_i32(num);
-            let bytes = integer.as_bytes();
-            let reader = Reader::new(bytes);
-
-            let reparsed = Number::parse_cff_number(&mut reader.clone()).unwrap();
-            assert_eq!(reparsed.as_bytes().len(), 1);
-            assert_eq!(reparsed.as_i32(), Some(num));
+            let reparsed = IntegerNumber::parse(&mut reader).unwrap();
+            let mut w = Writer::new();
+            w.write(&reparsed);
+            let bytes = w.finish();
+            assert_eq!(bytes.len(), 1);
+            assert_eq!(reparsed.0, num);
         }
     }
 
@@ -405,21 +395,18 @@ mod tests {
         let nums = [108, -108, 255, -255, 349, -349, 845, -845, 1131, -1131];
 
         for num in nums {
-            let integer = IntegerNumber::from_i32(num);
-            let bytes = integer.as_bytes();
-            let mut reader = Reader::new(bytes);
-            let reparsed = IntegerNumber::parse(&mut reader).unwrap();
-            assert_eq!(reparsed.as_bytes().len(), 2);
-            assert_eq!(reparsed.as_i32(), num);
-        }
+            let integer = IntegerNumber(num);
+            let mut w = Writer::new();
+            w.write(integer);
+            let buffer = w.finish();
+            let mut reader = Reader::new(&buffer);
 
-        for num in nums {
-            let integer = Number::from_i32(num);
-            let bytes = integer.as_bytes();
-            let mut reader = Reader::new(bytes);
-            let reparsed = Number::parse_cff_number(&mut reader).unwrap();
-            assert_eq!(reparsed.as_bytes().len(), 2);
-            assert_eq!(reparsed.as_i32(), Some(num));
+            let reparsed = IntegerNumber::parse(&mut reader).unwrap();
+            let mut w = Writer::new();
+            w.write(&reparsed);
+            let bytes = w.finish();
+            assert_eq!(bytes.len(), 2);
+            assert_eq!(reparsed.0, num);
         }
     }
 
@@ -428,21 +415,18 @@ mod tests {
         let nums = [1132, -1132, 2450, -2450, 4096, -4096, 8965, -8965, 32767, -32768];
 
         for num in nums {
-            let integer = IntegerNumber::from_i32(num);
-            let bytes = integer.as_bytes();
-            let mut reader = Reader::new(bytes);
-            let reparsed = IntegerNumber::parse(&mut reader).unwrap();
-            assert_eq!(reparsed.as_bytes().len(), 3);
-            assert_eq!(reparsed.as_i32(), num);
-        }
+            let integer = IntegerNumber(num);
+            let mut w = Writer::new();
+            w.write(integer);
+            let buffer = w.finish();
+            let mut reader = Reader::new(&buffer);
 
-        for num in nums {
-            let integer = Number::from_i32(num);
-            let bytes = integer.as_bytes();
-            let mut reader = Reader::new(bytes);
-            let reparsed = Number::parse_cff_number(&mut reader).unwrap();
-            assert_eq!(reparsed.as_bytes().len(), 3);
-            assert_eq!(reparsed.as_i32(), Some(num));
+            let reparsed = IntegerNumber::parse(&mut reader).unwrap();
+            let mut w = Writer::new();
+            w.write(&reparsed);
+            let bytes = w.finish();
+            assert_eq!(bytes.len(), 3);
+            assert_eq!(reparsed.0, num);
         }
     }
 
@@ -451,21 +435,18 @@ mod tests {
         let nums = [32768, -32769, i32::MAX, i32::MIN];
 
         for num in nums {
-            let integer = IntegerNumber::from_i32(num);
-            let bytes = integer.as_bytes();
-            let mut reader = Reader::new(bytes);
-            let reparsed = IntegerNumber::parse(&mut reader).unwrap();
-            assert_eq!(reparsed.as_bytes().len(), 5);
-            assert_eq!(reparsed.as_i32(), num);
-        }
+            let integer = IntegerNumber(num);
+            let mut w = Writer::new();
+            w.write(integer);
+            let buffer = w.finish();
+            let mut reader = Reader::new(&buffer);
 
-        for num in nums {
-            let integer = Number::from_i32(num);
-            let bytes = integer.as_bytes();
-            let mut reader = Reader::new(bytes);
-            let reparsed = Number::parse_cff_number(&mut reader).unwrap();
-            assert_eq!(reparsed.as_bytes().len(), 5);
-            assert_eq!(reparsed.as_i32(), Some(num));
+            let reparsed = IntegerNumber::parse(&mut reader).unwrap();
+            let mut w = Writer::new();
+            w.write(&reparsed);
+            let bytes = w.finish();
+            assert_eq!(bytes.len(), 5);
+            assert_eq!(reparsed.0, num);
         }
     }
 
@@ -476,6 +457,4 @@ mod tests {
         let real = RealNumber::parse(&mut r).unwrap();
         assert_eq!(-249.3212, real.1);
     }
-
-    // TODO: Add fixed number tests
 }

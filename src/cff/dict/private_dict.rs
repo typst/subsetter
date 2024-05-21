@@ -1,9 +1,9 @@
 use crate::cff::cid_font::CIDMetadata;
 use crate::cff::dict::operators::*;
 use crate::cff::dict::DictionaryParser;
+use crate::cff::number::{IntegerNumber, Number};
 use crate::cff::remapper::FontDictRemapper;
 use crate::cff::sid_font::SIDMetadata;
-use crate::cff::number::{IntegerNumber, Number};
 use crate::cff::FontWriteContext;
 use crate::write::Writer;
 use crate::Error::SubsetError;
@@ -46,13 +46,6 @@ pub fn write_private_dicts(
 
             let mut sub_w = Writer::new();
 
-            let mut write = |operands: &[u8], operator: &[u8]| {
-                for operand in operands {
-                    sub_w.write(*operand);
-                }
-                sub_w.write(operator);
-            };
-
             while let Some(operator) = dict_parser.parse_next() {
                 match operator {
                     SUBRS => {
@@ -62,13 +55,8 @@ pub fn write_private_dicts(
                         dict_parser.parse_operands().unwrap();
                         let operands = dict_parser.operands();
 
-                        let mut w = Writer::new();
-
-                        for operand in operands {
-                            w.write(operand.as_bytes());
-                        }
-
-                        write(&w.finish(), operator.as_bytes());
+                        sub_w.write(operands);
+                        sub_w.write(operator)
                     }
                 }
             }
@@ -82,8 +70,8 @@ pub fn write_private_dicts(
             .private_dicts_offsets
             .get_mut(new_df)
             .ok_or(SubsetError)?;
-        offsets.0 = IntegerNumber::from_i32_as_int5(private_dict_len as i32);
-        offsets.1 = IntegerNumber::from_i32_as_int5(private_dict_offset as i32);
+        offsets.0 = IntegerNumber(private_dict_len as i32);
+        offsets.1 = IntegerNumber(private_dict_offset as i32);
 
         w.extend(&private_dict_data);
     }
@@ -105,13 +93,6 @@ pub fn write_sid_private_dicts(
 
         let mut sub_w = Writer::new();
 
-        let mut write = |operands: &[u8], operator: &[u8]| {
-            for operand in operands {
-                sub_w.write(*operand);
-            }
-            sub_w.write(operator);
-        };
-
         while let Some(operator) = dict_parser.parse_next() {
             match operator {
                 SUBRS => {
@@ -121,13 +102,8 @@ pub fn write_sid_private_dicts(
                     dict_parser.parse_operands().unwrap();
                     let operands = dict_parser.operands();
 
-                    let mut w = Writer::new();
-
-                    for operand in operands {
-                        w.write(operand.as_bytes());
-                    }
-
-                    write(&w.finish(), operator.as_bytes());
+                    sub_w.write(operands);
+                    sub_w.write(operator);
                 }
             }
         }
@@ -141,8 +117,8 @@ pub fn write_sid_private_dicts(
         .private_dicts_offsets
         .get_mut(0)
         .ok_or(SubsetError)?;
-    offsets.0 = IntegerNumber::from_i32_as_int5(private_dict_len as i32);
-    offsets.1 = IntegerNumber::from_i32_as_int5(private_dict_offset as i32);
+    offsets.0 = IntegerNumber(private_dict_len as i32);
+    offsets.1 = IntegerNumber(private_dict_offset as i32);
 
     w.extend(&private_dict_data);
 

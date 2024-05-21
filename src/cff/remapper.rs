@@ -41,8 +41,8 @@ impl SidRemapper {
 
 #[cfg(test)]
 mod tests {
-    use crate::cff::remapper::SidRemapper;
     use crate::cff::number::StringId;
+    use crate::cff::remapper::SidRemapper;
 
     #[test]
     fn test_remap_1() {

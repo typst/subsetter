@@ -2,8 +2,8 @@ pub(crate) mod font_dict;
 pub(crate) mod private_dict;
 pub(crate) mod top_dict;
 
-use crate::cff::operator::{Operator, TWO_BYTE_OPERATOR_MARK};
 use crate::cff::number::{Number, StringId};
+use crate::cff::operator::{Operator, TWO_BYTE_OPERATOR_MARK};
 use crate::read::Reader;
 use std::ops::Range;
 

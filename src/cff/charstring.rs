@@ -1,7 +1,7 @@
 use crate::cff::argstack::ArgumentsStack;
+use crate::cff::number::Number;
 use crate::cff::operator::Operator;
 use crate::cff::subroutines::SubroutineHandler;
-use crate::cff::number::Number;
 use crate::read::Reader;
 use crate::write::Writer;
 use crate::Error::MalformedFont;
@@ -198,14 +198,14 @@ impl<'a> Program<'a> {
 
         for instr in &self.0 {
             match instr {
-                Instruction::Operand(op) => {
-                    w.extend(op.as_bytes());
+                Instruction::Operand(num) => {
+                    w.write(num);
                 }
                 Instruction::Operator(op) => {
-                    w.write(op.as_bytes());
+                    w.write(op);
                 }
                 Instruction::HintMask(hm) => {
-                    w.extend(hm);
+                    w.write(hm);
                 }
             }
         }
