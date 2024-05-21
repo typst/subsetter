@@ -11,8 +11,6 @@ use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
 mod subsets;
-#[rustfmt::skip]
-mod basics;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -199,16 +197,6 @@ fn glyph_metrics(font_file: &str, gids: &str) {
             );
         }
     }
-}
-
-pub fn glyph_outlines_all_glyphs(font_file: &str) {
-    glyph_outlines_skrifa(font_file, "*");
-    glyph_outlines_ttf_parser(font_file, "*");
-}
-
-pub fn glyph_outlines_single_glyphs(font_file: &str) {
-    glyph_outlines_skrifa(font_file, "0-65535");
-    glyph_outlines_ttf_parser(font_file, "0-65535");
 }
 
 fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
