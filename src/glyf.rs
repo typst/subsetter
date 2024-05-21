@@ -11,7 +11,7 @@ pub(crate) fn glyph_closure(face: &Face, gid_set: &mut BTreeSet<u16>) -> Result<
 
         let glyph_data = match table.glyph_data(glyph) {
             Some(glph_data) => glph_data,
-            None => return Err(InvalidGidMapper),
+            None => continue,
         };
 
         if glyph_data.is_empty() {

@@ -11,6 +11,8 @@ use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
 mod subsets;
+#[rustfmt::skip]
+mod basics;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -204,9 +206,9 @@ pub fn glyph_outlines_all_glyphs(font_file: &str) {
     glyph_outlines_ttf_parser(font_file, "*");
 }
 
-pub fn glyph_outlines(font_file: &str, gids: &str) {
-    glyph_outlines_skrifa(font_file, gids);
-    glyph_outlines_ttf_parser(font_file, gids);
+pub fn glyph_outlines_single_glyphs(font_file: &str) {
+    glyph_outlines_skrifa(font_file, "0-65535");
+    glyph_outlines_ttf_parser(font_file, "0-65535");
 }
 
 fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
@@ -227,7 +229,7 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
         LocationRef::default(),
         HintingMode::Smooth { lcd_subpixel: None, preserve_linear_metrics: false },
     )
-        .unwrap();
+    .unwrap();
 
     let mut sink1 = Sink(vec![]);
     let mut sink2 = Sink(vec![]);
@@ -238,10 +240,7 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
         let new_glyph = ctx.mapper.get(glyph).unwrap();
         let settings = DrawSettings::hinted(&hinting_instance_old, true);
 
-        if let Some(glyph1) = old_face
-            .outline_glyphs()
-            .get(skrifa::GlyphId::new(glyph)) {
-
+        if let Some(glyph1) = old_face.outline_glyphs().get(skrifa::GlyphId::new(glyph)) {
             glyph1.draw(settings, &mut sink1).unwrap();
 
             let settings = DrawSettings::hinted(&hinting_instance_new, true);
@@ -250,7 +249,6 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
                 .get(skrifa::GlyphId::new(new_glyph))
                 .expect(&format!("failed to find glyph {} in new face", glyph));
             glyph2.draw(settings, &mut sink2).unwrap();
-
         }
     }
 }
@@ -267,7 +265,11 @@ fn glyph_outlines_ttf_parser(font_file: &str, gids: &str) {
 
         if let Some(_) = old_face.outline_glyph(GlyphId(glyph), &mut sink1) {
             new_face.outline_glyph(GlyphId(new_glyph), &mut sink2);
-            assert_eq!(sink1, sink2, "glyph {} drawn with ttf-parser didn't match.", glyph);
+            assert_eq!(
+                sink1, sink2,
+                "glyph {} drawn with ttf-parser didn't match.",
+                glyph
+            );
         }
     }
 }
