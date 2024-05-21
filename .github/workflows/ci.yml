@@ -5,7 +5,13 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+      - name: Install fonttools
+        run: pip install fonttools=4.51
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo build --release
+        name: Build
       - run: cargo test --release
+        name: Run tests

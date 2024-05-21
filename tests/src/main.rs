@@ -117,7 +117,8 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
             .unwrap().stdout;
 
         let reference = std::fs::read(ttx_path).unwrap();
-        assert_eq!(reference, output, "fonttools output didn't match.");
+        assert_eq!(reference.len(), output.len(), "fonttools output didn't match in length.");
+        assert!(reference.iter().zip(output.iter()).all(|(a,b)| a == b), "fonttools output didn't match.");
     }
 }
 
