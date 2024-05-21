@@ -155,8 +155,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let mut subsetted_font = vec![];
 
     // TODO: Don't write two times
-    for _ in 0..3 {
-        println!("{:?}", font_write_context);
+    for _ in 0..2 {
         let mut w = Writer::new();
         // HEADER
         w.write(table.header);

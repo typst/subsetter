@@ -52,8 +52,6 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
             .iter()
             .collect();
 
-    eprintln!("{:?}", otf_path);
-
     let data = read_file(font_file);
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
     let gids_vec: Vec<_> = parse_gids(gids, face.number_of_glyphs());

@@ -51,7 +51,7 @@ impl FixedNumber {
 
 impl Writeable for FixedNumber {
     fn write(&self, w: &mut Writer) {
-        w.write(255);
+        w.write::<u8>(255);
         w.write(self.0);
     }
 }
@@ -346,6 +346,7 @@ impl Writeable for U24 {
 
 #[cfg(test)]
 mod tests {
+    use ttf_parser::Fixed;
     use crate::cff::number::*;
     use crate::read::Reader;
 
@@ -456,5 +457,18 @@ mod tests {
         let mut r = Reader::new(&num);
         let real = RealNumber::parse(&mut r).unwrap();
         assert_eq!(-249.3212, real.1);
+    }
+
+    #[test]
+    fn fixed() {
+        let num = [255u8, 154, 104, 120, 40];
+
+        let mut r = Reader::new(&num);
+        let parsed = FixedNumber::parse(&mut r).unwrap();
+
+        let mut w = Writer::new();
+        w.write(parsed);
+
+        assert_eq!(num, w.finish().as_ref());
     }
 }
