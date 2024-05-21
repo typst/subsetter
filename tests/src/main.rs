@@ -19,6 +19,7 @@ mod font_tools;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 const FONT_TOOLS_REF: bool = false;
+const OVERWRITE_REFS: bool = false;
 
 struct TestContext {
     font: Vec<u8>,
@@ -92,7 +93,7 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
             .unwrap();
     }
 
-    if !ttx_path.exists() {
+    if !ttx_path.exists() || OVERWRITE_REFS {
         Command::new("fonttools")
             .args([
                 "ttx",
@@ -103,6 +104,20 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
             ])
             .output()
             .unwrap();
+    }   else {
+        let output = Command::new("fonttools")
+            .args([
+                "ttx",
+                "-f",
+                "-o",
+                "-",
+                otf_path.clone().to_str().unwrap(),
+            ])
+            .output()
+            .unwrap().stdout;
+
+        let reference = std::fs::read(ttx_path).unwrap();
+        assert_eq!(reference, output, "fonttools output didn't match.");
     }
 }
 
