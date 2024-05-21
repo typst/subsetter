@@ -37,7 +37,7 @@ resulting font is 36 KB (5 KB zipped).
 // TODO: Update code examples, README and look at documentation again.
 
 #![deny(unsafe_code)]
-// #![deny(missing_docs)]
+#![deny(missing_docs)]
 
 mod cff;
 mod glyf;
@@ -51,7 +51,7 @@ mod remapper;
 mod write;
 
 use crate::read::{Readable, Reader};
-pub use crate::remapper::GidMapper;
+pub use crate::remapper::GlyphRemapper;
 use crate::write::{Writeable, Writer};
 use crate::Error::{MalformedFont, UnknownKind};
 use std::borrow::Cow;
@@ -63,7 +63,7 @@ use std::fmt::{self, Debug, Display, Formatter};
 /// - The `data` must be in the OpenType font format.
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
-pub fn subset(data: &[u8], index: u32, gids: &[u16]) -> Result<(Vec<u8>, GidMapper)> {
+pub fn subset(data: &[u8], index: u32, gids: &[u16]) -> Result<(Vec<u8>, GlyphRemapper)> {
     let context = prepare_context(data, index, gids)?;
     _subset(context)
 }
@@ -84,7 +84,7 @@ fn prepare_context<'a>(data: &'a [u8], index: u32, gids: &[u16]) -> Result<Conte
         glyf::glyph_closure(&face, &mut gid_set)?;
     }
 
-    let mut mapper = GidMapper::new();
+    let mut mapper = GlyphRemapper::new();
 
     for gid in gid_set {
         mapper.remap(gid);
@@ -99,7 +99,7 @@ fn prepare_context<'a>(data: &'a [u8], index: u32, gids: &[u16]) -> Result<Conte
     })
 }
 
-fn _subset(mut ctx: Context) -> Result<(Vec<u8>, GidMapper)> {
+fn _subset(mut ctx: Context) -> Result<(Vec<u8>, GlyphRemapper)> {
     // See here for the required tables:
     // https://learn.microsoft.com/en-us/typography/opentype/spec/otff#required-tables
     // some of those are not strictly needed according to the PDF specification,
@@ -168,7 +168,7 @@ fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
 }
 
 /// Construct a brand new font.
-fn construct(mut ctx: Context) -> (Vec<u8>, GidMapper) {
+fn construct(mut ctx: Context) -> (Vec<u8>, GlyphRemapper) {
     ctx.tables.sort_by_key(|&(tag, _)| tag);
 
     let mut w = Writer::new();
@@ -249,7 +249,7 @@ struct Context<'a> {
     /// Original face.
     face: Face<'a>,
     /// A map from old gids to new gids, and the reverse
-    mapper: GidMapper,
+    mapper: GlyphRemapper,
     /// The kind of face.
     kind: FontKind,
     /// Subsetted tables.

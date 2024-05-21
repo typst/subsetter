@@ -7,7 +7,7 @@ use std::error::Error;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use subsetter::{subset, GidMapper};
+use subsetter::{subset, GlyphRemapper};
 use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
@@ -24,7 +24,7 @@ const OVERWRITE_REFS: bool = false;
 struct TestContext {
     font: Vec<u8>,
     subset: Vec<u8>,
-    mapper: GidMapper,
+    mapper: GlyphRemapper,
     gids: Vec<u16>,
 }
 

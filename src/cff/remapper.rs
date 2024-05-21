@@ -34,7 +34,7 @@ impl SidRemapper {
 
     pub fn sids(&self) -> impl Iterator<Item = StringId> + '_ {
         self.0
-            .sequential_iter()
+            .sorted_iter()
             .map(|n| StringId::from(n + StringId::STANDARD_STRING_LEN))
     }
 }

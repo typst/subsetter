@@ -54,7 +54,7 @@ pub(crate) fn write_font_dict_index(
 ) -> Result<Vec<u8>> {
     let mut dicts = vec![];
 
-    for (new_df, old_df) in fd_remapper.sequential_iter().enumerate() {
+    for (new_df, old_df) in fd_remapper.sorted_iter().enumerate() {
         let new_df = new_df as u8;
 
         let dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;

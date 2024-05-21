@@ -128,7 +128,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let sid_remapper = get_sid_remapper(&table, &ctx.mapper);
     let mut char_strings = vec![];
 
-    for old_gid in ctx.mapper.old_gids() {
+    for old_gid in ctx.mapper.remapped_gids() {
         let fd_index = match &table.font_kind {
             FontKind::Cid(ref cid) => {
                 let fd_index = cid.fd_select.font_dict_index(old_gid).unwrap();
@@ -242,7 +242,7 @@ fn write_sids(sid_remapper: &SidRemapper, strings: Index) -> Result<Vec<u8>> {
     create_index(new_strings)
 }
 
-fn get_sid_remapper(table: &Table, gid_remapper: &GidMapper) -> SidRemapper {
+fn get_sid_remapper(table: &Table, gid_remapper: &GlyphRemapper) -> SidRemapper {
     let mut sid_remapper = SidRemapper::new();
     for sid in &table.top_dict_data.used_sids {
         sid_remapper.remap(*sid);
@@ -250,7 +250,7 @@ fn get_sid_remapper(table: &Table, gid_remapper: &GidMapper) -> SidRemapper {
 
     match table.font_kind {
         FontKind::Sid(_) => {
-            for gid in gid_remapper.old_gids() {
+            for gid in gid_remapper.remapped_gids() {
                 if let Some(sid) = table.charset.gid_to_sid(gid) {
                     sid_remapper.remap(sid);
                 }

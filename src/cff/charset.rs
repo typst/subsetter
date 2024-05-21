@@ -5,7 +5,7 @@ use crate::read::LazyArray16;
 use crate::read::{Readable, Reader};
 use crate::write::Writer;
 use crate::Error::{MalformedFont, SubsetError};
-use crate::GidMapper;
+use crate::GlyphRemapper;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum Charset<'a> {
@@ -197,14 +197,14 @@ pub(crate) fn write_charset(
     sid_remapper: &SidRemapper,
     kind: &FontKind,
     charset: &Charset,
-    gid_mapper: &GidMapper,
+    gid_mapper: &GlyphRemapper,
 ) -> crate::Result<Vec<u8>> {
     let mut w = Writer::new();
     // Format 0
     w.write::<u8>(0);
 
     // Skip 0
-    for old_gid in gid_mapper.old_gids().skip(1) {
+    for old_gid in gid_mapper.remapped_gids().skip(1) {
         let original_sid = charset.gid_to_sid(old_gid).ok_or(MalformedFont)?;
         let new_sid = match kind {
             // For SID-keyed fonts, we need to find out the remapped SID

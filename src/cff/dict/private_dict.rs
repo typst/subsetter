@@ -34,7 +34,7 @@ pub fn write_private_dicts(
     metadata: &CIDMetadata,
     w: &mut Writer,
 ) -> Result<()> {
-    for (new_df, old_df) in fd_remapper.sequential_iter().enumerate() {
+    for (new_df, old_df) in fd_remapper.sorted_iter().enumerate() {
         let font_dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
 
         let private_dict_offset = w.len();

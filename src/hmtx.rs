@@ -19,7 +19,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
             r.read::<u16>().ok_or(MalformedFont)?
         };
 
-        for old_gid in ctx.mapper.old_gids() {
+        for old_gid in ctx.mapper.remapped_gids() {
             let has_advance_width = old_gid < num_h_metrics;
 
             let offset = if has_advance_width {
