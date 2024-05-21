@@ -10,7 +10,7 @@ use subsetter::{subset, GidMapper};
 use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
-mod ttf;
+mod subsets;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -199,7 +199,17 @@ fn glyph_metrics(font_file: &str, gids: &str) {
     }
 }
 
-pub fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
+pub fn glyph_outlines_all_glyphs(font_file: &str) {
+    glyph_outlines_skrifa(font_file, "*");
+    glyph_outlines_ttf_parser(font_file, "*");
+}
+
+pub fn glyph_outlines(font_file: &str, gids: &str) {
+    glyph_outlines_skrifa(font_file, gids);
+    glyph_outlines_ttf_parser(font_file, gids);
+}
+
+fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
     let old_face = skrifa::FontRef::new(&ctx.font).unwrap();
     let new_face = skrifa::FontRef::new(&ctx.subset).unwrap();
@@ -245,7 +255,7 @@ pub fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
     }
 }
 
-pub fn glyph_outlines_ttf_parser(font_file: &str, gids: &str) {
+fn glyph_outlines_ttf_parser(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();

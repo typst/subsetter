@@ -1,0 +1,38 @@
+// These tests will check whether the face metrics of the subsetted fonts
+// stay the same, as well as whether the outlines created by ttf-parser and skrifa
+// stay the same.
+
+ClickerScript-Regular.ttf;0
+ClickerScript-Regular.ttf;2
+ClickerScript-Regular.ttf;5,8,10
+ClickerScript-Regular.ttf;0-20,33,35,36,41-47
+ClickerScript-Regular.ttf;100-200,202,301,304
+ClickerScript-Regular.ttf;10,100-105,108,130-145,234,247,253,267,278-283,340
+
+DejaVuSansMono.ttf;100-105,140-155
+DejaVuSansMono.ttf;10-30,40-80
+
+LatinModernRoman-Regular.otf;5-15,60-57
+LatinModernRoman-Regular.otf;100-130,200-280
+
+MPLUS1p-Regular.ttf;0,1
+MPLUS1p-Regular.ttf;3,45,98,120,245,389,1043,1055-1063
+
+NotoSansCJKsc-Regular.otf;1-2
+NotoSansCJKsc-Regular.otf;4500-5746
+NotoSansCJKsc-Regular.otf;12000-14000,34-60,80-90
+NotoSansCJKsc-Regular.otf;45-90,16000-16897,23569-25697
+NotoSansCJKsc-Regular.otf;65532
+
+NotoSans-Regular.ttf;567-570
+NotoSans-Regular.ttf;1034-1037,3020-3045
+NotoSans-Regular.ttf;3,6,8,9,11
+NotoSans-Regular.ttf;10-30
+NotoSans-Regular.ttf;30-50,132,137
+NotoSans-Regular.ttf;20-25,30,40,45,47,48,52-70,300-350,500-522,3001
+
+Roboto-Regular.ttf;3,4
+Roboto-Regular.ttf;40-60,90-130,156,180
+Roboto-Regular.ttf;45-60,120-145,750-780,810,812,830,850,900
+Roboto-Regular.ttf;757
+
