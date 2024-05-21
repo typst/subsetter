@@ -1,7 +1,7 @@
 [package]
 name = "subsetter"
 version = "0.1.1"
-authors = ["Laurenz <laurmaedje@gmail.com>"]
+authors = ["Laurenz Maedje <laurmaedje@gmail.com>, Laurenz Stampfl <laurenz.stampfl@gmail.com>"]
 edition = "2021"
 description = "Reduces the size and coverage of OpenType fonts."
 repository = "https://github.com/typst/subsetter"
@@ -12,11 +12,6 @@ keywords = ["subsetting", "OpenType", "PDF"]
 exclude = ["fonts/*"]
 
 [dev-dependencies]
-hex = "0.4.3"
-sha2 = "0.10.8"
 skrifa = "0.19.1"
+ttf-parser = "0.21.1"
 
-
-[dependencies]
-pico-args = "0.5.0"
-ttf-parser = "0.20.0"

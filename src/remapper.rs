@@ -98,14 +98,6 @@ impl GidMapper {
         self.0.get(old)
     }
 
-    pub fn iter(&self) -> GidIterator {
-        GidIterator {
-            current: 0,
-            max: self.num_gids(),
-            entries: &self.0.backward,
-        }
-    }
-
     // Returned gids are sorted by their new ID.
     pub fn old_gids(&self) -> impl Iterator<Item = u16> + '_ {
         self.0.backward.iter().copied()
