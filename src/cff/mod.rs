@@ -49,11 +49,13 @@ pub struct Table<'a> {
     font_kind: FontKind<'a>,
 }
 
+#[derive(Debug)]
 struct CIDWriteContext {
     fd_array_offset: IntegerNumber,
     fd_select_offset: IntegerNumber,
 }
 
+#[derive(Debug)]
 struct FontWriteContext {
     // TOP DICT DATA
     charset_offset: IntegerNumber,
@@ -153,7 +155,8 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let mut subsetted_font = vec![];
 
     // TODO: Don't write two times
-    for _ in 0..2 {
+    for _ in 0..3 {
+        println!("{:?}", font_write_context);
         let mut w = Writer::new();
         // HEADER
         w.write(table.header);

@@ -61,16 +61,10 @@ pub(crate) fn write_font_dict_index(
         let dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
         let mut w = Writer::new();
 
-        let mut write = |operands: &[Number], operator: Operator| {
-            for operand in operands {
-                w.write(operand);
-            }
-            w.write(operator);
-        };
-
         if let Some(sid) = dict.font_name_sid {
             let new_sid = sid_remapper.get(sid).ok_or(MalformedFont)?;
-            write(&[Number::from_i32(new_sid.0 as i32)], dict::operators::FONT_NAME);
+            w.write(Number::from_i32(new_sid.0 as i32));
+            w.write(dict::operators::FONT_NAME);
         }
 
         // TODO: Offsets can be u32?
@@ -79,11 +73,8 @@ pub(crate) fn write_font_dict_index(
             .get(new_df as usize)
             .ok_or(SubsetError)?;
 
-        let mut op_w = Writer::new();
-        op_w.write(&private_dict_offset.0);
-        op_w.write(&private_dict_offset.1);
-
-        w.write(op_w.finish().as_slice());
+        private_dict_offset.0.write_as_5_bytes(&mut w);
+        private_dict_offset.1.write_as_5_bytes(&mut w);
         w.write(dict::operators::PRIVATE);
         dicts.push(w.finish());
     }
