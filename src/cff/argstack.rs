@@ -1,4 +1,4 @@
-use crate::cff::types::Number;
+use crate::cff::number::Number;
 use crate::Error::MalformedFont;
 use crate::Result;
 

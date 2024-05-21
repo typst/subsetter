@@ -12,7 +12,7 @@ mod cid_font;
 mod operator;
 mod sid_font;
 mod subroutines;
-mod types;
+mod number;
 
 use super::*;
 use crate::cff::charset::{parse_charset, write_charset, Charset};
@@ -28,7 +28,7 @@ use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
 use crate::Error::SubsetError;
 use charset::charset_id;
 use std::collections::BTreeSet;
-use types::{IntegerNumber, StringId};
+use number::{IntegerNumber, StringId};
 
 #[derive(Clone, Debug)]
 pub(crate) enum FontKind<'a> {

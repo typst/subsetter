@@ -1,7 +1,7 @@
 use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{create_index, parse_index};
 use crate::cff::remapper::SidRemapper;
-use crate::cff::types::{Number, StringId};
+use crate::cff::number::{Number, StringId};
 use crate::cff::FontWriteContext;
 use crate::read::Reader;
 use crate::write::Writer;

@@ -3,7 +3,7 @@ use crate::cff::dict::private_dict::parse_subr_offset;
 use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{create_index, parse_index, Index};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
-use crate::cff::types::{Number, StringId};
+use crate::cff::number::{Number, StringId};
 use crate::cff::{dict, FontWriteContext};
 use crate::read::Reader;
 use crate::write::Writer;

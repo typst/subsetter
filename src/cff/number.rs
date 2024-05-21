@@ -351,7 +351,7 @@ impl Writeable for U24 {
 
 #[cfg(test)]
 mod tests {
-    use crate::cff::types::*;
+    use crate::cff::number::*;
     use crate::read::Reader;
 
     #[test]

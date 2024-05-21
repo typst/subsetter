@@ -1,4 +1,4 @@
-use crate::cff::types::StringId;
+use crate::cff::number::StringId;
 use crate::remapper::Remapper;
 
 pub type FontDictRemapper = Remapper<u8, u8>;
@@ -42,7 +42,7 @@ impl SidRemapper {
 #[cfg(test)]
 mod tests {
     use crate::cff::remapper::SidRemapper;
-    use crate::cff::types::StringId;
+    use crate::cff::number::StringId;
 
     #[test]
     fn test_remap_1() {

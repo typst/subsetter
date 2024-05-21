@@ -3,7 +3,7 @@ use crate::cff::dict::operators::*;
 use crate::cff::dict::DictionaryParser;
 use crate::cff::remapper::FontDictRemapper;
 use crate::cff::sid_font::SIDMetadata;
-use crate::cff::types::{IntegerNumber, Number};
+use crate::cff::number::{IntegerNumber, Number};
 use crate::cff::FontWriteContext;
 use crate::write::Writer;
 use crate::Error::SubsetError;

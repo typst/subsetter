@@ -1,4 +1,4 @@
-use crate::cff::types::U24;
+use crate::cff::number::U24;
 use crate::read::{Readable, Reader};
 use crate::write::Writer;
 use crate::Error::MalformedFont;

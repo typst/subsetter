@@ -1,7 +1,7 @@
 use crate::cff::argstack::ArgumentsStack;
 use crate::cff::operator::Operator;
 use crate::cff::subroutines::SubroutineHandler;
-use crate::cff::types::Number;
+use crate::cff::number::Number;
 use crate::read::Reader;
 use crate::write::Writer;
 use crate::Error::MalformedFont;
