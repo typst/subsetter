@@ -40,6 +40,8 @@ pub fn subset<'a>(table: &Version0Table<'a>) -> Option<SubsettedVersion0Table<'a
     Some(SubsettedVersion0Table { names, storage: Cow::Owned(storage) })
 }
 
+// TODO: Unentangle this mess
+
 impl Writeable for SubsettedVersion0Table<'_> {
     fn write(&self, w: &mut Writer) {
         let count = u16::try_from(self.names.len()).unwrap();
@@ -50,12 +52,14 @@ impl Writeable for SubsettedVersion0Table<'_> {
         w.write::<u16>(count);
         // storage offset
         w.write::<u16>(u16::SIZE as u16 * 3 + count * NameRecord::SIZE as u16);
-        w.write_vector::<NameRecord>(&self.names);
+        for name in &self.names {
+            w.write(name);
+        }
         w.extend(&self.storage);
     }
 }
 
-impl Writeable for NameRecord {
+impl Writeable for &NameRecord {
     fn write(&self, w: &mut Writer) {
         w.write::<u16>(self.platform_id);
         w.write::<u16>(self.encoding_id);

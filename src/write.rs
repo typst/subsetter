@@ -17,12 +17,6 @@ impl Writer {
         data.write(self);
     }
 
-    pub fn write_vector<T: Writeable>(&mut self, data: &Vec<T>) {
-        for el in data {
-            el.write(self);
-        }
-    }
-
     /// Give bytes into the writer.
     pub fn extend(&mut self, bytes: &[u8]) {
         self.0.extend(bytes);
