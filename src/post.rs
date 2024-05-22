@@ -1,12 +1,17 @@
+//! Subset the `post` table. The `post` table contains name information for glyphs
+//! needed for some PostScript printers. Only version 2 table contains actual custom names,
+//! so this is the only version that we need to subset. All we need to do is to extract
+//! the strings for all requested glyphs and write them into a new `post` table in the
+//! given order.
+
 use super::*;
 use crate::read::LazyArray16;
 use crate::Error::{MalformedFont, SubsetError};
 
-pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
+pub fn subset(ctx: &mut Context) -> Result<()> {
     let post = ctx.expect_table(Tag::POST).ok_or(MalformedFont)?;
     let mut r = Reader::new(post);
 
-    // Version 2 is the only one worth subsetting.
     let version = r.read::<u32>().ok_or(MalformedFont)?;
     if version != 0x00020000 {
         ctx.push(Tag::POST, post);
@@ -26,6 +31,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     for old_gid in ctx.mapper.remapped_gids() {
         let index = table.glyph_indexes.get(old_gid).ok_or(MalformedFont)?;
 
+        // IDs smaller than 258 refer to the names in the Macintosh TrueType file.
         if index <= 257 {
             sub_post.write(index);
         } else {
@@ -61,9 +67,6 @@ impl<'a> Iterator for Names<'a> {
     type Item = &'a [u8];
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Glyph names are stored as Pascal Strings.
-        // Meaning u8 (len) + [u8] (data).
-
         if self.offset >= self.data.len() {
             return None;
         }
@@ -82,6 +85,7 @@ impl<'a> Iterator for Names<'a> {
     }
 }
 
+/// A version 2 `name` table.
 #[derive(Clone, Debug)]
 pub struct Version2Table<'a> {
     pub header: &'a [u8],

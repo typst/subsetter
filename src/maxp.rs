@@ -1,3 +1,7 @@
+//! The `maxp` table contains the number of glyphs (and some additional information
+//! depending on the version). All we need to do is rewrite the number of glyphs, the rest
+//! can be copied from the old table.
+
 use super::*;
 use crate::Error::MalformedFont;
 
@@ -5,7 +9,8 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
     let maxp = ctx.expect_table(Tag::MAXP).ok_or(MalformedFont)?;
     let mut r = Reader::new(maxp);
     let version = r.read::<u32>().ok_or(MalformedFont)?;
-    r.read::<u16>().ok_or(MalformedFont)?; // num glyphs
+    // number of glyphs
+    r.read::<u16>().ok_or(MalformedFont)?;
 
     let mut sub_maxp = Writer::new();
     sub_maxp.write::<u32>(version);
