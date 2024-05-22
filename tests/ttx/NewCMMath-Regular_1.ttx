@@ -4,28 +4,28 @@
   <GlyphOrder>
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
-    <GlyphID id="1" name="uni220E"/>
-    <GlyphID id="2" name="product"/>
-    <GlyphID id="3" name="uni2210"/>
-    <GlyphID id="4" name="summation"/>
-    <GlyphID id="5" name="uni22A1"/>
-    <GlyphID id="6" name="uni22A2"/>
-    <GlyphID id="7" name="uni22A3"/>
-    <GlyphID id="8" name="u1D6F7.sts"/>
-    <GlyphID id="9" name="u1D6F9.sts"/>
-    <GlyphID id="10" name="u1D6FA.sts"/>
+    <GlyphID id="1" name="uni21E0"/>
+    <GlyphID id="2" name="uni21E1"/>
+    <GlyphID id="3" name="uni21E2"/>
+    <GlyphID id="4" name="uni21E3"/>
+    <GlyphID id="5" name="uni2273"/>
+    <GlyphID id="6" name="uni2274"/>
+    <GlyphID id="7" name="uni2275"/>
+    <GlyphID id="8" name="caronbelowcmb.h6"/>
+    <GlyphID id="9" name="circumflexcmb.h6"/>
+    <GlyphID id="10" name="circumflexbelowcmb.h6"/>
   </GlyphOrder>
 
   <head>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.0"/>
-    <checkSumAdjustment value="0xd1ce28a3"/>
+    <checkSumAdjustment value="0x7f3824a4"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00001011"/>
     <unitsPerEm value="1000"/>
     <created value="Fri Sep  5 13:05:40 2014"/>
-    <modified value="Thu Dec 28 11:59:21 2023"/>
+    <modified value="Mon May  8 05:21:38 2023"/>
     <xMin value="-1042"/>
     <yMin value="-3060"/>
     <xMax value="4082"/>
@@ -54,7 +54,7 @@
     <reserved2 value="0"/>
     <reserved3 value="0"/>
     <metricDataFormat value="0"/>
-    <numberOfHMetrics value="11"/>
+    <numberOfHMetrics value="9"/>
   </hhea>
 
   <maxp>
@@ -66,7 +66,7 @@
     <!-- The fields 'usFirstCharIndex' and 'usLastCharIndex'
          will be recalculated by the compiler -->
     <version value="4"/>
-    <xAvgCharWidth value="695"/>
+    <xAvgCharWidth value="693"/>
     <usWeightClass value="400"/>
     <usWidthClass value="5"/>
     <fsType value="00000000 00001000"/>
@@ -156,7 +156,7 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
     <major value="1"/>
     <minor value="0"/>
     <CFFFont name="NewCMMath-Regular">
-      <version value="5.11"/>
+      <version value="4.5"/>
       <Notice value="(C) 2019-2021 Antonis Tsolomitis. 
 This work is released under the GUST Font License -- see http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt for details."/>
       <FullName value="NewComputerModernMath-Regular"/>
@@ -194,203 +194,185 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
         <CharString name=".notdef">
           -326 endchar
         </CharString>
-        <CharString name="product">
-          338 -250 40 920 40 hstem
-          159 97 431 97 vstem
-          887 -250 rmoveto
-          40 vlineto
-          -103 0 49 30 hvcurveto
-          762 vlineto
-          30 0 49 103 vhcurveto
-          40 -831 -40 vlineto
-          103 0 -49 -30 hvcurveto
-          -762 vlineto
-          -30 0 -49 -103 vhcurveto
-          -40 303 40 vlineto
-          -103 0 49 30 hvcurveto
-          841 431 -841 vlineto
-          -30 0 -49 -103 vhcurveto
-          -40 vlineto
+        <CharString name="caronbelowcmb.h6">
+          975 -125 29 hstem
+          1581 -125 rmoveto
+          -5 29 -786 -114 -785 114 -5 -29 790 -150 rlineto
           endchar
         </CharString>
-        <CharString name="summation">
-          450 -250 55 194 -20 731 40 hstem
-          999 -1 rmoveto
-          -25 hlineto
-          -25 -75 -67 -61 -85 -29 -16 -5 -69 -24 -147 0 rrcurveto
-          -425 0 347 429 rlineto
-          7 9 2 3 0 4 0 4 -1 1 -6 9 rrcurveto
-          -325 446 396 0 rlineto
-          114 0 230 -7 70 -187 rrcurveto
-          25 0 -86 234 -829 0 rlineto
-          -27 -1 -1 -31 hvcurveto
-          365 -502 -355 -439 rlineto
-          -8 -10 -1 -2 0 -4 rrcurveto
-          -11 9 0 18 vhcurveto
-          829 hlineto
+        <CharString name="circumflexbelowcmb.h6">
+          975 -287 29 hstem
+          1581 -258 rmoveto
+          -791 150 -790 -150 5 -29 785 114 786 -114 rlineto
           endchar
         </CharString>
-        <CharString name="u1D6F7.sts">
-          338 0 45 103 34 319 34 103 45 hstem
-          87 109 553 109 vstem
-          858 367 rmoveto
-          0 97 -145 63 -144 8 rrcurveto
-          14 56 rlineto
-          8 29 2 9 26 5 25 4 28 0 27 0 rrcurveto
-          28 13 0 28 13 -10 4 -8 hvcurveto
-          -26 0 -28 -3 -26 0 rrcurveto
-          -84 -1 -83 1 rlineto
-          -28 0 -29 3 -27 0 rrcurveto
-          -8 -18 0 -28 -17 13 0 25 hvcurveto
-          23 0 11 0 24 -2 32 -3 1 -1 0 -11 0 -6 -11 -43 -8 -31 -2 -5 -1 -1 -16 -1 -181 -14 -188 -89 0 -115 0 -95 139 -64 150 -9 rrcurveto
-          -14 -61 -3 -11 -3 -8 -6 -13 -5 -10 -98 0 -27 0 -2 0 -5 -5 -6 -6 -1 -17 0 0 0 0 1 -17 17 0 26 0 28 3 26 0 rrcurveto
-          84 1 83 -1 rlineto
-          28 0 29 -3 27 0 rrcurveto
-          6 20 0 28 17 -14 0 -26 hvcurveto
-          -24 0 -8 0 -26 2 -24 2 -7 1 0 12 rrcurveto
-          20 86 rlineto
-          183 10 203 89 0 120 rrcurveto
-          -393 134 rmoveto
-          -80 -319 rlineto
-          -87 5 -102 27 0 95 0 58 46 122 223 12 rrcurveto
-          284 -127 rmoveto
-          0 -62 -52 -118 -216 -12 rrcurveto
-          80 319 rlineto
-          74 -4 114 -23 0 -100 rrcurveto
+        <CharString name="circumflexcmb.h6">
+          975 570 28 hstem
+          1581 598 rmoveto
+          -791 150 -790 -150 5 -28 785 114 786 -114 rlineto
           endchar
         </CharString>
-        <CharString name="u1D6F9.sts">
-          287 0 45 104 35 328 34 92 45 hstemhm
-          140 93 -80 95 hintmask 11111000
-          919 529 rmoveto
-          17 -14 0 -18 vhcurveto
-          -36 hlineto
-          -105 0 -35 -104 -6 -21 -17 -61 -41 -146 -182 -29 rrcurveto
-          103 413 rlineto
-          6 25 6 8 25 3 28 4 20 0 27 0 rrcurveto
-          30 13 0 28 12 -9 5 -9 hvcurveto
-          -26 0 -28 -3 -26 0 rrcurveto
-          -84 -1 -83 1 rlineto
-          -28 0 -29 3 -27 0 rrcurveto
-          -8 -18 0 -28 -17 13 0 25 hvcurveto
-          23 0 11 0 24 -2 32 -3 1 -1 0 -11 0 -6 -2 -6 -1 -5 rrcurveto
-          -105 -420 rlineto
-          -117 15 -19 73 0 59 0 24 4 26 6 25 rrcurveto
-          hintmask 11110100
-          5 20 0 8 0 13 rrcurveto
-          99 -75 0 -18 vhcurveto
-          -36 hlineto
-          -16 -17 0 -17 hvcurveto
-          0 -9 8 -7 8 -1 17 -2 34 -3 0 -60 0 -16 -2 -9 -4 -17 rrcurveto
-          hintmask 11111000
-          -6 -26 -1 -27 0 -6 0 -124 88 -61 132 -12 rrcurveto
-          -14 -56 rlineto
-          -8 -31 -2 -8 -26 -5 -23 -4 -30 0 -27 0 -27 0 -2 0 -5 -5 -6 -6 -1 -17 0 0 0 0 1 -17 17 0 26 0 28 3 26 0 rrcurveto
-          84 1 83 -1 rlineto
-          28 0 29 -3 27 0 rrcurveto
-          6 20 0 28 17 -14 0 -26 hvcurveto
-          -24 0 -8 0 -26 2 -24 2 -7 1 0 12 rrcurveto
-          20 86 rlineto
-          82 6 67 21 58 38 97 65 26 87 14 50 6 18 28 72 66 7 rrcurveto
-          7 1 13 1 0 15 rrcurveto
-          endchar
-        </CharString>
-        <CharString name="u1D6FA.sts">
-          455 0 78 593 34 hstem
-          152 42 39 112 20 36 494 112 vstem
-          1007 492 rmoveto
-          117 -128 96 -200 -218 -228 -121 -177 vhcurveto
-          0 -65 27 -48 43 -70 29 -45 28 -46 5 -55 rrcurveto
-          -104 hlineto
-          -3 0 -52 0 -5 6 -5 6 -2 47 0 11 rrcurveto
-          13 0 14 -21 -21 0 -11 -18 vhcurveto
-          0 -15 3 -115 3 -6 4 -10 9 0 18 0 rrcurveto
-          172 hlineto
-          25 0 5 0 5 25 5 28 0 12 0 19 0 52 -8 31 -24 85 -23 81 -1 31 0 23 rrcurveto
-          183 178 101 156 109 107 -50 -115 vhcurveto
-          0 -91 -65 -84 -76 -95 -125 -160 0 -56 0 -3 rrcurveto
-          -17 16 0 17 vhcurveto
-          172 hlineto
-          24 0 1 1 9 16 28 50 45 85 0 6 0 0 0 17 -20 0 -15 0 -1 -3 -10 -19 -21 -38 -15 -29 -13 -3 -13 -4 -34 -1 -15 0 rrcurveto
-          -93 hlineto
-          29 48 43 41 57 51 89 78 98 88 0 108 rrcurveto
-          endchar
-        </CharString>
-        <CharString name="uni220E">
-          60 0 554 hstem
-          56 554 vstem
-          610 20 rmoveto
-          514 vlineto
-          11 -9 9 -11 vhcurveto
-          -514 hlineto
-          -11 -9 -9 -11 hvcurveto
-          -514 vlineto
-          -11 9 -9 11 vhcurveto
-          514 hlineto
-          11 9 9 11 hvcurveto
-          endchar
-        </CharString>
-        <CharString name="uni2210">
-          338 -250 40 920 40 hstem
-          159 97 431 97 vstem
-          887 -250 rmoveto
-          40 vlineto
-          -103 0 49 30 hvcurveto
-          762 vlineto
-          30 0 49 103 vhcurveto
-          40 -303 -40 vlineto
-          103 0 -49 -30 hvcurveto
-          -841 -431 841 vlineto
-          30 0 49 103 vhcurveto
-          40 -303 -40 vlineto
-          103 0 -49 -30 hvcurveto
-          -762 vlineto
-          -30 0 -49 -103 vhcurveto
-          -40 vlineto
-          endchar
-        </CharString>
-        <CharString name="uni22A1">
-          -83 40 240 106 240 40 hstem
-          56 40 240 106 240 40 vstem
-          cntrmask 11111100
-          722 -63 rmoveto
-          626 vlineto
-          11 -9 9 -11 vhcurveto
-          -626 hlineto
-          -11 -9 -9 -11 hvcurveto
-          -626 vlineto
-          -11 9 -9 11 vhcurveto
-          626 hlineto
-          11 9 9 11 hvcurveto
-          -40 606 rmoveto
-          -586 -586 586 vlineto
-          346 -293 rmoveto
-          29 -24 24 -29 -29 -24 -24 -29 -29 24 -24 29 29 24 24 29 vhcurveto
-          endchar
-        </CharString>
-        <CharString name="uni22A2">
-          5 21 -21 322 40 322 -20 hstem
-          56 40 vstem
-          556 342 rmoveto
-          11 -9 9 -11 vhcurveto
-          -440 302 hlineto
-          11 -9 9 -11 -11 -9 -9 -11 vhcurveto
-          -644 vlineto
-          -11 9 -9 11 11 9 9 11 vhcurveto
-          302 440 vlineto
-          11 9 9 11 hvcurveto
-          endchar
-        </CharString>
-        <CharString name="uni22A3">
-          5 21 -21 322 40 322 -20 hstem
-          515 40 vstem
-          555 20 rmoveto
-          644 vlineto
-          11 -9 9 -11 -11 -9 -9 -11 vhcurveto
-          -302 -440 vlineto
+        <CharString name="uni21E0">
+          394 11 -21 240 40 hstem
+          262 40 vstem
+          447 270 rmoveto
           -11 -9 -9 -11 -11 9 -9 11 hvcurveto
-          440 -302 hlineto
+          176 hlineto
+          11 9 9 11 11 -9 9 -11 hvcurveto
+          -466 hmoveto
+          30 20 26 24 22 28 33 42 23 49 10 53 0 1 1 2 0 1 0 11 -9 9 -11 0 -10 0 -8 -7 -2 -9 -9 -47 -21 -44 -28 -36 rrcurveto
+          -36 -45 -44 -40 -57 -19 -5 -2 -4 -5 0 -6 0 -6 4 -5 5 -2 57 -19 44 -40 36 -45 28 -36 21 -44 9 -47 2 -9 8 -7 10 0 rrcurveto
+          11 9 9 11 hvcurveto
+          0 1 -1 2 0 1 -10 53 -23 49 -33 42 -22 28 -26 24 -30 20 rrcurveto
+          176 hlineto
+          11 9 9 11 11 -9 9 -11 hvcurveto
+          424 hmoveto
+          -11 -9 -9 -11 -11 9 -9 11 hvcurveto
+          166 hlineto
+          11 9 9 11 11 -9 9 -11 hvcurveto
+          -166 -40 rmoveto
+          endchar
+        </CharString>
+        <CharString name="uni21E1">
+          78 448 40 204 -20 hstem
+          322 40 vstem
+          322 304 rmoveto
+          -176 vlineto
           -11 9 -9 11 11 9 9 11 vhcurveto
+          176 vlineto
+          11 -9 9 -11 -11 -9 -9 -11 vhcurveto
+          290 vmoveto
+          -176 vlineto
+          -11 9 -9 11 11 9 9 11 vhcurveto
+          176 vlineto
+          20 -30 24 -26 28 -22 42 -33 49 -23 53 -10 1 0 2 -2 1 0 11 0 9 9 0 11 0 10 -7 8 -9 2 -47 9 -44 21 -36 28 rrcurveto
+          -45 36 -40 45 -19 57 -2 5 -5 3 -6 0 -6 0 -5 -3 -2 -5 -19 -57 -40 -45 -45 -36 -36 -28 -44 -21 -47 -9 -9 -2 -7 -8 0 -10 rrcurveto
+          -11 9 -9 11 vhcurveto
+          1 0 2 2 1 0 53 10 49 23 42 33 28 22 24 26 20 30 rrcurveto
+          -600 vmoveto
+          -166 vlineto
+          -11 9 -9 11 11 9 9 11 vhcurveto
+          166 vlineto
+          11 -9 9 -11 -11 -9 -9 -11 vhcurveto
+          40 hmoveto
+          endchar
+        </CharString>
+        <CharString name="uni21E2">
+          394 11 -21 240 40 hstem
+          699 40 vstem
+          554 270 rmoveto
+          -176 hlineto
+          -11 -9 -9 -11 -11 9 -9 11 hvcurveto
+          176 hlineto
+          11 9 9 11 11 -9 9 -11 hvcurveto
+          290 hmoveto
+          -176 hlineto
+          -11 -9 -9 -11 -11 9 -9 11 hvcurveto
+          176 hlineto
+          -30 -20 -26 -24 -22 -28 -33 -42 -23 -49 -10 -53 0 -1 -1 -2 0 -1 0 -11 9 -9 11 0 10 0 8 7 2 9 9 47 21 44 28 36 rrcurveto
+          36 45 44 40 57 19 5 2 4 5 0 6 0 6 -4 5 -5 2 -57 19 -44 40 -36 45 -28 36 -21 44 -9 47 -2 9 -8 7 -10 0 rrcurveto
+          -11 -9 -9 -11 hvcurveto
+          0 -1 1 -2 0 -1 10 -53 23 -49 33 -42 22 -28 26 -24 30 -20 rrcurveto
+          -600 hmoveto
+          -166 hlineto
+          -11 -9 -9 -11 -11 9 -9 11 hvcurveto
+          166 hlineto
+          11 9 9 11 11 -9 9 -11 hvcurveto
+          -40 vmoveto
+          endchar
+        </CharString>
+        <CharString name="uni21E3">
+          78 12 40 640 -20 hstem
+          322 40 vstem
+          322 196 rmoveto
+          -11 9 -9 11 11 9 9 11 vhcurveto
+          176 vlineto
+          11 -9 9 -11 -11 -9 -9 -11 vhcurveto
+          -466 vmoveto
+          -20 30 -24 26 -28 22 -42 33 -49 23 -53 10 -1 0 -2 2 -1 0 -11 0 -9 -9 0 -11 0 -10 7 -8 9 -2 47 -9 44 -21 36 -28 rrcurveto
+          45 -36 40 -45 19 -57 2 -5 5 -3 6 0 6 0 5 3 2 5 19 57 40 45 45 36 36 28 44 21 47 9 9 2 7 8 0 10 rrcurveto
+          11 -9 9 -11 vhcurveto
+          -1 0 -2 -2 -1 0 -53 -10 -49 -23 -42 -33 -28 -22 -24 -26 -20 -30 rrcurveto
+          176 vlineto
+          11 -9 9 -11 -11 -9 -9 -11 vhcurveto
+          424 vmoveto
+          -11 9 -9 11 11 9 9 11 vhcurveto
+          166 vlineto
+          11 -9 9 -11 -11 -9 -9 -11 vhcurveto
+          40 -166 rmoveto
+          endchar
+        </CharString>
+        <CharString name="uni2273">
+          170 -125 52 91 52 hstem
+          57 24 614 23 vstem
+          706 365 rmoveto
+          18 7 0 27 -18 6 rrcurveto
+          -623 230 rlineto
+          -25 9 -14 -37 25 -9 rrcurveto
+          575 -213 -575 -212 rlineto
+          -25 -9 14 -38 25 10 rrcurveto
+          635 -85 rmoveto
+          7 -5 5 -7 vhcurveto
+          -5 0 -5 -4 -1 -5 -17 -76 -44 -31 -67 -17 -8 -2 -9 -1 -8 0 -50 0 -46 35 -43 32 -52 39 -58 37 -62 0 -11 0 -12 -1 -12 -3 rrcurveto
+          -83 -20 -35 -56 -21 -93 rrcurveto
+          -3 vlineto
+          -6 6 -6 6 vhcurveto
+          6 0 5 4 1 6 16 75 44 32 67 16 9 3 8 0 9 0 50 0 46 -34 42 -32 52 -39 59 -38 61 0 12 0 12 2 12 3 rrcurveto
+          82 20 36 56 20 93 rrcurveto
+          endchar
+        </CharString>
+        <CharString name="uni2274">
+          170 -125 52 91 52 621 -20 hstem
+          57 24 134 39 268 39 134 23 vstem
+          718 51 rmoveto
+          7 -5 5 -7 vhcurveto
+          -5 0 -5 -4 -1 -5 -17 -76 -44 -31 -67 -17 -8 -2 -9 -1 -8 0 -50 0 -46 35 -43 32 -22 17 -24 16 -24 13 rrcurveto
+          73 201 287 -105 rlineto
+          25 -10 13 38 -25 9 rrcurveto
+          -286 106 89 246 197 73 rlineto
+          25 9 -13 37 -25 -9 rrcurveto
+          -166 -61 33 90 rlineto
+          0 2 1 2 0 3 0 11 -9 9 -11 0 -9 0 -7 -6 -3 -8 rrcurveto
+          -44 -121 -408 -151 rlineto
+          -19 -6 0 -27 19 -7 rrcurveto
+          298 -110 -72 -198 rlineto
+          -21 8 -21 5 -23 0 -11 0 -12 -1 -12 -3 -83 -20 -35 -56 -21 -93 rrcurveto
+          -3 vlineto
+          -6 6 -6 6 vhcurveto
+          6 0 5 4 1 6 16 75 44 32 67 16 9 3 8 0 9 0 15 0 15 -3 15 -5 rrcurveto
+          -63 -174 rlineto
+          -1 -2 0 -2 0 -3 0 -11 9 -9 11 0 8 0 8 6 3 8 rrcurveto
+          61 169 rlineto
+          20 -12 19 -14 18 -14 52 -39 59 -38 61 0 12 0 12 2 12 3 82 20 36 56 20 93 rrcurveto
+          -258 458 rmoveto
+          -78 -214 -251 92 rlineto
+          endchar
+        </CharString>
+        <CharString name="uni2275">
+          170 -125 52 91 52 621 -20 hstem
+          57 24 134 39 268 39 134 23 vstem
+          718 51 rmoveto
+          7 -5 5 -7 vhcurveto
+          -5 0 -5 -4 -1 -5 -17 -76 -44 -31 -67 -17 -8 -2 -9 -1 -8 0 -50 0 -46 35 -43 32 -22 17 -24 16 -24 13 rrcurveto
+          79 217 294 108 rlineto
+          18 7 0 27 -18 6 rrcurveto
+          -212 78 66 181 rlineto
+          0 2 1 2 0 3 0 11 -9 9 -11 0 -9 0 -7 -6 -3 -8 rrcurveto
+          -65 -180 -374 138 rlineto
+          -25 9 -14 -37 25 -9 rrcurveto
+          374 -138 -63 -172 -311 -115 rlineto
+          -25 -9 14 -38 25 10 rrcurveto
+          279 103 -66 -182 rlineto
+          -21 8 -21 5 -23 0 -11 0 -12 -1 -12 -3 -83 -20 -35 -56 -21 -93 rrcurveto
+          -3 vlineto
+          -6 6 -6 6 vhcurveto
+          6 0 5 4 1 6 16 75 44 32 67 16 9 3 8 0 9 0 15 0 15 -3 15 -5 rrcurveto
+          -63 -174 rlineto
+          -1 -2 0 -2 0 -3 0 -11 9 -9 11 0 8 0 8 6 3 8 rrcurveto
+          61 169 rlineto
+          20 -12 19 -14 18 -14 52 -39 59 -38 61 0 12 0 12 2 12 3 82 20 36 56 20 93 rrcurveto
+          -74 336 rmoveto
+          -214 -79 50 140 rlineto
           endchar
         </CharString>
       </CharStrings>
@@ -403,16 +385,16 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
 
   <hmtx>
     <mtx name=".notdef" width="280" lsb="0"/>
-    <mtx name="product" width="944" lsb="56"/>
-    <mtx name="summation" width="1056" lsb="56"/>
-    <mtx name="u1D6F7.sts" width="944" lsb="87"/>
-    <mtx name="u1D6F9.sts" width="893" lsb="86"/>
-    <mtx name="u1D6FA.sts" width="1061" lsb="152"/>
-    <mtx name="uni220E" width="666" lsb="56"/>
-    <mtx name="uni2210" width="944" lsb="56"/>
-    <mtx name="uni22A1" width="778" lsb="56"/>
-    <mtx name="uni22A2" width="611" lsb="56"/>
-    <mtx name="uni22A3" width="611" lsb="55"/>
+    <mtx name="caronbelowcmb.h6" width="1581" lsb="0"/>
+    <mtx name="circumflexbelowcmb.h6" width="1581" lsb="0"/>
+    <mtx name="circumflexcmb.h6" width="1581" lsb="0"/>
+    <mtx name="uni21E0" width="1000" lsb="58"/>
+    <mtx name="uni21E1" width="684" lsb="82"/>
+    <mtx name="uni21E2" width="1000" lsb="58"/>
+    <mtx name="uni21E3" width="684" lsb="82"/>
+    <mtx name="uni2273" width="776" lsb="55"/>
+    <mtx name="uni2274" width="776" lsb="55"/>
+    <mtx name="uni2275" width="776" lsb="55"/>
   </hmtx>
 
 </ttFont>

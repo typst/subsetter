@@ -35,7 +35,7 @@ impl Operator {
         Self(OperatorType::OneByteOperator([b]))
     }
 
-    pub fn from_two_byte(b: u8) -> Self {
+    pub const fn from_two_byte(b: u8) -> Self {
         Self(OperatorType::TwoByteOperator([TWO_BYTE_OPERATOR_MARK, b]))
     }
 }

@@ -139,7 +139,9 @@ impl<'a> Decompiler<'a> {
 
                     program.push(Instruction::Operator(operator));
                 }
-                _ => return Err(MalformedFont),
+                _ => {
+                    return Err(MalformedFont);
+                },
             }
         }
 
@@ -254,9 +256,9 @@ pub mod operators {
     pub const CALL_GLOBAL_SUBROUTINE: Operator = Operator::from_one_byte(29);
     pub const VH_CURVE_TO: Operator = Operator::from_one_byte(30);
     pub const HV_CURVE_TO: Operator = Operator::from_one_byte(31);
-    pub const HFLEX: Operator = Operator::from_one_byte(34);
-    pub const FLEX: Operator = Operator::from_one_byte(35);
-    pub const HFLEX1: Operator = Operator::from_one_byte(36);
-    pub const FLEX1: Operator = Operator::from_one_byte(37);
+    pub const HFLEX: Operator = Operator::from_two_byte(34);
+    pub const FLEX: Operator = Operator::from_two_byte(35);
+    pub const HFLEX1: Operator = Operator::from_two_byte(36);
+    pub const FLEX1: Operator = Operator::from_two_byte(37);
     pub const FIXED_16_16: Operator = Operator::from_one_byte(255);
 }

@@ -15,4 +15,5 @@ exclude = ["fonts/*"]
 skrifa = "0.19.1"
 ttf-parser = "0.21.1"
 freetype-rs = {git = "https://github.com/LaurenzV/freetype-rs"}
+rand = "0.8.5"
 

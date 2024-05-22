@@ -1,5 +1,5 @@
-FONT="fonts/NotoSansCJKsc-Regular.otf"
-GIDS="0-60000"
+FONT="/Users/lstampfl/Programming/Playground/python-playground/fonts/NewCMMath-Regular.otf"
+GIDS="4622"
 
 # Run normally
 
