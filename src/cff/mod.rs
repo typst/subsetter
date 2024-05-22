@@ -21,13 +21,14 @@ use crate::cff::cid_font::{build_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::write_font_dict_index;
 use crate::cff::dict::private_dict::{write_private_dicts, write_sid_private_dicts};
 use crate::cff::dict::top_dict::{parse_top_dict, write_top_dict_index, TopDictData};
-use crate::cff::index::{create_index, parse_index, skip_index, Index};
+use crate::cff::index::{create_index, parse_index, skip_index, Index, OwnedIndex};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::sid_font::SIDMetadata;
 use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
 use crate::Error::SubsetError;
 use charset::charset_id;
 use number::{IntegerNumber, StringId};
+use std::cmp::PartialEq;
 use std::collections::BTreeSet;
 
 #[derive(Clone, Debug)]
@@ -49,46 +50,79 @@ pub struct Table<'a> {
     font_kind: FontKind<'a>,
 }
 
-#[derive(Debug)]
-struct CIDWriteContext {
-    fd_array_offset: IntegerNumber,
-    fd_select_offset: IntegerNumber,
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+struct DeferredOffset {
+    location: usize,
+    value: IntegerNumber,
+}
+
+const DUMMY_VALUE: IntegerNumber = IntegerNumber(0);
+const DUMMY_OFFSET: DeferredOffset = DeferredOffset { location: 0, value: DUMMY_VALUE };
+
+impl DeferredOffset {
+    fn update_value(&mut self, value: usize) -> Result<()> {
+        self.value = IntegerNumber(i32::try_from(value).map_err(|_| SubsetError)?);
+        Ok(())
+    }
+
+    fn adjust_location(&mut self, delta: usize) {
+        if *self != DUMMY_OFFSET {
+            self.location += delta;
+        }
+    }
+
+    fn update_location(&mut self, location: usize) {
+        self.location = location;
+    }
+
+    fn write_into(&self, buffer: &mut [u8]) -> Result<()> {
+        let mut w = Writer::new();
+        self.value.write_as_5_bytes(&mut w);
+        let encoded = w.finish();
+        let pos = buffer
+            .get_mut(self.location..self.location + 5)
+            .ok_or(SubsetError)?;
+
+        pos.copy_from_slice(&encoded);
+
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
 struct FontWriteContext {
     // TOP DICT DATA
-    charset_offset: IntegerNumber,
-    encoding_offset: IntegerNumber,
-    char_strings_offset: IntegerNumber,
-    private_dicts_offsets: Vec<(IntegerNumber, IntegerNumber)>,
-    cid_context: Option<CIDWriteContext>,
+    charset_offset: DeferredOffset,
+    encoding_offset: DeferredOffset,
+    char_strings_offset: DeferredOffset,
+    private_dicts_lens: Vec<DeferredOffset>,
+    private_dicts_offsets: Vec<DeferredOffset>,
+    fd_array_offset: DeferredOffset,
+    fd_select_offset: DeferredOffset,
 }
 
 impl FontWriteContext {
     pub fn new_cid(num_font_dicts: u8) -> Self {
         Self {
-            char_strings_offset: IntegerNumber(0),
-            encoding_offset: IntegerNumber(0),
-            charset_offset: IntegerNumber(0),
-            private_dicts_offsets: vec![
-                (IntegerNumber(0), IntegerNumber(0));
-                num_font_dicts as usize
-            ],
-            cid_context: Some(CIDWriteContext {
-                fd_select_offset: IntegerNumber(0),
-                fd_array_offset: IntegerNumber(0),
-            }),
+            char_strings_offset: DUMMY_OFFSET,
+            encoding_offset: DUMMY_OFFSET,
+            charset_offset: DUMMY_OFFSET,
+            private_dicts_lens: vec![DUMMY_OFFSET; num_font_dicts as usize],
+            private_dicts_offsets: vec![DUMMY_OFFSET; num_font_dicts as usize],
+            fd_select_offset: DUMMY_OFFSET,
+            fd_array_offset: DUMMY_OFFSET,
         }
     }
 
     pub fn new_sid() -> Self {
         Self {
-            char_strings_offset: IntegerNumber(0),
-            encoding_offset: IntegerNumber(0),
-            charset_offset: IntegerNumber(0),
-            private_dicts_offsets: vec![(IntegerNumber(0), IntegerNumber(0))],
-            cid_context: None,
+            char_strings_offset: DUMMY_OFFSET,
+            encoding_offset: DUMMY_OFFSET,
+            charset_offset: DUMMY_OFFSET,
+            private_dicts_lens: vec![DUMMY_OFFSET],
+            private_dicts_offsets: vec![DUMMY_OFFSET],
+            fd_select_offset: DUMMY_OFFSET,
+            fd_array_offset: DUMMY_OFFSET,
         }
     }
 }
@@ -152,77 +186,96 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
         FontKind::Sid(_) => FontWriteContext::new_sid(),
         FontKind::Cid(_) => FontWriteContext::new_cid(fd_remapper.len()),
     };
-    let mut subsetted_font = vec![];
 
-    // TODO: Don't write two times
-    for _ in 0..2 {
-        let mut w = Writer::new();
-        // HEADER
-        w.write(table.header);
-        // Name INDEX
-        w.write(table.names);
-        // Top DICT INDEX
-        // Note: CFF fonts only have 1 top dict, so index of length 1.
-        w.extend(
-            &write_top_dict_index(
-                table.raw_top_dict,
-                &mut font_write_context,
-                &sid_remapper,
-            )
+    let mut w = Writer::new();
+    // HEADER
+    w.write(table.header);
+    // Name INDEX
+    w.write(table.names);
+    // Top DICT INDEX
+    // Note: CFF fonts only have 1 top dict, so index of length 1.
+    write_top_dict_index(table.raw_top_dict, &mut font_write_context, &sid_remapper, &mut w)?;
+    // String INDEX
+    write_sids(&sid_remapper, table.strings, &mut w)?;
+    // Global Subr INDEX
+    // Note: We desubroutinized, so no global subroutines and thus empty index.
+    w.write(&OwnedIndex::default());
+
+    font_write_context.charset_offset.update_value(w.len())?;
+    // Charsets
+    w.extend(
+        &write_charset(&sid_remapper, &table.font_kind, &table.charset, &ctx.mapper)
             .unwrap(),
-        );
-        // String INDEX
-        w.extend(&write_sids(&sid_remapper, table.strings).unwrap());
-        // Global Subr INDEX
-        // Note: We desubroutinized, so no global subroutines and thus empty index.
-        w.extend(&create_index(vec![]).unwrap());
+    );
 
-        font_write_context.charset_offset = IntegerNumber(w.len() as i32);
-        // Charsets
-        w.extend(
-            &write_charset(&sid_remapper, &table.font_kind, &table.charset, &ctx.mapper)
-                .unwrap(),
-        );
-
-        if let Some(ref mut cid) = font_write_context.cid_context {
-            let FontKind::Cid(ref cid_metadata) = table.font_kind else {
-                return Err(SubsetError);
-            };
-
-            cid.fd_select_offset = IntegerNumber(w.len() as i32);
-            // FDSelect
-            w.extend(&build_fd_index(&ctx.mapper, cid_metadata.fd_select, &fd_remapper)?);
-
-            // FD Array
-            cid.fd_array_offset = IntegerNumber(w.len() as i32);
-            w.extend(&write_font_dict_index(
-                &fd_remapper,
-                &sid_remapper,
-                &mut font_write_context,
-                cid_metadata,
-            )?);
+    match table.font_kind {
+        FontKind::Sid(ref sid) => {
+            write_sid_private_dicts(&mut font_write_context, sid, &mut w)?
         }
-
-        // Charstrings INDEX
-        font_write_context.char_strings_offset = IntegerNumber(w.len() as i32);
-        w.extend(&create_index(char_strings.iter().map(|p| p.compile()).collect())?);
-
-        match table.font_kind {
-            FontKind::Sid(ref sid) => {
-                write_sid_private_dicts(&mut font_write_context, sid, &mut w)?
-            }
-            FontKind::Cid(ref cid) => {
-                write_private_dicts(&fd_remapper, &mut font_write_context, cid, &mut w)?;
-            }
+        FontKind::Cid(ref cid) => {
+            write_private_dicts(&fd_remapper, &mut font_write_context, cid, &mut w)?;
         }
-
-        subsetted_font = w.finish();
     }
+
+    if let FontKind::Cid(ref cid_metadata) = table.font_kind {
+        font_write_context.fd_select_offset.update_value(w.len())?;
+        // FDSelect
+        w.extend(&build_fd_index(&ctx.mapper, cid_metadata.fd_select, &fd_remapper)?);
+
+        // FD Array
+        font_write_context.fd_array_offset.update_value(w.len())?;
+        w.extend(&write_font_dict_index(
+            &fd_remapper,
+            &sid_remapper,
+            &mut font_write_context,
+            cid_metadata,
+        )?);
+    }
+
+    // Charstrings INDEX
+    font_write_context.char_strings_offset.update_value(w.len())?;
+    w.extend(&create_index(char_strings.iter().map(|p| p.compile()).collect())?.data);
+
+    let mut subsetted_font = w.finish();
+    update_offsets(&font_write_context, subsetted_font.as_mut_slice())?;
+
     ctx.push(Tag::CFF, subsetted_font);
 
     Ok(())
 }
-fn write_sids(sid_remapper: &SidRemapper, strings: Index) -> Result<Vec<u8>> {
+
+fn update_offsets(
+    font_write_context: &FontWriteContext,
+    buffer: &mut [u8],
+) -> Result<()> {
+    let mut write = |offset: DeferredOffset| {
+        if offset != DUMMY_OFFSET {
+            offset.write_into(buffer)?;
+        }
+        Ok(())
+    };
+
+    write(font_write_context.encoding_offset)?;
+    write(font_write_context.charset_offset)?;
+    write(font_write_context.char_strings_offset)?;
+
+    if font_write_context.fd_array_offset == DUMMY_OFFSET {
+        for offset in &font_write_context.private_dicts_lens {
+            write(*offset)?;
+        }
+
+        for offset in &font_write_context.private_dicts_offsets {
+            write(*offset)?;
+        }
+    }
+
+    write(font_write_context.fd_select_offset)?;
+    write(font_write_context.fd_array_offset)?;
+
+    Ok(())
+}
+
+fn write_sids(sid_remapper: &SidRemapper, strings: Index, w: &mut Writer) -> Result<()> {
     let mut new_strings = vec![];
     for sid in sid_remapper.sids() {
         new_strings.push(
@@ -233,7 +286,9 @@ fn write_sids(sid_remapper: &SidRemapper, strings: Index) -> Result<Vec<u8>> {
         );
     }
 
-    create_index(new_strings)
+    let index = create_index(new_strings)?;
+    w.extend(&index.data);
+    Ok(())
 }
 
 fn get_sid_remapper(table: &Table, gid_remapper: &GlyphRemapper) -> SidRemapper {

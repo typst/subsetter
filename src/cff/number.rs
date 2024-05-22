@@ -14,7 +14,7 @@ impl Debug for RealNumber<'_> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default, Eq, Copy, PartialEq)]
 pub struct IntegerNumber(pub i32);
 
 impl Debug for IntegerNumber {
@@ -346,9 +346,9 @@ impl Writeable for U24 {
 
 #[cfg(test)]
 mod tests {
-    use ttf_parser::Fixed;
     use crate::cff::number::*;
     use crate::read::Reader;
+    use ttf_parser::Fixed;
 
     #[test]
     fn u24() {

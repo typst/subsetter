@@ -2,10 +2,9 @@ use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{create_index, parse_index};
 use crate::cff::number::{Number, StringId};
 use crate::cff::remapper::SidRemapper;
-use crate::cff::FontWriteContext;
+use crate::cff::{FontWriteContext, DUMMY_VALUE};
 use crate::read::Reader;
 use crate::write::Writer;
-use crate::Error::SubsetError;
 use std::array;
 use std::collections::BTreeSet;
 use std::ops::Range;
@@ -70,10 +69,11 @@ pub(crate) fn write_top_dict_index(
     raw_top_dict: &[u8],
     font_write_context: &mut FontWriteContext,
     sid_remapper: &SidRemapper,
-) -> crate::Result<Vec<u8>> {
+    w: &mut Writer
+) -> crate::Result<()> {
     use super::operators::*;
 
-    let mut w = Writer::new();
+    let mut sub_w = Writer::new();
     let mut r = Reader::new(raw_top_dict);
 
     let index = parse_index::<u16>(&mut r).unwrap();
@@ -87,36 +87,35 @@ pub(crate) fn write_top_dict_index(
     while let Some(operator) = dict_parser.parse_next() {
         match operator {
             CHARSET => {
-                font_write_context.charset_offset.write_as_5_bytes(&mut w);
-                w.write(operator)
+                font_write_context.charset_offset.update_location(sub_w.len() + w.len());
+                DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+                sub_w.write(operator)
             }
             ENCODING => {
-                font_write_context.encoding_offset.write_as_5_bytes(&mut w);
-                w.write(operator);
+                font_write_context.encoding_offset.update_location(sub_w.len() + w.len());
+                DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+                sub_w.write(operator);
             }
             CHAR_STRINGS => {
-                font_write_context.char_strings_offset.write_as_5_bytes(&mut w);
-                w.write(operator);
+                font_write_context.char_strings_offset.update_location(sub_w.len() + w.len());
+                DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+                sub_w.write(operator);
             }
             FD_ARRAY => {
-                let Some(cid_context) = &font_write_context.cid_context else {
-                    return Err(SubsetError);
-                };
-                cid_context.fd_array_offset.write_as_5_bytes(&mut w);
-                w.write(operator);
+                font_write_context.fd_array_offset.update_location(sub_w.len() + w.len());
+                DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+                sub_w.write(operator);
             }
             FD_SELECT => {
-                let Some(cid_context) = &font_write_context.cid_context else {
-                    return Err(SubsetError);
-                };
-                cid_context.fd_select_offset.write_as_5_bytes(&mut w);
-                w.write(&operator);
+                font_write_context.fd_select_offset.update_location(sub_w.len() + w.len());
+                DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+                sub_w.write(&operator);
             }
             VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
             | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {
                 let sid = sid_remapper.get(dict_parser.parse_sid().unwrap()).unwrap();
-                w.write(Number::from_i32(sid.0 as i32));
-                w.write(operator);
+                sub_w.write(Number::from_i32(sid.0 as i32));
+                sub_w.write(operator);
             }
             ROS => {
                 dict_parser.parse_operands().unwrap();
@@ -129,31 +128,52 @@ pub(crate) fn write_top_dict_index(
                     .get(StringId(u16::try_from(operands[1].as_u32().unwrap()).unwrap()))
                     .unwrap();
 
-                w.write(Number::from_i32(arg1.0 as i32));
-                w.write(Number::from_i32(arg2.0 as i32));
-                w.write(&operands[2]);
-                w.write(operator);
+                sub_w.write(Number::from_i32(arg1.0 as i32));
+                sub_w.write(Number::from_i32(arg2.0 as i32));
+                sub_w.write(&operands[2]);
+                sub_w.write(operator);
             }
             PRIVATE => {
-                if let Some(offsets) = font_write_context.private_dicts_offsets.first() {
-                    offsets.0.write_as_5_bytes(&mut w);
-                    offsets.1.write_as_5_bytes(&mut w);
-                    w.write(PRIVATE);
+                if let (Some(lens), Some(offsets)) = (
+                    font_write_context.private_dicts_lens.first_mut(),
+                    font_write_context.private_dicts_offsets.first_mut(),
+                ) {
+                    lens.update_location(sub_w.len() + w.len());
+                    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+                    offsets.update_location(sub_w.len() + w.len());
+                    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+                    sub_w.write(PRIVATE);
                 }
             }
             _ => {
                 dict_parser.parse_operands().unwrap();
                 let operands = dict_parser.operands();
 
-                w.write(operands);
-                w.write(operator);
+                sub_w.write(operands);
+                sub_w.write(operator);
             }
         }
     }
 
-    let finished = w.finish();
+    let finished = sub_w.finish();
 
     let index = create_index(vec![finished])?;
 
-    Ok(index)
+    font_write_context.charset_offset.adjust_location(index.header_size);
+    font_write_context.char_strings_offset.adjust_location(index.header_size);
+    font_write_context.encoding_offset.adjust_location(index.header_size);
+    font_write_context.fd_array_offset.adjust_location(index.header_size);
+    font_write_context.fd_select_offset.adjust_location(index.header_size);
+
+    if let (Some(lens), Some(offsets)) = (
+        font_write_context.private_dicts_lens.first_mut(),
+        font_write_context.private_dicts_offsets.first_mut(),
+    ) {
+        lens.adjust_location(index.header_size);
+        offsets.adjust_location(index.header_size);
+    }
+
+    w.write(index);
+
+    Ok(())
 }

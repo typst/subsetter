@@ -3,7 +3,6 @@ use crate::cff::dict::private_dict::parse_subr_offset;
 use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{create_index, parse_index, Index};
 use crate::cff::number::{Number, StringId};
-use crate::cff::operator::Operator;
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::{dict, FontWriteContext};
 use crate::read::Reader;
@@ -67,17 +66,23 @@ pub(crate) fn write_font_dict_index(
             w.write(dict::operators::FONT_NAME);
         }
 
+        // Private dicts have already been written, so the offsets are already correct.
         // TODO: Offsets can be u32?
-        let private_dict_offset = font_write_context
-            .private_dicts_offsets
+        font_write_context
+            .private_dicts_lens
             .get(new_df as usize)
-            .ok_or(SubsetError)?;
+            .ok_or(SubsetError)?
+            .value.write_as_5_bytes(&mut w);
 
-        private_dict_offset.0.write_as_5_bytes(&mut w);
-        private_dict_offset.1.write_as_5_bytes(&mut w);
+        font_write_context
+            .private_dicts_offsets
+            .get_mut(new_df as usize)
+            .ok_or(SubsetError)?
+            .value.write_as_5_bytes(&mut w);
+
         w.write(dict::operators::PRIVATE);
         dicts.push(w.finish());
     }
 
-    create_index(dicts)
+    create_index(dicts).map(|i| i.data)
 }

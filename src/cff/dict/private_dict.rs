@@ -1,7 +1,7 @@
 use crate::cff::cid_font::CIDMetadata;
 use crate::cff::dict::operators::*;
 use crate::cff::dict::DictionaryParser;
-use crate::cff::number::{IntegerNumber, Number};
+use crate::cff::number::Number;
 use crate::cff::remapper::FontDictRemapper;
 use crate::cff::sid_font::SIDMetadata;
 use crate::cff::FontWriteContext;
@@ -66,12 +66,17 @@ pub fn write_private_dicts(
 
         let private_dict_len = private_dict_data.len();
 
-        let offsets = font_write_context
+        font_write_context
+            .private_dicts_lens
+            .get_mut(new_df)
+            .ok_or(SubsetError)?
+            .update_value(private_dict_len)?;
+
+        font_write_context
             .private_dicts_offsets
             .get_mut(new_df)
-            .ok_or(SubsetError)?;
-        offsets.0 = IntegerNumber(private_dict_len as i32);
-        offsets.1 = IntegerNumber(private_dict_offset as i32);
+            .ok_or(SubsetError)?
+            .update_value(private_dict_offset)?;
 
         w.extend(&private_dict_data);
     }
@@ -113,12 +118,17 @@ pub fn write_sid_private_dicts(
 
     let private_dict_len = private_dict_data.len();
 
-    let offsets = font_write_context
+    font_write_context
+        .private_dicts_lens
+        .get_mut(0)
+        .ok_or(SubsetError)?
+        .update_value(private_dict_len)?;
+
+    font_write_context
         .private_dicts_offsets
         .get_mut(0)
-        .ok_or(SubsetError)?;
-    offsets.0 = IntegerNumber(private_dict_len as i32);
-    offsets.1 = IntegerNumber(private_dict_offset as i32);
+        .ok_or(SubsetError)?
+        .update_value(private_dict_offset)?;
 
     w.extend(&private_dict_data);
 

@@ -1,6 +1,6 @@
 use crate::cff::number::U24;
 use crate::read::{Readable, Reader};
-use crate::write::Writer;
+use crate::write::{Writeable, Writer};
 use crate::Error::MalformedFont;
 
 pub trait IndexSize: for<'a> Readable<'a> {
@@ -214,14 +214,34 @@ impl Readable<'_> for OffsetSize {
     }
 }
 
-pub(crate) fn create_index(data: Vec<Vec<u8>>) -> crate::Result<Vec<u8>> {
+pub struct OwnedIndex {
+    pub data: Vec<u8>,
+    pub header_size: usize
+}
+
+impl Writeable for OwnedIndex {
+    fn write(&self, w: &mut Writer) {
+        w.extend(&self.data);
+    }
+}
+
+impl Default for OwnedIndex {
+    fn default() -> Self {
+        Self {
+            data: vec![0, 0],
+            header_size: 2
+        }
+    }
+}
+
+pub(crate) fn create_index(data: Vec<Vec<u8>>) -> crate::Result<OwnedIndex> {
     let count = u16::try_from(data.len()).map_err(|_| MalformedFont)?;
     // + 1 Since we start counting from the preceding byte.
     let offsize = data.iter().map(|v| v.len() as u32).sum::<u32>() + 1;
 
     // Empty Index only contains the count field
     if count == 0 {
-        return Ok(vec![0, 0]);
+        return Ok(OwnedIndex::default());
     }
 
     let offset_size = if offsize <= u8::MAX as u32 {
@@ -267,9 +287,14 @@ pub(crate) fn create_index(data: Vec<Vec<u8>>) -> crate::Result<Vec<u8>> {
         write_offset(el.len() as u32)?;
     }
 
+    let header_size = w.len();
+
     for el in &data {
         w.extend(el);
     }
 
-    Ok(w.finish())
+    Ok(OwnedIndex {
+        header_size,
+        data: w.finish()
+    })
 }
