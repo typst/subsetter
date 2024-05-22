@@ -348,7 +348,6 @@ impl Writeable for U24 {
 mod tests {
     use crate::cff::number::*;
     use crate::read::Reader;
-    use ttf_parser::Fixed;
 
     #[test]
     fn u24() {

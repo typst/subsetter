@@ -11,37 +11,44 @@ pub struct Reader<'a> {
 
 impl<'a> Reader<'a> {
     /// Create a new readable stream of binary data.
+    #[inline]
     pub fn new(data: &'a [u8]) -> Self {
         Self { data, offset: 0 }
     }
 
     /// Create a new readable stream of binary data at a specific position.
+    #[inline]
     pub fn new_at(data: &'a [u8], offset: usize) -> Self {
         Self { data, offset }
     }
 
     /// The remaining data from the current offset.
+    #[inline]
     pub fn tail(&self) -> Option<&'a [u8]> {
         self.data.get(self.offset..)
     }
 
     /// Returns the current offset.
+    #[inline]
     pub fn offset(&self) -> usize {
         self.offset
     }
 
     /// Try to read `T` from the data.
+    #[inline]
     pub fn read<T: Readable<'a>>(&mut self) -> Option<T> {
         T::read(self)
     }
 
     /// Try to read `T` from the data.
+    #[inline]
     pub fn peak<T: Readable<'a>>(&mut self) -> Option<T> {
         let mut r = self.clone();
         T::read(&mut r)
     }
 
     /// Read a certain number of bytes.
+    #[inline]
     pub fn read_bytes(&mut self, len: usize) -> Option<&'a [u8]> {
         let v = self.data.get(self.offset..self.offset + len)?;
         self.offset += len;
@@ -64,21 +71,26 @@ impl<'a> Reader<'a> {
         self.skip_bytes(T::SIZE);
     }
 
+    /// Check whether the reader is at the end of the buffer.
+    #[inline]
     pub fn at_end(&self) -> bool {
         self.offset >= self.data.len()
     }
 
     /// Jump to a specific location.
+    #[inline]
     pub fn jump(&mut self, offset: usize) {
         self.offset = offset;
     }
 
     /// Skip the next `n` bytes from the stream.
+    #[inline]
     pub fn skip_bytes(&mut self, n: usize) {
         self.read_bytes(n);
     }
 }
 
+/// Trait for an object that can be read from a byte stream with a fixed size.
 pub trait Readable<'a>: Sized {
     const SIZE: usize;
 
