@@ -54,7 +54,7 @@ pub fn parse_font_dict<'a>(
 }
 
 /// Write the new font DICT INDEX.
-pub fn write_font_dict_index(
+pub fn rewrite_font_dict_index(
     fd_remapper: &FontDictRemapper,
     sid_remapper: &SidRemapper,
     font_write_context: &mut Offsets,

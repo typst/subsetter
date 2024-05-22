@@ -17,8 +17,8 @@ mod subroutines;
 use super::*;
 use crate::cff::charset::{parse_charset, rewrite_charset, Charset};
 use crate::cff::charstring::Decompiler;
-use crate::cff::cid_font::{build_fd_index, CIDMetadata};
-use crate::cff::dict::font_dict::write_font_dict_index;
+use crate::cff::cid_font::{rewrite_fd_index, CIDMetadata};
+use crate::cff::dict::font_dict::rewrite_font_dict_index;
 use crate::cff::dict::private_dict::{rewrite_private_dicts, rewrite_sid_private_dicts};
 use crate::cff::dict::top_dict::{
     parse_top_dict_index, rewrite_top_dict_index, TopDictData,
@@ -200,7 +200,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
         &mut w,
     )?;
     // String INDEX
-    write_sids(&sid_remapper, table.strings, &mut w)?;
+    rewrite_sids(&sid_remapper, table.strings, &mut w)?;
     // Global Subr INDEX
     // Note: We desubroutinized, so no global subroutines and thus empty index.
     w.write(&OwnedIndex::default());
@@ -227,11 +227,11 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     if let FontKind::Cid(ref cid_metadata) = table.font_kind {
         font_write_context.fd_select_offset.update_value(w.len())?;
         // FDSelect
-        w.extend(&build_fd_index(&ctx.mapper, cid_metadata.fd_select, &fd_remapper)?);
+        rewrite_fd_index(&ctx.mapper, cid_metadata.fd_select, &fd_remapper, &mut w)?;
 
-        // FD Array
+        // FDArray
         font_write_context.fd_array_offset.update_value(w.len())?;
-        write_font_dict_index(
+        rewrite_font_dict_index(
             &fd_remapper,
             &sid_remapper,
             &mut font_write_context,
@@ -280,7 +280,7 @@ fn update_offsets(font_write_context: &Offsets, buffer: &mut [u8]) -> Result<()>
     Ok(())
 }
 
-fn write_sids(sid_remapper: &SidRemapper, strings: Index, w: &mut Writer) -> Result<()> {
+fn rewrite_sids(sid_remapper: &SidRemapper, strings: Index, w: &mut Writer) -> Result<()> {
     let mut new_strings = vec![];
     for sid in sid_remapper.sids() {
         new_strings.push(

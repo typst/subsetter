@@ -10,6 +10,7 @@ use crate::Error::SubsetError;
 use crate::GlyphRemapper;
 use crate::Result;
 
+/// Parse CID metadata from a font.
 pub fn parse_cid_metadata<'a>(
     data: &'a [u8],
     top_dict: &TopDictData,
@@ -60,17 +61,18 @@ fn parse_fd_select<'a>(
     }
 }
 
+/// Metadata necessary for processing CID-keyed fonts.
 #[derive(Clone, Default, Debug)]
-pub(crate) struct CIDMetadata<'a> {
-    pub(crate) font_dicts: Vec<FontDict<'a>>,
-    pub(crate) fd_array: Index<'a>,
-    pub(crate) fd_select: FDSelect<'a>,
+pub struct CIDMetadata<'a> {
+    pub font_dicts: Vec<FontDict<'a>>,
+    pub fd_array: Index<'a>,
+    pub fd_select: FDSelect<'a>,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) enum FDSelect<'a> {
+pub enum FDSelect<'a> {
     Format0(LazyArray16<'a, u8>),
-    Format3(&'a [u8]), // It's easier to parse it in-place.
+    Format3(&'a [u8]),
 }
 
 impl Default for FDSelect<'_> {
@@ -80,7 +82,8 @@ impl Default for FDSelect<'_> {
 }
 
 impl FDSelect<'_> {
-    pub(crate) fn font_dict_index(&self, glyph_id: u16) -> Option<u8> {
+    /// Get the font dict index for a glyph.
+    pub fn font_dict_index(&self, glyph_id: u16) -> Option<u8> {
         match self {
             FDSelect::Format0(ref array) => array.get(glyph_id),
             FDSelect::Format3(data) => {
@@ -111,12 +114,12 @@ impl FDSelect<'_> {
     }
 }
 
-pub(crate) fn build_fd_index(
+pub fn rewrite_fd_index(
     gid_remapper: &GlyphRemapper,
     fd_select: FDSelect,
     fd_remapper: &FontDictRemapper,
-) -> Result<Vec<u8>> {
-    let mut w = Writer::new();
+    w: &mut Writer
+) -> Result<()> {
     // We always use format 0, since it's the simplest.
     w.write::<u8>(0);
 
@@ -126,5 +129,5 @@ pub(crate) fn build_fd_index(
         w.write(new_fd);
     }
 
-    Ok(w.finish())
+    Ok(())
 }

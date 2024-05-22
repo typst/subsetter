@@ -4,13 +4,14 @@ use crate::cff::operator::Operator;
 use crate::cff::subroutines::SubroutineHandler;
 use crate::read::Reader;
 use crate::write::Writer;
-use crate::Error::MalformedFont;
+use crate::Error::{MalformedFont, Unimplemented, UnknownKind};
 use crate::{Error, Result};
 use operators::*;
 use std::fmt::{Debug, Formatter};
 
 pub type CharString<'a> = &'a [u8];
 
+/// A charstring decompiler.
 pub struct Decompiler<'a> {
     gsubr_handler: SubroutineHandler<'a>,
     lsubr_handler: SubroutineHandler<'a>,
@@ -20,6 +21,7 @@ pub struct Decompiler<'a> {
 }
 
 impl<'a> Decompiler<'a> {
+    /// Create a new charstring decompiler.
     pub fn new(
         gsubr_handler: SubroutineHandler<'a>,
         lsubr_handler: SubroutineHandler<'a>,
@@ -33,6 +35,7 @@ impl<'a> Decompiler<'a> {
         }
     }
 
+    /// Decompile a charstring with the given decompiler.
     pub fn decompile(mut self, charstring: CharString<'a>) -> Result<Program<'a>> {
         let mut program = Program::default();
         self.decompile_inner(charstring, &mut program)?;
@@ -60,6 +63,7 @@ impl<'a> Decompiler<'a> {
                 continue;
             }
 
+            // No numbers can appear now, so now we can actually read it.
             let op = r.read::<u8>().ok_or(Error::MalformedFont)?;
             let operator = if op == 12 {
                 Operator::from_two_byte(r.read::<u8>().ok_or(Error::MalformedFont)?)
@@ -92,8 +96,7 @@ impl<'a> Decompiler<'a> {
                     // Pop the subroutine index from the program.
                     program.0.pop();
 
-                    // TODO: Add depth limit
-                    // TODO: Recursion detector
+                    // TODO: Add depth limit / detect recursions
                     let biased_index =
                         self.stack.pop().and_then(|n| n.as_i32()).ok_or(MalformedFont)?;
                     let gsubr = self
@@ -105,8 +108,7 @@ impl<'a> Decompiler<'a> {
                 CALL_LOCAL_SUBROUTINE => {
                     // Pop the subroutine index from the program.
                     program.0.pop();
-                    // TODO: Add depth limit
-                    // TODO: Recursion detector
+                    // TODO: Add depth limit / detect recursions
                     let biased_index =
                         self.stack.pop().and_then(|n| n.as_i32()).ok_or(MalformedFont)?;
                     let lsubr = self
@@ -118,6 +120,7 @@ impl<'a> Decompiler<'a> {
                 HINT_MASK | COUNTER_MASK => {
                     program.push(Instruction::Operator(operator));
                     if self.hint_mask_bytes == 0 {
+                        // Hintmask can contain implicit stems.
                         self.count_hints();
                         self.hint_mask_bytes = (self.hint_count + 7) / 8;
                     }
@@ -128,7 +131,12 @@ impl<'a> Decompiler<'a> {
                     program.push(Instruction::HintMask(hint_bytes));
                 }
                 ENDCHAR => {
-                    // TODO: Add seac!
+                    // We don't support seac for now. It's a deprecated feature and I wasn't
+                    // able to find a font that uses it.
+                    if self.stack.len() >= 4 {
+                        return Err(Unimplemented);
+                    }
+
                     program.push(Instruction::Operator(operator));
                 }
                 _ => return Err(MalformedFont),
@@ -144,6 +152,7 @@ impl<'a> Decompiler<'a> {
     }
 }
 
+/// A type of instruction in a charstring program.
 #[derive(Debug)]
 pub enum Instruction<'a> {
     Operand(Number<'a>),
@@ -151,6 +160,7 @@ pub enum Instruction<'a> {
     HintMask(&'a [u8]),
 }
 
+/// A charstring program, decompiled into its constituent instructions.
 #[derive(Default)]
 pub struct Program<'a>(Vec<Instruction<'a>>);
 
@@ -189,10 +199,12 @@ impl Debug for Program<'_> {
 }
 
 impl<'a> Program<'a> {
+    /// Push a new instruction to the program.
     pub fn push(&mut self, instruction: Instruction<'a>) {
         self.0.push(instruction);
     }
 
+    /// Compile the program.
     pub fn compile(&self) -> Vec<u8> {
         let mut w = Writer::new();
 
@@ -215,7 +227,7 @@ impl<'a> Program<'a> {
 }
 
 #[allow(dead_code)]
-pub(crate) mod operators {
+pub mod operators {
     use crate::cff::operator::Operator;
 
     pub const HORIZONTAL_STEM: Operator = Operator::from_one_byte(1);
