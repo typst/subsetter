@@ -6,9 +6,11 @@ use crate::read::{Readable, Reader};
 use crate::write::Writer;
 use crate::Error::{MalformedFont, SubsetError};
 use crate::GlyphRemapper;
+use crate::Result;
 
+/// A CFF charset.
 #[derive(Clone, Copy, Debug)]
-pub(crate) enum Charset<'a> {
+pub enum Charset<'a> {
     ISOAdobe,
     Expert,
     ExpertSubset,
@@ -18,6 +20,7 @@ pub(crate) enum Charset<'a> {
 }
 
 impl Charset<'_> {
+    /// Convert a GID fo it's corresponding SID.
     pub fn gid_to_sid(&self, gid: u16) -> Option<StringId> {
         match self {
             Charset::ISOAdobe => {
@@ -79,7 +82,7 @@ impl Charset<'_> {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct Format1Range {
+pub struct Format1Range {
     first: StringId,
     left: u8,
 }
@@ -96,7 +99,7 @@ impl Readable<'_> for Format1Range {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct Format2Range {
+pub struct Format2Range {
     first: StringId,
     left: u16,
 }
@@ -112,11 +115,12 @@ impl Readable<'_> for Format2Range {
     }
 }
 
-pub(crate) fn parse_charset<'a>(
+/// Parse a charset.
+pub fn parse_charset<'a>(
     number_of_glyphs: u16,
     r: &mut Reader<'a>,
 ) -> Option<Charset<'a>> {
-    if number_of_glyphs < 2 {
+    if number_of_glyphs < 1 {
         return None;
     }
 
@@ -182,7 +186,6 @@ const EXPERT_ENCODING: &[u16] = &[
     373,  374,  375,  376,  377,  378,
 ];
 
-/// The Expert Subset Encoding conversion as defined in the Adobe Technical Note #5176 Appendix C.
 #[rustfmt::skip]
 const EXPERT_SUBSET_ENCODING: &[u16] = &[
     0,    1,  231,  232,  235,  236,  237,  238,   13,   14,   15,   99,  239,  240,  241,  242,
@@ -193,17 +196,17 @@ const EXPERT_SUBSET_ENCODING: &[u16] = &[
     340,  341,  342,  343,  344,  345,  346
 ];
 
-pub(crate) fn write_charset(
+pub fn rewrite_charset(
     sid_remapper: &SidRemapper,
     kind: &FontKind,
     charset: &Charset,
     gid_mapper: &GlyphRemapper,
-) -> crate::Result<Vec<u8>> {
-    let mut w = Writer::new();
-    // Format 0
+    w: &mut Writer,
+) -> Result<()> {
+    // We always use format 0.
     w.write::<u8>(0);
 
-    // Skip 0
+    // Skip .notdef since it's implicit.
     for old_gid in gid_mapper.remapped_gids().skip(1) {
         let original_sid = charset.gid_to_sid(old_gid).ok_or(MalformedFont)?;
         let new_sid = match kind {
@@ -215,5 +218,5 @@ pub(crate) fn write_charset(
         w.write(new_sid)
     }
 
-    Ok(w.finish())
+    Ok(())
 }

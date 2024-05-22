@@ -15,7 +15,7 @@ mod sid_font;
 mod subroutines;
 
 use super::*;
-use crate::cff::charset::{parse_charset, write_charset, Charset};
+use crate::cff::charset::{parse_charset, rewrite_charset, Charset};
 use crate::cff::charstring::Decompiler;
 use crate::cff::cid_font::{build_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::write_font_dict_index;
@@ -207,10 +207,13 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
 
     font_write_context.charset_offset.update_value(w.len())?;
     // Charsets
-    w.extend(
-        &write_charset(&sid_remapper, &table.font_kind, &table.charset, &ctx.mapper)
-            .unwrap(),
-    );
+    rewrite_charset(
+        &sid_remapper,
+        &table.font_kind,
+        &table.charset,
+        &ctx.mapper,
+        &mut w,
+    )?;
 
     match table.font_kind {
         FontKind::Sid(ref sid) => {

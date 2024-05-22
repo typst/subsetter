@@ -2,22 +2,27 @@ use crate::cff::number::Number;
 use crate::Error::MalformedFont;
 use crate::Result;
 
+/// The maximum number of operands allowed during parsing.
 const MAX_OPERANDS_LEN: usize = 48;
 
+/// An arguments stack for interpreting CFF DICTs and charstrings.
 pub struct ArgumentsStack<'a> {
     pub data: Vec<Number<'a>>,
 }
 
 impl<'a> ArgumentsStack<'a> {
+    /// Create a new argument stack.
     pub fn new() -> Self {
         Self { data: vec![] }
     }
 
+    /// The current length of the arguments stack.
     #[inline]
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
+    /// Push a new number onto the stack.
     #[inline]
     pub fn push(&mut self, n: Number<'a>) -> Result<()> {
         if self.len() == MAX_OPERANDS_LEN {
@@ -28,11 +33,13 @@ impl<'a> ArgumentsStack<'a> {
         }
     }
 
+    /// Pop a number from the stack.
     #[inline]
     pub fn pop(&mut self) -> Option<Number> {
         self.data.pop()
     }
 
+    /// Pop all numbers from the stack.
     #[inline]
     pub fn pop_all(&mut self) -> Vec<Number> {
         let mut ret_vec = vec![];
