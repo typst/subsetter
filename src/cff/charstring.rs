@@ -4,7 +4,7 @@ use crate::cff::operator::Operator;
 use crate::cff::subroutines::SubroutineHandler;
 use crate::read::Reader;
 use crate::write::Writer;
-use crate::Error::{MalformedFont, Unimplemented, UnknownKind};
+use crate::Error::{MalformedFont, Unimplemented};
 use crate::{Error, Result};
 use operators::*;
 use std::fmt::{Debug, Formatter};

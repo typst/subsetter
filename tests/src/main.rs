@@ -18,7 +18,7 @@ mod font_tools;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-const FONT_TOOLS_REF: bool = false;
+const FONT_TOOLS_REF: bool = true;
 const OVERWRITE_REFS: bool = false;
 
 struct TestContext {
@@ -67,7 +67,7 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
             .args([
                 "subset",
                 font_path.to_str().unwrap(),
-                "--drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap",
+                "--drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap,MATH",
                 &format!("--gids={}", gids),
                 "--glyph-names",
                 "--desubroutinize",

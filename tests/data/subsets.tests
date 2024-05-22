@@ -53,4 +53,12 @@ Roboto-Regular.ttf;3,4
 Roboto-Regular.ttf;40-60,90-130,156,180
 Roboto-Regular.ttf;45-60,120-145,750-780,810,812,830,850,900
 Roboto-Regular.ttf;757
+Roboto-Regular.ttf;*
+
+// 7601 glyphs in total
+NewCMMath-Regular.otf;400-402
+NewCMMath-Regular.otf;256-300,113-117
+NewCMMath-Regular.otf;137-400,890-900,2345-2400
+NewCMMath-Regular.otf;8
+NewCMMath-Regular.otf;*
 
