@@ -69,7 +69,7 @@ pub(crate) fn write_top_dict_index(
     raw_top_dict: &[u8],
     font_write_context: &mut FontWriteContext,
     sid_remapper: &SidRemapper,
-    w: &mut Writer
+    w: &mut Writer,
 ) -> crate::Result<()> {
     use super::operators::*;
 
@@ -87,27 +87,37 @@ pub(crate) fn write_top_dict_index(
     while let Some(operator) = dict_parser.parse_next() {
         match operator {
             CHARSET => {
-                font_write_context.charset_offset.update_location(sub_w.len() + w.len());
+                font_write_context
+                    .charset_offset
+                    .update_location(sub_w.len() + w.len());
                 DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
                 sub_w.write(operator)
             }
             ENCODING => {
-                font_write_context.encoding_offset.update_location(sub_w.len() + w.len());
+                font_write_context
+                    .encoding_offset
+                    .update_location(sub_w.len() + w.len());
                 DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
                 sub_w.write(operator);
             }
             CHAR_STRINGS => {
-                font_write_context.char_strings_offset.update_location(sub_w.len() + w.len());
+                font_write_context
+                    .char_strings_offset
+                    .update_location(sub_w.len() + w.len());
                 DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
                 sub_w.write(operator);
             }
             FD_ARRAY => {
-                font_write_context.fd_array_offset.update_location(sub_w.len() + w.len());
+                font_write_context
+                    .fd_array_offset
+                    .update_location(sub_w.len() + w.len());
                 DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
                 sub_w.write(operator);
             }
             FD_SELECT => {
-                font_write_context.fd_select_offset.update_location(sub_w.len() + w.len());
+                font_write_context
+                    .fd_select_offset
+                    .update_location(sub_w.len() + w.len());
                 DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
                 sub_w.write(&operator);
             }
@@ -160,7 +170,9 @@ pub(crate) fn write_top_dict_index(
     let index = create_index(vec![finished])?;
 
     font_write_context.charset_offset.adjust_location(index.header_size);
-    font_write_context.char_strings_offset.adjust_location(index.header_size);
+    font_write_context
+        .char_strings_offset
+        .adjust_location(index.header_size);
     font_write_context.encoding_offset.adjust_location(index.header_size);
     font_write_context.fd_array_offset.adjust_location(index.header_size);
     font_write_context.fd_select_offset.adjust_location(index.header_size);

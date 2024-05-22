@@ -79,9 +79,7 @@ impl DeferredOffset {
         let mut w = Writer::new();
         self.value.write_as_5_bytes(&mut w);
         let encoded = w.finish();
-        let pos = buffer
-            .get_mut(self.location..self.location + 5)
-            .ok_or(SubsetError)?;
+        let pos = buffer.get_mut(self.location..self.location + 5).ok_or(SubsetError)?;
 
         pos.copy_from_slice(&encoded);
 
@@ -194,7 +192,12 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     w.write(table.names);
     // Top DICT INDEX
     // Note: CFF fonts only have 1 top dict, so index of length 1.
-    write_top_dict_index(table.raw_top_dict, &mut font_write_context, &sid_remapper, &mut w)?;
+    write_top_dict_index(
+        table.raw_top_dict,
+        &mut font_write_context,
+        &sid_remapper,
+        &mut w,
+    )?;
     // String INDEX
     write_sids(&sid_remapper, table.strings, &mut w)?;
     // Global Subr INDEX

@@ -1,7 +1,19 @@
+///! The `glyf` table contains the main description of the glyphs. In order to
+/// subset it, there are 5 things we need to do:
+/// 1. We need to form the glyph closure. Glyphs can reference other glyphs, meaning that
+/// if a user for example requests the glyph 1, and this glyph references the glyph 2, then
+/// we need to include both of them in our subset.
+/// 2. We need to remove glyph descriptions that are not needed for the subset, and reorder
+/// the existing glyph descriptions to match the order defined by the remapper.
+/// 3. For component glyphs, we need to rewrite their description so that they reference
+/// the new glyph ID of the glyphs they reference.
+/// 4. We need to calculate which format to use in the `loca` table.
+/// 5. We need to update the `loca` table itself with the new offsets.
 use super::*;
 use crate::Error::{MalformedFont, SubsetError};
 
-pub(crate) fn glyph_closure(face: &Face, gid_set: &mut BTreeSet<u16>) -> Result<()> {
+/// Form the glyph closure of all glyphs in `gid_set`.
+pub fn glyph_closure(face: &Face, gid_set: &mut BTreeSet<u16>) -> Result<()> {
     let table = Table::new(face).ok_or(MalformedFont)?;
 
     let mut process_glyphs = gid_set.iter().copied().collect::<Vec<_>>();
@@ -21,6 +33,7 @@ pub(crate) fn glyph_closure(face: &Face, gid_set: &mut BTreeSet<u16>) -> Result<
         let mut r = Reader::new(glyph_data);
         let num_contours = r.read::<i16>().ok_or(MalformedFont)?;
 
+        // If we have a composite glyph, add its components to the closure.
         if num_contours < 0 {
             for component in component_glyphs(glyph_data).ok_or(MalformedFont)? {
                 if !gid_set.contains(&component) {
@@ -33,7 +46,7 @@ pub(crate) fn glyph_closure(face: &Face, gid_set: &mut BTreeSet<u16>) -> Result<
     Ok(())
 }
 
-pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
+pub fn subset(ctx: &mut Context) -> Result<()> {
     let subsetted_entries = subset_glyf_entries(ctx)?;
 
     let mut sub_glyf = Writer::new();
@@ -132,6 +145,7 @@ fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> 
         glyf_entries.push(glyph_data);
     }
 
+    // Decide on the loca format.
     ctx.long_loca = size > 2 * (u16::MAX as usize);
 
     Ok(glyf_entries)
@@ -199,6 +213,7 @@ fn remap_component_glyph(mapper: &GlyphRemapper, data: &[u8]) -> Result<Vec<u8>>
     Ok(w.finish())
 }
 
+/// Returns an iterator over the component glyphs of a glyph.
 fn component_glyphs(glyph_data: &[u8]) -> Option<impl Iterator<Item = u16> + '_> {
     let mut r = Reader::new(glyph_data);
 

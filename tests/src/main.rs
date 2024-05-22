@@ -1,3 +1,5 @@
+use crate::Inst::{CurveTo, LineTo, QuadTo};
+use freetype::face::LoadFlag;
 use skrifa::outline::{DrawSettings, HintingInstance, HintingMode, OutlinePen};
 use skrifa::prelude::{LocationRef, Size};
 use skrifa::raw::TableProvider;
@@ -5,10 +7,8 @@ use skrifa::MetadataProvider;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use freetype::face::LoadFlag;
 use subsetter::{subset, GlyphRemapper};
 use ttf_parser::GlyphId;
-use crate::Inst::{CurveTo, LineTo, QuadTo};
 
 #[rustfmt::skip]
 mod subsets;
@@ -19,7 +19,7 @@ mod font_tools;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 const FONT_TOOLS_REF: bool = false;
-const OVERWRITE_REFS: bool = true;
+const OVERWRITE_REFS: bool = false;
 
 struct TestContext {
     font: Vec<u8>,
@@ -367,11 +367,7 @@ fn glyph_outlines_freetype(font_file: &str, gids: &str) {
         let sink1 = Sink::from_freetype(&old_outline);
         let sink2 = Sink::from_freetype(&new_outline);
 
-        assert_eq!(
-            sink1, sink2,
-            "glyph {} drawn with freetype didn't match.",
-            glyph
-        );
+        assert_eq!(sink1, sink2, "glyph {} drawn with freetype didn't match.", glyph);
     }
 }
 
@@ -405,8 +401,17 @@ impl Inst {
     fn from_freetype_curve(curve: freetype::outline::Curve) -> Self {
         match curve {
             freetype::outline::Curve::Line(pt) => LineTo(pt.x as f32, pt.y as f32),
-            freetype::outline::Curve::Bezier2(pt1, pt2) => QuadTo(pt1.x as f32, pt1.y as f32, pt2.x as f32, pt2.y as f32),
-            freetype::outline::Curve::Bezier3(pt1, pt2, pt3) => CurveTo(pt1.x as f32, pt1.y as f32, pt2.x as f32, pt2.y as f32, pt3.x as f32, pt3.y as f32)
+            freetype::outline::Curve::Bezier2(pt1, pt2) => {
+                QuadTo(pt1.x as f32, pt1.y as f32, pt2.x as f32, pt2.y as f32)
+            }
+            freetype::outline::Curve::Bezier3(pt1, pt2, pt3) => CurveTo(
+                pt1.x as f32,
+                pt1.y as f32,
+                pt2.x as f32,
+                pt2.y as f32,
+                pt3.x as f32,
+                pt3.y as f32,
+            ),
         }
     }
 }

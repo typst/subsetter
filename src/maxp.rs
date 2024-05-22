@@ -5,7 +5,7 @@
 use super::*;
 use crate::Error::MalformedFont;
 
-pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
+pub fn subset(ctx: &mut Context) -> Result<()> {
     let maxp = ctx.expect_table(Tag::MAXP).ok_or(MalformedFont)?;
     let mut r = Reader::new(maxp);
     let version = r.read::<u32>().ok_or(MalformedFont)?;

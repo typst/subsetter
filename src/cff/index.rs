@@ -216,7 +216,7 @@ impl Readable<'_> for OffsetSize {
 
 pub struct OwnedIndex {
     pub data: Vec<u8>,
-    pub header_size: usize
+    pub header_size: usize,
 }
 
 impl Writeable for OwnedIndex {
@@ -227,10 +227,7 @@ impl Writeable for OwnedIndex {
 
 impl Default for OwnedIndex {
     fn default() -> Self {
-        Self {
-            data: vec![0, 0],
-            header_size: 2
-        }
+        Self { data: vec![0, 0], header_size: 2 }
     }
 }
 
@@ -293,8 +290,5 @@ pub(crate) fn create_index(data: Vec<Vec<u8>>) -> crate::Result<OwnedIndex> {
         w.extend(el);
     }
 
-    Ok(OwnedIndex {
-        header_size,
-        data: w.finish()
-    })
+    Ok(OwnedIndex { header_size, data: w.finish() })
 }

@@ -116,7 +116,7 @@ impl GlyphRemapper {
     pub fn is_identity(&self) -> bool {
         match &self.0 {
             GlyphRemapperType::CustomRemapper(_) => false,
-            GlyphRemapperType::IdentityRemapper => true
+            GlyphRemapperType::IdentityRemapper => true,
         }
     }
 
@@ -138,7 +138,7 @@ impl GlyphRemapper {
         match &self.0 {
             GlyphRemapperType::CustomRemapper(custom) => custom.len(),
             // Function is not exposed to the outside, and we don't use the identity mapper in the crate.
-            GlyphRemapperType::IdentityRemapper => unreachable!()
+            GlyphRemapperType::IdentityRemapper => unreachable!(),
         }
     }
 
@@ -147,7 +147,7 @@ impl GlyphRemapper {
     pub fn remap(&mut self, old: u16) -> u16 {
         match &mut self.0 {
             GlyphRemapperType::CustomRemapper(custom) => custom.remap(old),
-            GlyphRemapperType::IdentityRemapper => old
+            GlyphRemapperType::IdentityRemapper => old,
         }
     }
 
@@ -155,7 +155,7 @@ impl GlyphRemapper {
     pub fn get(&self, old: u16) -> Option<u16> {
         match &self.0 {
             GlyphRemapperType::CustomRemapper(custom) => custom.get(old),
-            GlyphRemapperType::IdentityRemapper => Some(old)
+            GlyphRemapperType::IdentityRemapper => Some(old),
         }
     }
 
@@ -169,13 +169,12 @@ impl GlyphRemapper {
         match &self.0 {
             GlyphRemapperType::CustomRemapper(custom) => custom.backward.iter().copied(),
             // Function is not exposed to the outside, and we don't use the identity mapper in the crate.
-            GlyphRemapperType::IdentityRemapper => unreachable!()
+            GlyphRemapperType::IdentityRemapper => unreachable!(),
         }
     }
 }
 
-
 enum GlyphRemapperType {
     CustomRemapper(Remapper<u16, u16>),
-    IdentityRemapper
+    IdentityRemapper,
 }

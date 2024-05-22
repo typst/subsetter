@@ -72,13 +72,15 @@ pub(crate) fn write_font_dict_index(
             .private_dicts_lens
             .get(new_df as usize)
             .ok_or(SubsetError)?
-            .value.write_as_5_bytes(&mut w);
+            .value
+            .write_as_5_bytes(&mut w);
 
         font_write_context
             .private_dicts_offsets
             .get_mut(new_df as usize)
             .ok_or(SubsetError)?
-            .value.write_as_5_bytes(&mut w);
+            .value
+            .write_as_5_bytes(&mut w);
 
         w.write(dict::operators::PRIVATE);
         dicts.push(w.finish());

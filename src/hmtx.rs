@@ -1,11 +1,23 @@
+//! The `hmtx` table contains the horizontal metrics for each glyph.
+//! All we need to do is to rewrite the table so that it matches the
+//! sequence of the new glyphs. A minor pain point is that the table
+//! allows omitting the advance width for the last few glyphs if it is
+//! the same. In order to keep the code simple, we do not keep this optimization
+//! when rewriting the table.
+//! While doing so, we also rewrite the `hhea` table, which contains
+//! the number of glyphs that contain both, advance width and
+//! left side bearing metrics.
+
 use super::*;
 use crate::Error::{MalformedFont, SubsetError};
 
-pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
+pub fn subset(ctx: &mut Context) -> Result<()> {
     let hmtx = ctx.expect_table(Tag::HMTX).ok_or(MalformedFont)?;
 
     let new_metrics = {
         let mut new_metrics = vec![];
+
+        // Extract the number of horizontal metrics from the `hhea` table.
         let num_h_metrics = {
             let hhea = ctx.expect_table(Tag::HHEA).ok_or(MalformedFont)?;
             let mut r = Reader::new(hhea);
@@ -44,6 +56,7 @@ pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
         new_metrics
     };
 
+    // Find out the last index we need to include the advance width for.
     let mut last_advance_width_index =
         u16::try_from(new_metrics.len()).map_err(|_| SubsetError)? - 1;
     let last_advance_width = new_metrics[last_advance_width_index as usize].0;
