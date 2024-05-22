@@ -1,5 +1,7 @@
 FONT="fonts/NotoSansCJKsc-Regular.otf"
-GIDS="1"
+GIDS="0-60000"
+
+# Run normally
 
 fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap \
  --gids=$GIDS --glyph-names --desubroutinize --output-file=out_ft.otf \
@@ -9,14 +11,9 @@ fonttools ttx -f -o out_ft.xml out_ft.otf
 cargo run -- $FONT out_ss.otf $GIDS &&
 fonttools ttx -f -o out_ss.xml out_ss.otf
 
-hb-subset $FONT --desubroutinize --gids=$GIDS --output-file=out_hb.otf
+hb-subset $FONT --desubroutinize --gids=$GIDS --output-file=out_hb.otf &&
 fonttools ttx -f -o out_hb.xml out_hb.otf
 
-#cargo run -- $FONT out_ss.otf $GIDS &&
-#fonttools ttx -f -o /Users/lstampfl/Programming/GitHub/subsetter/out_ss.ttx /Users/lstampfl/Programming/GitHub/subsetter/out_ss.otf &&
-#cp out_ss.otf ss.otf
-#
-#
-#fonttools subset fonts/NotoSans-Regular.ttf --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,cmap,hdmx \
-# --gids=5-20 --glyph-names --output-file=out_ft.otf \
-# --notdef-outline --no-prune-unicode-ranges --no-prune-codepage-ranges --timing
+# Bench against hb-subset
+#time ./target/release/subsetter $FONT out_ss.otf $GIDS
+#time hb-subset $FONT --desubroutinize --gids=$GIDS --output-file=out_hb.otf
