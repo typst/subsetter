@@ -77,6 +77,8 @@ fn prepare_context<'a>(data: &'a [u8], index: u32, gids: &[u16]) -> Result<Conte
     };
 
     let mut gid_set = BTreeSet::from_iter(gids.iter().copied());
+    // Need to insert this in case 0 is a component glyph.
+    gid_set.insert(0);
 
     if kind == FontKind::TrueType {
         glyf::glyph_closure(&face, &mut gid_set)?;

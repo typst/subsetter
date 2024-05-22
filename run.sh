@@ -1,5 +1,5 @@
-FONT="/Users/lstampfl/Programming/Playground/python-playground/fonts/NewCMMath-Regular.otf"
-GIDS="4622"
+FONT="/Users/lstampfl/Programming/Playground/python-playground/fonts/Syne-Regular.ttf"
+GIDS="0-10"
 
 # Run normally
 

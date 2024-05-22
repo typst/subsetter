@@ -229,3 +229,8 @@ use crate::*;
 #[test] fn new_c_m_math_regular_6_glyph_outlines_ttf_parser() {glyph_outlines_ttf_parser("NewCMMath-Regular.otf", "*")}
 #[test] fn new_c_m_math_regular_6_glyph_outlines_skrifa() {glyph_outlines_skrifa("NewCMMath-Regular.otf", "*")}
 #[test] fn new_c_m_math_regular_6_glyph_outlines_freetype() {glyph_outlines_freetype("NewCMMath-Regular.otf", "*")}
+#[test] fn syne_regular_subset_1_face_metrics() {face_metrics("Syne-Regular_subset.otf", "5")}
+#[test] fn syne_regular_subset_1_glyph_metrics() {glyph_metrics("Syne-Regular_subset.otf", "5")}
+#[test] fn syne_regular_subset_1_glyph_outlines_ttf_parser() {glyph_outlines_ttf_parser("Syne-Regular_subset.otf", "5")}
+#[test] fn syne_regular_subset_1_glyph_outlines_skrifa() {glyph_outlines_skrifa("Syne-Regular_subset.otf", "5")}
+#[test] fn syne_regular_subset_1_glyph_outlines_freetype() {glyph_outlines_freetype("Syne-Regular_subset.otf", "5")}
