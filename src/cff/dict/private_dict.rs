@@ -25,7 +25,7 @@ pub fn parse_subr_offset(data: &[u8]) -> Option<usize> {
 }
 
 /// Write the private dicts of a CID font.
-pub fn rewrite_private_dicts(
+pub fn rewrite_cid_private_dicts(
     fd_remapper: &FontDictRemapper,
     offsets: &mut Offsets,
     metadata: &CIDMetadata,

@@ -1,12 +1,12 @@
 mod argstack;
 mod charset;
 mod charstring;
+mod cid_font;
 mod dict;
 mod index;
-mod remapper;
-mod cid_font;
 mod number;
 mod operator;
+mod remapper;
 mod sid_font;
 mod subroutines;
 
@@ -15,7 +15,9 @@ use crate::cff::charset::{parse_charset, rewrite_charset, Charset};
 use crate::cff::charstring::Decompiler;
 use crate::cff::cid_font::{rewrite_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::rewrite_font_dict_index;
-use crate::cff::dict::private_dict::{rewrite_private_dicts, rewrite_sid_private_dicts};
+use crate::cff::dict::private_dict::{
+    rewrite_cid_private_dicts, rewrite_sid_private_dicts,
+};
 use crate::cff::dict::top_dict::{
     parse_top_dict_index, rewrite_top_dict_index, TopDictData,
 };
@@ -47,6 +49,9 @@ pub struct Table<'a> {
     font_kind: FontKind<'a>,
 }
 
+/// An offset that needs to be written after the whole font
+/// has been written. location indicates where in the buffer the offset needs to be written to
+/// and value indicates the value of the offset.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 struct DeferredOffset {
     location: usize,
@@ -54,6 +59,7 @@ struct DeferredOffset {
 }
 
 const DUMMY_VALUE: IntegerNumber = IntegerNumber(0);
+/// This represents a not-existing offset.
 const DUMMY_OFFSET: DeferredOffset = DeferredOffset { location: 0, value: DUMMY_VALUE };
 
 impl DeferredOffset {
@@ -62,6 +68,7 @@ impl DeferredOffset {
         Ok(())
     }
 
+    /// Adjust the location of an offset, if it has been set (i.e. it's not a dummy offset).
     fn adjust_location(&mut self, delta: usize) {
         if *self != DUMMY_OFFSET {
             self.location += delta;
@@ -72,8 +79,10 @@ impl DeferredOffset {
         self.location = location;
     }
 
+    /// Write the deferred offset into a buffer.
     fn write_into(&self, buffer: &mut [u8]) -> Result<()> {
         let mut w = Writer::new();
+        // Always write using 5 bytes, to prevent its size from changing.
         self.value.write_as_5_bytes(&mut w);
         let encoded = w.finish();
         let pos = buffer.get_mut(self.location..self.location + 5).ok_or(SubsetError)?;
@@ -84,6 +93,7 @@ impl DeferredOffset {
     }
 }
 
+/// Keeps track of the offsets that need to be written in the font.
 #[derive(Debug)]
 struct Offsets {
     // TOP DICT DATA
@@ -97,6 +107,7 @@ struct Offsets {
 }
 
 impl Offsets {
+    // TODO: Unify?
     pub fn new_cid(num_font_dicts: u8) -> Self {
         Self {
             char_strings_offset: DUMMY_OFFSET,
@@ -125,123 +136,78 @@ impl Offsets {
 pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let table = Table::parse(ctx).unwrap();
 
-    let gsubrs = {
-        let subroutines = table.global_subrs.into_iter().collect::<Vec<_>>();
-        SubroutineContainer::new(subroutines)
-    };
-
-    let lsubrs = {
-        match &table.font_kind {
-            FontKind::Cid(cid) => {
-                let subroutines = cid
-                    .font_dicts
-                    .iter()
-                    .map(|font_dict| {
-                        font_dict.local_subrs.into_iter().collect::<Vec<_>>()
-                    })
-                    .collect::<Vec<_>>();
-                SubroutineCollection::new(subroutines)
-            }
-            FontKind::Sid(sid) => {
-                let subroutines = sid.local_subrs.into_iter().collect::<Vec<_>>();
-                SubroutineCollection::new(vec![subroutines])
-            }
-        }
-    };
-
-    let mut used_fds = BTreeSet::new();
     let sid_remapper = get_sid_remapper(&table, &ctx.mapper);
-    let mut char_strings = vec![];
+    // NOTE: The charstrings are already in the new order that they need be written in.
+    let (char_strings, fd_remapper) = subset_charstrings(&table, &ctx.mapper)?;
 
-    for old_gid in ctx.mapper.remapped_gids() {
-        let fd_index = match &table.font_kind {
-            FontKind::Cid(ref cid) => {
-                let fd_index = cid.fd_select.font_dict_index(old_gid).unwrap();
-                used_fds.insert(fd_index);
-                fd_index
-            }
-            FontKind::Sid(_) => 0,
-        };
-
-        let decompiler = Decompiler::new(
-            gsubrs.get_handler(),
-            lsubrs.get_handler(fd_index).ok_or(MalformedFont)?,
-        );
-        let charstring = table.char_strings.get(old_gid as u32).unwrap();
-        char_strings.push(decompiler.decompile(charstring)?);
-    }
-
-    let mut fd_remapper = FontDictRemapper::new();
-
-    for fd in used_fds {
-        fd_remapper.remap(fd);
-    }
-
-    let mut font_write_context = match table.font_kind {
+    let mut offsets = match table.font_kind {
         FontKind::Sid(_) => Offsets::new_sid(),
         FontKind::Cid(_) => Offsets::new_cid(fd_remapper.len()),
     };
 
-    let mut w = Writer::new();
-    // HEADER
-    w.write(table.header);
-    // Name INDEX
-    w.write(table.names);
-    // Top DICT INDEX
-    // Note: CFF fonts only have 1 top dict, so index of length 1.
-    rewrite_top_dict_index(
-        table.top_dict_data.top_dict_raw,
-        &mut font_write_context,
-        &sid_remapper,
-        &mut w,
-    )?;
-    // String INDEX
-    rewrite_sids(&sid_remapper, table.strings, &mut w)?;
-    // Global Subr INDEX
-    // Note: We desubroutinized, so no global subroutines and thus empty index.
-    w.write(&OwnedIndex::default());
-
-    font_write_context.charset_offset.update_value(w.len())?;
-    // Charsets
-    rewrite_charset(
-        &sid_remapper,
-        &table.font_kind,
-        &table.charset,
-        &ctx.mapper,
-        &mut w,
-    )?;
-
-    match table.font_kind {
-        FontKind::Sid(ref sid) => {
-            rewrite_sid_private_dicts(&mut font_write_context, sid, &mut w)?
-        }
-        FontKind::Cid(ref cid) => {
-            rewrite_private_dicts(&fd_remapper, &mut font_write_context, cid, &mut w)?;
-        }
-    }
-
-    if let FontKind::Cid(ref cid_metadata) = table.font_kind {
-        font_write_context.fd_select_offset.update_value(w.len())?;
-        // FDSelect
-        rewrite_fd_index(&ctx.mapper, cid_metadata.fd_select, &fd_remapper, &mut w)?;
-
-        // FDArray
-        font_write_context.fd_array_offset.update_value(w.len())?;
-        rewrite_font_dict_index(
-            &fd_remapper,
+    let mut subsetted_font = {
+        let mut w = Writer::new();
+        // HEADER
+        w.write(table.header);
+        // Name INDEX
+        w.write(table.names);
+        // Top DICT INDEX
+        rewrite_top_dict_index(
+            table.top_dict_data.top_dict_raw,
+            &mut offsets,
             &sid_remapper,
-            &mut font_write_context,
-            cid_metadata,
             &mut w,
-        )?
-    }
+        )?;
+        // String INDEX
+        rewrite_sids(&sid_remapper, table.strings, &mut w)?;
+        // Global Subr INDEX
+        // We desubroutinized, so no global subroutines and thus empty index.
+        w.write(&OwnedIndex::default());
 
-    // Charstrings INDEX
-    font_write_context.char_strings_offset.update_value(w.len())?;
-    w.extend(&create_index(char_strings.iter().map(|p| p.compile()).collect())?.data);
+        offsets.charset_offset.update_value(w.len())?;
+        // Charsets
+        rewrite_charset(
+            &sid_remapper,
+            &table.font_kind,
+            &table.charset,
+            &ctx.mapper,
+            &mut w,
+        )?;
 
-    let mut subsetted_font = w.finish();
-    update_offsets(&font_write_context, subsetted_font.as_mut_slice())?;
+        match table.font_kind {
+            FontKind::Sid(ref sid) => {
+                rewrite_sid_private_dicts(&mut offsets, sid, &mut w)?
+            }
+            FontKind::Cid(ref cid) => {
+                rewrite_cid_private_dicts(&fd_remapper, &mut offsets, cid, &mut w)?;
+            }
+        }
+
+        if let FontKind::Cid(ref cid_metadata) = table.font_kind {
+            offsets.fd_select_offset.update_value(w.len())?;
+            // FDSelect
+            rewrite_fd_index(&ctx.mapper, cid_metadata.fd_select, &fd_remapper, &mut w)?;
+
+            // FDArray
+            offsets.fd_array_offset.update_value(w.len())?;
+            rewrite_font_dict_index(
+                &fd_remapper,
+                &sid_remapper,
+                &mut offsets,
+                cid_metadata,
+                &mut w,
+            )?
+        }
+
+        // Charstrings INDEX
+        offsets.char_strings_offset.update_value(w.len())?;
+        w.extend(&create_index(char_strings)?.data);
+
+        w.finish()
+    };
+
+    // Rewrite the dummy offsets.
+    update_offsets(&offsets, subsetted_font.as_mut_slice())?;
 
     ctx.push(Tag::CFF, subsetted_font);
 
@@ -296,6 +262,67 @@ fn rewrite_sids(
     Ok(())
 }
 
+/// Create the list of bytes that constitute the programs of the charstrings, sorted in the new glyph order.
+fn subset_charstrings<'a>(
+    table: &Table,
+    remapper: &GlyphRemapper,
+) -> Result<(Vec<Vec<u8>>, FontDictRemapper)> {
+    let gsubrs = {
+        let subroutines = table.global_subrs.into_iter().collect::<Vec<_>>();
+        SubroutineContainer::new(subroutines)
+    };
+
+    let lsubrs = {
+        match &table.font_kind {
+            FontKind::Cid(cid) => {
+                let subroutines = cid
+                    .font_dicts
+                    .iter()
+                    .map(|font_dict| {
+                        font_dict.local_subrs.into_iter().collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>();
+                SubroutineCollection::new(subroutines)
+            }
+            FontKind::Sid(sid) => {
+                let subroutines = sid.local_subrs.into_iter().collect::<Vec<_>>();
+                SubroutineCollection::new(vec![subroutines])
+            }
+        }
+    };
+
+    let mut used_fds = BTreeSet::new();
+    let mut char_strings = vec![];
+
+    for old_gid in remapper.remapped_gids() {
+        let fd_index = match &table.font_kind {
+            FontKind::Cid(ref cid) => {
+                let fd_index =
+                    cid.fd_select.font_dict_index(old_gid).ok_or(MalformedFont)?;
+                used_fds.insert(fd_index);
+                fd_index
+            }
+            FontKind::Sid(_) => 0,
+        };
+
+        let decompiler = Decompiler::new(
+            gsubrs.get_handler(),
+            lsubrs.get_handler(fd_index).ok_or(MalformedFont)?,
+        );
+        let charstring = table.char_strings.get(old_gid as u32).ok_or(MalformedFont)?;
+        char_strings.push(decompiler.decompile(charstring)?);
+    }
+
+    let mut fd_remapper = FontDictRemapper::new();
+
+    for fd in used_fds {
+        fd_remapper.remap(fd);
+    }
+
+    Ok((char_strings.iter().map(|p| p.compile()).collect(), fd_remapper))
+}
+
+/// Get the SID remapper
 fn get_sid_remapper(table: &Table, gid_remapper: &GlyphRemapper) -> SidRemapper {
     let mut sid_remapper = SidRemapper::new();
     for sid in &table.top_dict_data.used_sids {
@@ -322,6 +349,8 @@ fn get_sid_remapper(table: &Table, gid_remapper: &GlyphRemapper) -> SidRemapper 
     sid_remapper
 }
 
+/// A high-level container that contains important information we need when
+/// accesseing the data in the CFF font.
 impl<'a> Table<'a> {
     pub fn parse(ctx: &mut Context<'a>) -> Result<Self> {
         let cff = ctx.expect_table(Tag::CFF).ok_or(MalformedFont)?;

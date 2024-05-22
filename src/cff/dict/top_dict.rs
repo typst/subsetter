@@ -172,6 +172,7 @@ pub fn rewrite_top_dict_index(
 
     let finished = sub_w.finish();
 
+    // TOP DICT INDEX always has size 1 in CFF.
     let index = create_index(vec![finished])?;
 
     // This is important: The offsets we calculated before were calculated under the assumption

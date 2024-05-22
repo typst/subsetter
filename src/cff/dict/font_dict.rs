@@ -78,6 +78,9 @@ pub fn rewrite_font_dict_index(
 
         // Write the length and offset of the private dict.
         // Private dicts have already been written, so the offsets are already correct.
+        // This means that these two offsets are a bit special compared to the others, since
+        // we never use the `location` field of the offset and we don't overwrite it like we do
+        // for the others.
         font_write_context
             .private_dicts_lens
             .get(new_df as usize)
