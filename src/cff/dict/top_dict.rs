@@ -25,7 +25,7 @@ pub struct TopDictData<'a> {
 }
 
 /// Parse the top dict and extract relevant data.
-pub fn parse_top_dict<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
+pub fn parse_top_dict_index<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
     use super::operators::*;
     let mut top_dict = TopDictData::default();
 
@@ -89,6 +89,7 @@ pub fn rewrite_top_dict_index(
 
     while let Some(operator) = dict_parser.parse_next() {
         match operator {
+            // Important: When writing the offsets, we need to add the current length of w AND sub_w.
             CHARSET => {
                 font_write_context
                     .charset_offset
@@ -173,6 +174,10 @@ pub fn rewrite_top_dict_index(
 
     let index = create_index(vec![finished])?;
 
+    // This is important: The offsets we calculated before were calculated under the assumption
+    // that the contents of sub_w will be appended directly to w. However, when we create an index,
+    // the INDEX header data will be appended in the beginning, meaning that we need to adjust the offsets
+    // to account for that.
     font_write_context.charset_offset.adjust_location(index.header_size);
     font_write_context
         .char_strings_offset
@@ -181,6 +186,7 @@ pub fn rewrite_top_dict_index(
     font_write_context.fd_array_offset.adjust_location(index.header_size);
     font_write_context.fd_select_offset.adjust_location(index.header_size);
 
+    // TODO: This might not be entirely correct.
     if let (Some(lens), Some(offsets)) = (
         font_write_context.private_dicts_lens.first_mut(),
         font_write_context.private_dicts_offsets.first_mut(),

@@ -20,7 +20,9 @@ use crate::cff::charstring::Decompiler;
 use crate::cff::cid_font::{build_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::write_font_dict_index;
 use crate::cff::dict::private_dict::{rewrite_private_dicts, rewrite_sid_private_dicts};
-use crate::cff::dict::top_dict::{parse_top_dict, rewrite_top_dict_index, TopDictData};
+use crate::cff::dict::top_dict::{
+    parse_top_dict_index, rewrite_top_dict_index, TopDictData,
+};
 use crate::cff::index::{create_index, parse_index, skip_index, Index, OwnedIndex};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::sid_font::SIDMetadata;
@@ -338,7 +340,7 @@ impl<'a> Table<'a> {
         let names_start = r.offset();
         skip_index::<u16>(&mut r).ok_or(MalformedFont)?;
         let names = cff.get(names_start..r.offset()).ok_or(MalformedFont)?;
-        let top_dict_data = parse_top_dict(&mut r).ok_or(MalformedFont)?;
+        let top_dict_data = parse_top_dict_index(&mut r).ok_or(MalformedFont)?;
 
         let strings = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
         let global_subrs = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
