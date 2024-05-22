@@ -1,13 +1,9 @@
-// TODO: Add acknowledgements
-
 mod argstack;
 mod charset;
 mod charstring;
 mod dict;
 mod index;
-// mod private_dict;
 mod remapper;
-// mod top_dict;
 mod cid_font;
 mod number;
 mod operator;

@@ -55,3 +55,11 @@ This crate forbids unsafe code and has zero dependencies.
 
 ## License
 This crate is dual-licensed under the MIT and Apache 2.0 licenses.
+
+## Acknowledgements
+This crate reuses/builds upon two significant libraries:
+- [ttf-parser](https://github.com/RazrFalcon/ttf-parser): Large parts of the code have been copied and adapted
+from that crate, including but not limited to the reader/writer, parsing logic of certain tables as well as a large
+part of the CFF parsing logic. This crate is dual-licensed under MIT/Apache.
+- [fonttools](https://github.com/fonttools/fonttools): The logic for decompiling charstrings has been adapted from
+that library. It is licensed under the MIT license.
