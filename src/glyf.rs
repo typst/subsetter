@@ -1,14 +1,14 @@
-///! The `glyf` table contains the main description of the glyphs. In order to
-/// subset it, there are 5 things we need to do:
-/// 1. We need to form the glyph closure. Glyphs can reference other glyphs, meaning that
-/// if a user for example requests the glyph 1, and this glyph references the glyph 2, then
-/// we need to include both of them in our subset.
-/// 2. We need to remove glyph descriptions that are not needed for the subset, and reorder
-/// the existing glyph descriptions to match the order defined by the remapper.
-/// 3. For component glyphs, we need to rewrite their description so that they reference
-/// the new glyph ID of the glyphs they reference.
-/// 4. We need to calculate which format to use in the `loca` table.
-/// 5. We need to update the `loca` table itself with the new offsets.
+//! The `glyf` table contains the main description of the glyphs. In order to
+//! subset it, there are 5 things we need to do:
+//! 1. We need to form the glyph closure. Glyphs can reference other glyphs, meaning that
+//! if a user for example requests the glyph 1, and this glyph references the glyph 2, then
+//! we need to include both of them in our subset.
+//! 2. We need to remove glyph descriptions that are not needed for the subset, and reorder
+//! the existing glyph descriptions to match the order defined by the remapper.
+//! 3. For component glyphs, we need to rewrite their description so that they reference
+//! the new glyph ID of the glyphs they reference.
+//! 4. We need to calculate which format to use in the `loca` table.
+//! 5. We need to update the `loca` table itself with the new offsets.
 use super::*;
 use crate::Error::{MalformedFont, SubsetError};
 
