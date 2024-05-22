@@ -7,5 +7,4 @@ desktop.ini
 # Rust
 /target
 bench/target
-Cargo.lock
 debug
