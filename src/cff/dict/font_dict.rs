@@ -53,6 +53,7 @@ pub fn parse_font_dict<'a>(
     Some(font_dict)
 }
 
+/// Write the new font DICT INDEX.
 pub fn write_font_dict_index(
     fd_remapper: &FontDictRemapper,
     sid_remapper: &SidRemapper,

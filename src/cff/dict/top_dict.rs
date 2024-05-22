@@ -5,10 +5,12 @@ use crate::cff::remapper::SidRemapper;
 use crate::cff::{Offsets, DUMMY_VALUE};
 use crate::read::Reader;
 use crate::write::Writer;
+use crate::Result;
 use std::array;
 use std::collections::BTreeSet;
 use std::ops::Range;
 
+/// Data parsed from a top dict.
 #[derive(Default, Debug, Clone)]
 pub struct TopDictData {
     pub(crate) used_sids: BTreeSet<StringId>,
@@ -18,16 +20,17 @@ pub struct TopDictData {
     pub(crate) private: Option<Range<usize>>,
     pub(crate) fd_array: Option<usize>,
     pub(crate) fd_select: Option<usize>,
-    pub(crate) has_ros: bool, // pub(crate) font_name: Option<StringId>,
+    pub(crate) has_ros: bool,
 }
 
+/// Parse the top dict and extract relevant data.
 pub fn parse_top_dict(r: &mut Reader<'_>) -> Option<TopDictData> {
     use super::operators::*;
     let mut top_dict = TopDictData::default();
 
     let index = parse_index::<u16>(r)?;
 
-    // The Top DICT INDEX should have only one dictionary.
+    // The Top DICT INDEX should have only one dictionary in CFF fonts.
     let data = index.get(0)?;
 
     let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
@@ -35,6 +38,7 @@ pub fn parse_top_dict(r: &mut Reader<'_>) -> Option<TopDictData> {
 
     while let Some(operator) = dict_parser.parse_next() {
         match operator {
+            // Grab the SIDs so that we can remap them.
             VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
             | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {
                 let sid = dict_parser.parse_sid()?;
@@ -65,12 +69,15 @@ pub fn parse_top_dict(r: &mut Reader<'_>) -> Option<TopDictData> {
     Some(top_dict)
 }
 
-pub(crate) fn write_top_dict_index(
+/// Rewrite the top dict. Essentially, the two things we need to do are
+/// 1. Rewrite every operator that takes a SID with the new, remapped SID.
+/// 2. Update all offsets.
+pub fn rewrite_top_dict_index(
     raw_top_dict: &[u8],
     font_write_context: &mut Offsets,
     sid_remapper: &SidRemapper,
     w: &mut Writer,
-) -> crate::Result<()> {
+) -> Result<()> {
     use super::operators::*;
 
     let mut sub_w = Writer::new();
@@ -143,6 +150,7 @@ pub(crate) fn write_top_dict_index(
                 sub_w.write(&operands[2]);
                 sub_w.write(operator);
             }
+            // TODO: Unify SID with CID?
             PRIVATE => {
                 if let (Some(lens), Some(offsets)) = (
                     font_write_context.private_dicts_lens.first_mut(),

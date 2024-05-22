@@ -19,8 +19,8 @@ use crate::cff::charset::{parse_charset, write_charset, Charset};
 use crate::cff::charstring::Decompiler;
 use crate::cff::cid_font::{build_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::write_font_dict_index;
-use crate::cff::dict::private_dict::{write_private_dicts, write_sid_private_dicts};
-use crate::cff::dict::top_dict::{parse_top_dict, write_top_dict_index, TopDictData};
+use crate::cff::dict::private_dict::{rewrite_private_dicts, rewrite_sid_private_dicts};
+use crate::cff::dict::top_dict::{parse_top_dict, rewrite_top_dict_index, TopDictData};
 use crate::cff::index::{create_index, parse_index, skip_index, Index, OwnedIndex};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::sid_font::SIDMetadata;
@@ -192,7 +192,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     w.write(table.names);
     // Top DICT INDEX
     // Note: CFF fonts only have 1 top dict, so index of length 1.
-    write_top_dict_index(
+    rewrite_top_dict_index(
         table.raw_top_dict,
         &mut font_write_context,
         &sid_remapper,
@@ -213,10 +213,10 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
 
     match table.font_kind {
         FontKind::Sid(ref sid) => {
-            write_sid_private_dicts(&mut font_write_context, sid, &mut w)?
+            rewrite_sid_private_dicts(&mut font_write_context, sid, &mut w)?
         }
         FontKind::Cid(ref cid) => {
-            write_private_dicts(&fd_remapper, &mut font_write_context, cid, &mut w)?;
+            rewrite_private_dicts(&fd_remapper, &mut font_write_context, cid, &mut w)?;
         }
     }
 
