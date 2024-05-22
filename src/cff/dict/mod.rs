@@ -7,26 +7,22 @@ use crate::cff::operator::{Operator, TWO_BYTE_OPERATOR_MARK};
 use crate::read::Reader;
 use std::ops::Range;
 
-// TODO: Test STIX MAth
-
+/// A parser for DICTs in a CFF font.
 pub struct DictionaryParser<'a> {
+    /// The underlying data.
     data: &'a [u8],
-    // The current offset.
+    /// The current offset.
     offset: usize,
-    // Offset to the last operands start.
+    /// Offset to the last operands start.
     operands_offset: usize,
-    // Actual operands.
-    //
-    // While CFF can contain only i32 and f32 values, we have to store operands as f64
-    // since f32 cannot represent the whole i32 range.
-    // Meaning we have a choice of storing operands as f64 or as enum of i32/f32.
-    // In both cases the type size would be 8 bytes, so it's easier to simply use f64.
+    /// Actual operands.
     operands: &'a mut [Number<'a>],
-    // An amount of operands in the `operands` array.
+    /// The number of operands in the `operands` array.
     operands_len: u16,
 }
 
 impl<'a> DictionaryParser<'a> {
+    /// Create a new dictionary parser.
     #[inline]
     pub fn new(data: &'a [u8], operands_buffer: &'a mut [Number<'a>]) -> Self {
         DictionaryParser {
@@ -65,13 +61,7 @@ impl<'a> DictionaryParser<'a> {
     /// Parses operands of the current operator.
     ///
     /// In the DICT structure, operands are defined before an operator.
-    /// So we are trying to find an operator first and the we can actually parse the operands.
-    ///
-    /// Since this methods is pretty expensive and we do not care about most of the operators,
-    /// we can speed up parsing by parsing operands only for required operators.
-    ///
-    /// We still have to "skip" operands during operators search (see `skip_number()`),
-    /// but it's still faster that a naive method.
+    /// So we are trying to find an operator first and then we can actually parse the operands.
     pub fn parse_operands(&mut self) -> Option<()> {
         let mut r = Reader::new_at(self.data, self.operands_offset);
         self.operands_len = 0;
@@ -95,11 +85,13 @@ impl<'a> DictionaryParser<'a> {
         Some(())
     }
 
+    /// Return the operands of the current operator.
     #[inline]
     pub fn operands(&self) -> &[Number] {
         &self.operands[..usize::from(self.operands_len)]
     }
 
+    /// Parse a StringID from the current operands.
     #[inline]
     pub fn parse_sid(&mut self) -> Option<StringId> {
         self.parse_operands()?;
@@ -111,6 +103,7 @@ impl<'a> DictionaryParser<'a> {
         }
     }
 
+    /// Parse an offset from the current operands.
     #[inline]
     pub fn parse_offset(&mut self) -> Option<usize> {
         self.parse_operands()?;
@@ -122,6 +115,7 @@ impl<'a> DictionaryParser<'a> {
         }
     }
 
+    /// Parse a range from the current operands.
     #[inline]
     pub fn parse_range(&mut self) -> Option<Range<usize>> {
         self.parse_operands()?;
@@ -137,8 +131,6 @@ impl<'a> DictionaryParser<'a> {
     }
 }
 
-// One-byte CFF DICT Operators according to the
-// Adobe Technical Note #5176, Appendix H CFF DICT Encoding.
 fn is_dict_one_byte_op(b: u8) -> bool {
     match b {
         0..=27 => true,
@@ -150,7 +142,6 @@ fn is_dict_one_byte_op(b: u8) -> bool {
 }
 
 #[allow(dead_code)]
-// TODO: Use constructor
 pub(crate) mod operators {
     use crate::cff::operator::{Operator, OperatorType, TWO_BYTE_OPERATOR_MARK};
 

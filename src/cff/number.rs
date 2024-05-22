@@ -126,6 +126,9 @@ impl IntegerNumber {
         }
     }
 
+    /// Write the number as a 5 byte sequence. This is necessary when writing offsets,
+    /// because we need to the length of the number to stay stable, since it would
+    /// otherwise shift everything.
     pub fn write_as_5_bytes(&self, w: &mut Writer) {
         let bytes = self.0.to_be_bytes();
         w.write([29, bytes[0], bytes[1], bytes[2], bytes[3]]);

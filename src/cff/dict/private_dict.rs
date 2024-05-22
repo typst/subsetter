@@ -4,7 +4,7 @@ use crate::cff::dict::DictionaryParser;
 use crate::cff::number::Number;
 use crate::cff::remapper::FontDictRemapper;
 use crate::cff::sid_font::SIDMetadata;
-use crate::cff::FontWriteContext;
+use crate::cff::Offsets;
 use crate::write::Writer;
 use crate::Error::SubsetError;
 use crate::Result;
@@ -30,7 +30,7 @@ pub fn parse_subr_offset(data: &[u8]) -> Option<usize> {
 
 pub fn write_private_dicts(
     fd_remapper: &FontDictRemapper,
-    font_write_context: &mut FontWriteContext,
+    font_write_context: &mut Offsets,
     metadata: &CIDMetadata,
     w: &mut Writer,
 ) -> Result<()> {
@@ -85,7 +85,7 @@ pub fn write_private_dicts(
 }
 
 pub fn write_sid_private_dicts(
-    font_write_context: &mut FontWriteContext,
+    font_write_context: &mut Offsets,
     sid_metadata: &SIDMetadata,
     w: &mut Writer,
 ) -> Result<()> {

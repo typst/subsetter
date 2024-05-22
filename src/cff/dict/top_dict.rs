@@ -2,7 +2,7 @@ use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{create_index, parse_index};
 use crate::cff::number::{Number, StringId};
 use crate::cff::remapper::SidRemapper;
-use crate::cff::{FontWriteContext, DUMMY_VALUE};
+use crate::cff::{Offsets, DUMMY_VALUE};
 use crate::read::Reader;
 use crate::write::Writer;
 use std::array;
@@ -67,7 +67,7 @@ pub fn parse_top_dict(r: &mut Reader<'_>) -> Option<TopDictData> {
 
 pub(crate) fn write_top_dict_index(
     raw_top_dict: &[u8],
-    font_write_context: &mut FontWriteContext,
+    font_write_context: &mut Offsets,
     sid_remapper: &SidRemapper,
     w: &mut Writer,
 ) -> crate::Result<()> {

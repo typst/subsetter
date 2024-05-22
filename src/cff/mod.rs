@@ -88,7 +88,7 @@ impl DeferredOffset {
 }
 
 #[derive(Debug)]
-struct FontWriteContext {
+struct Offsets {
     // TOP DICT DATA
     charset_offset: DeferredOffset,
     encoding_offset: DeferredOffset,
@@ -99,7 +99,7 @@ struct FontWriteContext {
     fd_select_offset: DeferredOffset,
 }
 
-impl FontWriteContext {
+impl Offsets {
     pub fn new_cid(num_font_dicts: u8) -> Self {
         Self {
             char_strings_offset: DUMMY_OFFSET,
@@ -181,8 +181,8 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     }
 
     let mut font_write_context = match table.font_kind {
-        FontKind::Sid(_) => FontWriteContext::new_sid(),
-        FontKind::Cid(_) => FontWriteContext::new_cid(fd_remapper.len()),
+        FontKind::Sid(_) => Offsets::new_sid(),
+        FontKind::Cid(_) => Offsets::new_cid(fd_remapper.len()),
     };
 
     let mut w = Writer::new();
@@ -227,12 +227,13 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
 
         // FD Array
         font_write_context.fd_array_offset.update_value(w.len())?;
-        w.extend(&write_font_dict_index(
+        write_font_dict_index(
             &fd_remapper,
             &sid_remapper,
             &mut font_write_context,
             cid_metadata,
-        )?);
+            &mut w,
+        )?
     }
 
     // Charstrings INDEX
@@ -247,10 +248,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     Ok(())
 }
 
-fn update_offsets(
-    font_write_context: &FontWriteContext,
-    buffer: &mut [u8],
-) -> Result<()> {
+fn update_offsets(font_write_context: &Offsets, buffer: &mut [u8]) -> Result<()> {
     let mut write = |offset: DeferredOffset| {
         if offset != DUMMY_OFFSET {
             offset.write_into(buffer)?;
