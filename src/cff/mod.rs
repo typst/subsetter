@@ -41,8 +41,7 @@ pub(crate) enum FontKind<'a> {
 pub struct Table<'a> {
     header: &'a [u8],
     names: &'a [u8],
-    raw_top_dict: &'a [u8],
-    top_dict_data: TopDictData,
+    top_dict_data: TopDictData<'a>,
     strings: Index<'a>,
     global_subrs: Index<'a>,
     charset: Charset<'a>,
@@ -193,7 +192,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     // Top DICT INDEX
     // Note: CFF fonts only have 1 top dict, so index of length 1.
     rewrite_top_dict_index(
-        table.raw_top_dict,
+        table.top_dict_data.top_dict_raw,
         &mut font_write_context,
         &sid_remapper,
         &mut w,
@@ -339,7 +338,6 @@ impl<'a> Table<'a> {
         let names_start = r.offset();
         skip_index::<u16>(&mut r).ok_or(MalformedFont)?;
         let names = cff.get(names_start..r.offset()).ok_or(MalformedFont)?;
-        let raw_top_dict = r.tail().ok_or(MalformedFont)?;
         let top_dict_data = parse_top_dict(&mut r).ok_or(MalformedFont)?;
 
         let strings = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
@@ -379,7 +377,6 @@ impl<'a> Table<'a> {
         Ok(Self {
             header,
             names,
-            raw_top_dict,
             top_dict_data,
             strings,
             global_subrs,

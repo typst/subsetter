@@ -12,19 +12,20 @@ use std::ops::Range;
 
 /// Data parsed from a top dict.
 #[derive(Default, Debug, Clone)]
-pub struct TopDictData {
-    pub(crate) used_sids: BTreeSet<StringId>,
-    pub(crate) charset: Option<usize>,
-    pub(crate) encoding: Option<usize>,
-    pub(crate) char_strings: Option<usize>,
-    pub(crate) private: Option<Range<usize>>,
-    pub(crate) fd_array: Option<usize>,
-    pub(crate) fd_select: Option<usize>,
-    pub(crate) has_ros: bool,
+pub struct TopDictData<'a> {
+    pub top_dict_raw: &'a [u8],
+    pub used_sids: BTreeSet<StringId>,
+    pub charset: Option<usize>,
+    pub encoding: Option<usize>,
+    pub char_strings: Option<usize>,
+    pub private: Option<Range<usize>>,
+    pub fd_array: Option<usize>,
+    pub fd_select: Option<usize>,
+    pub has_ros: bool,
 }
 
 /// Parse the top dict and extract relevant data.
-pub fn parse_top_dict(r: &mut Reader<'_>) -> Option<TopDictData> {
+pub fn parse_top_dict<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
     use super::operators::*;
     let mut top_dict = TopDictData::default();
 
@@ -32,6 +33,7 @@ pub fn parse_top_dict(r: &mut Reader<'_>) -> Option<TopDictData> {
 
     // The Top DICT INDEX should have only one dictionary in CFF fonts.
     let data = index.get(0)?;
+    top_dict.top_dict_raw = data;
 
     let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
@@ -81,15 +83,9 @@ pub fn rewrite_top_dict_index(
     use super::operators::*;
 
     let mut sub_w = Writer::new();
-    let mut r = Reader::new(raw_top_dict);
-
-    let index = parse_index::<u16>(&mut r).unwrap();
-
-    // The Top DICT INDEX should have only one dictionary.
-    let data = index.get(0).unwrap();
 
     let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
-    let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
+    let mut dict_parser = DictionaryParser::new(raw_top_dict, &mut operands_buffer);
 
     while let Some(operator) = dict_parser.parse_next() {
         match operator {
