@@ -57,7 +57,7 @@ impl<'a> Decompiler<'a> {
             // Numbers
             if matches!(op, 28 | 32..=255) {
                 let number =
-                    Number::parse_charstring_number(&mut r).ok_or(MalformedFont)?;
+                    Number::parse_char_string_number(&mut r).ok_or(MalformedFont)?;
                 self.stack.push(number.clone())?;
                 program.push(Instruction::Operand(number));
                 continue;

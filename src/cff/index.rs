@@ -2,6 +2,7 @@ use crate::cff::number::U24;
 use crate::read::{Readable, Reader};
 use crate::write::{Writeable, Writer};
 use crate::Error::MalformedFont;
+use crate::Result;
 
 pub trait IndexSize: for<'a> Readable<'a> {
     fn to_u32(self) -> u32;
@@ -19,6 +20,7 @@ impl IndexSize for u32 {
     }
 }
 
+/// Parse an index.
 #[inline]
 pub fn parse_index<'a, T: IndexSize>(r: &mut Reader<'a>) -> Option<Index<'a>> {
     let count = r.read::<T>()?;
@@ -48,6 +50,7 @@ fn parse_index_impl<'a>(count: u32, r: &mut Reader<'a>) -> Option<Index<'a>> {
     }
 }
 
+/// Skip an index.
 #[inline]
 pub fn skip_index<T: IndexSize>(r: &mut Reader) -> Option<()> {
     let count = r.read::<T>()?;
@@ -149,12 +152,11 @@ impl<'a> IntoIterator for Index<'a> {
 impl<'a> Index<'a> {
     #[inline]
     pub fn len(&self) -> u32 {
-        // Last offset points to the byte after the `Object data`. We should skip it.
         self.offsets.len().saturating_sub(1)
     }
 
     pub fn get(&self, index: u32) -> Option<&'a [u8]> {
-        let next_index = index.checked_add(1)?; // make sure we do not overflow
+        let next_index = index.checked_add(1)?;
         let start = self.offsets.get(index)? as usize;
         let end = self.offsets.get(next_index)? as usize;
         self.data.get(start..end)
@@ -214,6 +216,7 @@ impl Readable<'_> for OffsetSize {
     }
 }
 
+/// An index that owns it's data.
 pub struct OwnedIndex {
     pub data: Vec<u8>,
     pub header_size: usize,
@@ -231,7 +234,8 @@ impl Default for OwnedIndex {
     }
 }
 
-pub(crate) fn create_index(data: Vec<Vec<u8>>) -> crate::Result<OwnedIndex> {
+/// Create an index from a vector of data.
+pub fn create_index(data: Vec<Vec<u8>>) -> Result<OwnedIndex> {
     let count = u16::try_from(data.len()).map_err(|_| MalformedFont)?;
     // + 1 Since we start counting from the preceding byte.
     let offsize = data.iter().map(|v| v.len() as u32).sum::<u32>() + 1;

@@ -3,6 +3,8 @@ use crate::remapper::Remapper;
 
 pub type FontDictRemapper = Remapper<u8, u8>;
 
+/// A wrapper around `Remapper` that takes care of automatically
+/// accounting for the fact that SIDs up to 390 are standard strings.
 pub struct SidRemapper(Remapper<u16, u16>);
 
 impl SidRemapper {

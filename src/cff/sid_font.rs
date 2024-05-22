@@ -3,16 +3,14 @@ use crate::cff::dict::top_dict::TopDictData;
 use crate::cff::index::{parse_index, Index};
 use crate::read::Reader;
 
+/// Metadata required for handling SID-keyed fonts.
 #[derive(Clone, Copy, Default, Debug)]
-pub(crate) struct SIDMetadata<'a> {
-    pub(crate) local_subrs: Index<'a>,
-    pub(crate) private_dict_data: &'a [u8],
+pub struct SIDMetadata<'a> {
+    pub local_subrs: Index<'a>,
+    pub private_dict_data: &'a [u8],
 }
 
-pub(crate) fn parse_sid_metadata<'a>(
-    data: &'a [u8],
-    top_dict: &TopDictData,
-) -> SIDMetadata<'a> {
+pub fn parse_sid_metadata<'a>(data: &'a [u8], top_dict: &TopDictData) -> SIDMetadata<'a> {
     top_dict
         .private
         .clone()

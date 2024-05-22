@@ -5,6 +5,10 @@ use std::fmt::{Debug, Formatter};
 const FLOAT_STACK_LEN: usize = 64;
 const END_OF_FLOAT_FLAG: u8 = 0xf;
 
+/// We only store real numbers as the bytes they were parsed from
+/// because this way we can just rewrite them as is, and we don't need to
+/// write the logic for serializing a float from scratch. We can do this
+/// since we never need to actually manually construct a float. Only integer numbers.
 #[derive(Clone)]
 pub struct RealNumber<'a>(&'a [u8], f32);
 
@@ -193,7 +197,7 @@ impl<'a> Number<'a> {
         Self::parse_number(r, false)
     }
 
-    pub fn parse_charstring_number(r: &mut Reader<'a>) -> Option<Number<'a>> {
+    pub fn parse_char_string_number(r: &mut Reader<'a>) -> Option<Number<'a>> {
         Self::parse_number(r, true)
     }
 

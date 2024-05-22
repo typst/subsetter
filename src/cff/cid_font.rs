@@ -114,11 +114,12 @@ impl FDSelect<'_> {
     }
 }
 
+/// Rewrite the FD INDEX.
 pub fn rewrite_fd_index(
     gid_remapper: &GlyphRemapper,
     fd_select: FDSelect,
     fd_remapper: &FontDictRemapper,
-    w: &mut Writer
+    w: &mut Writer,
 ) -> Result<()> {
     // We always use format 0, since it's the simplest.
     w.write::<u8>(0);

@@ -1,6 +1,8 @@
 use crate::cff::charstring::CharString;
 
-pub(crate) struct SubroutineCollection<'a> {
+/// A wrapper over a vector of subroutine containers (for local subroutines, where
+/// we have a list of subroutines for each font dict).
+pub struct SubroutineCollection<'a> {
     subroutines: Vec<SubroutineContainer<'a>>,
 }
 
@@ -17,7 +19,8 @@ impl<'a> SubroutineCollection<'a> {
     }
 }
 
-pub(crate) struct SubroutineContainer<'a> {
+/// A wrapper over a vector of charstrings (for global subroutines).
+pub struct SubroutineContainer<'a> {
     subroutines: Vec<CharString<'a>>,
 }
 
@@ -31,8 +34,10 @@ impl<'a> SubroutineContainer<'a> {
     }
 }
 
+/// Wrapper over a list of subroutines to allow for convenient access to subroutines
+/// given a biased or unbiased index.
 #[derive(Clone)]
-pub(crate) struct SubroutineHandler<'a> {
+pub struct SubroutineHandler<'a> {
     subroutines: &'a [CharString<'a>],
     bias: u16,
 }
@@ -64,6 +69,7 @@ fn calc_subroutine_bias(len: u32) -> u16 {
     }
 }
 
+/// Unapply the bias from a biased subroutine offset.
 pub fn unapply_bias(index: i32, bias: u16) -> Option<u32> {
     let bias = i32::from(bias);
 

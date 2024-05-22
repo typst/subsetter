@@ -280,7 +280,11 @@ fn update_offsets(font_write_context: &Offsets, buffer: &mut [u8]) -> Result<()>
     Ok(())
 }
 
-fn rewrite_sids(sid_remapper: &SidRemapper, strings: Index, w: &mut Writer) -> Result<()> {
+fn rewrite_sids(
+    sid_remapper: &SidRemapper,
+    strings: Index,
+    w: &mut Writer,
+) -> Result<()> {
     let mut new_strings = vec![];
     for sid in sid_remapper.sids() {
         new_strings.push(
