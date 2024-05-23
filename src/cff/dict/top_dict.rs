@@ -16,7 +16,6 @@ pub struct TopDictData<'a> {
     pub top_dict_raw: &'a [u8],
     pub used_sids: BTreeSet<StringId>,
     pub charset: Option<usize>,
-    pub encoding: Option<usize>,
     pub char_strings: Option<usize>,
     pub private: Option<Range<usize>>,
     pub fd_array: Option<usize>,
@@ -49,7 +48,8 @@ pub fn parse_top_dict_index<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
                 top_dict.used_sids.insert(sid);
             }
             CHARSET => top_dict.charset = Some(dict_parser.parse_offset()?),
-            ENCODING => top_dict.encoding = Some(dict_parser.parse_offset()?),
+            // We don't care about encoding since we convert to CID-keyed font anyway.
+            ENCODING => {}
             CHAR_STRINGS => top_dict.char_strings = Some(dict_parser.parse_offset()?),
             PRIVATE => top_dict.private = Some(dict_parser.parse_range()?),
             ROS => {
@@ -93,6 +93,8 @@ pub fn rewrite_top_dict_index(
     assert_ne!(offsets.ordering_sid, StringId(0));
     assert_ne!(offsets.registry_sid, StringId(0));
 
+    // Write the operators required for CID-keyed fonts. Since we convert SID-keyed fonts
+    // to CID-keyed, we need to do this manually in the beginning.
     // Write ROS operator.
     sub_w.write(Number::from_i32(offsets.registry_sid.0 as i32));
     sub_w.write(Number::from_i32(offsets.ordering_sid.0 as i32));
@@ -120,9 +122,7 @@ pub fn rewrite_top_dict_index(
                 sub_w.write(operator)
             }
             ENCODING => {
-                offsets.encoding_offset.update_location(sub_w.len() + w.len());
-                DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
-                sub_w.write(operator);
+                // Never write encoding, since we convert SID-keyed fonts to CID-keyed fonts.
             }
             CHAR_STRINGS => {
                 offsets.char_strings_offset.update_location(sub_w.len() + w.len());
@@ -170,7 +170,6 @@ pub fn rewrite_top_dict_index(
     // to account for that.
     offsets.charset_offset.adjust_location(index.header_size);
     offsets.char_strings_offset.adjust_location(index.header_size);
-    offsets.encoding_offset.adjust_location(index.header_size);
     offsets.fd_array_offset.adjust_location(index.header_size);
     offsets.fd_select_offset.adjust_location(index.header_size);
 

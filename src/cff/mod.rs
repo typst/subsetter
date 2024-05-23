@@ -98,7 +98,6 @@ impl DeferredOffset {
 struct Offsets {
     // TOP DICT DATA
     charset_offset: DeferredOffset,
-    encoding_offset: DeferredOffset,
     char_strings_offset: DeferredOffset,
     private_dicts_lens: Vec<DeferredOffset>,
     private_dicts_offsets: Vec<DeferredOffset>,
@@ -113,7 +112,6 @@ impl Offsets {
     pub fn new_cid(num_font_dicts: u8) -> Self {
         Self {
             char_strings_offset: DUMMY_OFFSET,
-            encoding_offset: DUMMY_OFFSET,
             charset_offset: DUMMY_OFFSET,
             private_dicts_lens: vec![DUMMY_OFFSET; num_font_dicts as usize],
             private_dicts_offsets: vec![DUMMY_OFFSET; num_font_dicts as usize],
@@ -127,7 +125,6 @@ impl Offsets {
     pub fn new_sid() -> Self {
         Self {
             char_strings_offset: DUMMY_OFFSET,
-            encoding_offset: DUMMY_OFFSET,
             charset_offset: DUMMY_OFFSET,
             private_dicts_lens: vec![DUMMY_OFFSET],
             private_dicts_offsets: vec![DUMMY_OFFSET],
@@ -260,7 +257,6 @@ fn update_offsets(font_write_context: &Offsets, buffer: &mut [u8]) -> Result<()>
         Ok(())
     };
 
-    write(font_write_context.encoding_offset)?;
     write(font_write_context.charset_offset)?;
     write(font_write_context.char_strings_offset)?;
     write(font_write_context.fd_select_offset)?;
