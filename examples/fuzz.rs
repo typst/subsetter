@@ -19,19 +19,18 @@ const NUM_ITERATIONS: usize = 200;
 fn main() {
     let exclude_fonts = vec![
         // Seems to be an invalid font for some reason, fonttools can't read it either.
-        Path::new("/Users/lstampfl/Desktop/fonts-main/ofl/souliyo/Souliyo-Regular.ttf"),
         // Glyph 822 doesn't seem to draw properly with ttf-parser... But most likely a ttf-parser
         // bug because it does work with skrifa and freetype. fonttools ttx subset matches
         // the output you get when subsetting with fonttools.
-        Path::new("/Users/lstampfl/Desktop/fonts-main/ofl/souliyo/Souliyo-Regular.ttf"),
+        "Souliyo-Regular.ttf",
     ];
-    let paths = walkdir::WalkDir::new("/Users/lstampfl/Desktop/fonts-main")
+    let paths = walkdir::WalkDir::new("/Users/lstampfl/Desktop/fonts")
         .into_iter()
         .map(|p| p.unwrap().path().to_path_buf())
         .filter(|p| {
             let extension = p.extension().and_then(OsStr::to_str);
             (extension == Some("ttf") || extension == Some("otf"))
-                && !exclude_fonts.contains(&p.as_path())
+                && !exclude_fonts.contains(&p.file_name().unwrap().to_str().unwrap())
         })
         .collect::<Vec<_>>();
 
@@ -60,17 +59,13 @@ fn run_test(path: &Path, rng: &mut ThreadRng) -> Result<(), String> {
     let old_ttf_face = ttf_parser::Face::parse(&data, 0)
         .map_err(|_| "failed to parse old face".to_string())?;
 
-    if old_ttf_face.tables().cff.is_some() {
-        println!("{:?}", path);
-    }
-
     let num_glyphs = old_ttf_face.number_of_glyphs();
     let possible_gids = (0..num_glyphs).collect::<Vec<_>>();
     let dist = get_distribution(num_glyphs);
 
     let old_skrifa_face = skrifa::FontRef::new(&data).unwrap();
 
-    for _ in 0..NUM_ITERATIONS {
+    for _ in 0..200 {
         let num = dist.sample(rng);
         let sample = possible_gids.clone().into_iter().choose_multiple(rng, num);
         let sample_strings = sample.iter().map(|g| g.to_string()).collect::<Vec<_>>();
