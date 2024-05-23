@@ -1,11 +1,9 @@
 use std::fs;
-use freetype::face::LoadFlag;
+use rand_distr::Distribution;
+
+use rand::{Rng, SeedableRng, thread_rng};
 use rand::prelude::IteratorRandom;
-use rand::thread_rng;
-use skrifa::instance::{LocationRef, Size};
-use skrifa::MetadataProvider;
 use skrifa::outline::{DrawSettings, HintingInstance, HintingMode, OutlinePen};
-use skrifa::raw::TableProvider;
 use ttf_parser::GlyphId;
 use subsetter::{GlyphRemapper, subset};
 
@@ -14,16 +12,14 @@ fn main() {
     let paths = fs::read_dir("/Users/lstampfl/Programming/Playground/python-playground/fonts").unwrap();
 
     for path in paths {
-        println!("{:?}", path);
         let path = path.unwrap();
         let data = fs::read(path.path()).unwrap();
         let old_face = ttf_parser::Face::parse(&data, 0).unwrap();
         let num_glyphs = old_face.number_of_glyphs();
         let possible_gids = (0..num_glyphs).collect::<Vec<_>>();
 
-        for _ in 0..10 {
-            let sample = possible_gids.clone().into_iter().choose_multiple(&mut rng, 5);
-            println!("{:?}", sample);
+        for _ in 0..500 {
+            let sample = possible_gids.clone().into_iter().choose_multiple(&mut rng, 15);
             let (subset, remapper) = subset(&data, 0, &sample).unwrap();
             let new_face = ttf_parser::Face::parse(&subset, 0).unwrap();
             glyph_outlines_ttf_parser(&old_face, &new_face, &remapper, &sample).unwrap();
