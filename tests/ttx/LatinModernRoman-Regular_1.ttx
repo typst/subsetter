@@ -4,17 +4,17 @@
   <GlyphOrder>
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
-    <GlyphID id="1" name="currency"/>
-    <GlyphID id="2" name="Gbreve"/>
-    <GlyphID id="3" name="Gcaron"/>
-    <GlyphID id="4" name="gcommaaccent"/>
+    <GlyphID id="1" name="cid00221"/>
+    <GlyphID id="2" name="cid00307"/>
+    <GlyphID id="3" name="cid00309"/>
+    <GlyphID id="4" name="cid00314"/>
   </GlyphOrder>
 
   <head>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0xd0ce51f4"/>
+    <checkSumAdjustment value="0xed363bf1"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -149,6 +149,7 @@
     <major value="1"/>
     <minor value="0"/>
     <CFFFont name="LMRoman10-Regular">
+      <ROS Registry="Adobe" Order="Identity" Supplement="0"/>
       <version value="2.004"/>
       <Notice value="Copyright 2003, 2009 B. Jackowski and J. M. Nowacki (on behalf of TeX users groups). This work is released under the GUST Font License --  see http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt for details."/>
       <FullName value="LMRoman10-Regular"/>
@@ -163,29 +164,63 @@
       <FontMatrix value="0.001 0 0 0.001 0 0"/>
       <FontBBox value="-430 -290 1417 1127"/>
       <StrokeWidth value="0"/>
+      <CIDFontVersion value="0"/>
+      <CIDFontRevision value="0"/>
+      <CIDFontType value="0"/>
+      <CIDCount value="8720"/>
       <!-- charset is dumped separately as the 'GlyphOrder' element -->
-      <Encoding name="StandardEncoding"/>
-      <Private>
-        <BlueValues value="-22 0 431 448 666 677 683 705"/>
-        <BlueScale value="0.04546"/>
-        <BlueShift value="7"/>
-        <BlueFuzz value="0"/>
-        <StdHW value="31"/>
-        <StdVW value="69"/>
-        <StemSnapH value="22 23 25 26 28 30 31 38 40 42 45 106"/>
-        <StemSnapV value="25 66 69 75 77 83 86 89 92 97 103 107"/>
-        <ForceBold value="0"/>
-        <LanguageGroup value="0"/>
-        <ExpansionFactor value="0.06"/>
-        <initialRandomSeed value="0"/>
-        <defaultWidthX value="0"/>
-        <nominalWidthX value="0"/>
-      </Private>
+      <FDSelect format="0"/>
+      <FDArray>
+        <FontDict index="0">
+          <Private>
+            <BlueValues value="-22 0 431 448 666 677 683 705"/>
+            <BlueScale value="0.04546"/>
+            <BlueShift value="7"/>
+            <BlueFuzz value="0"/>
+            <StdHW value="31"/>
+            <StdVW value="69"/>
+            <StemSnapH value="22 23 25 26 28 30 31 38 40 42 45 106"/>
+            <StemSnapV value="25 66 69 75 77 83 86 89 92 97 103 107"/>
+            <ForceBold value="0"/>
+            <LanguageGroup value="0"/>
+            <ExpansionFactor value="0.06"/>
+            <initialRandomSeed value="0"/>
+            <defaultWidthX value="0"/>
+            <nominalWidthX value="0"/>
+          </Private>
+        </FontDict>
+      </FDArray>
       <CharStrings>
-        <CharString name=".notdef">
+        <CharString name=".notdef" fdSelectIndex="0">
           280 endchar
         </CharString>
-        <CharString name="Gbreve">
+        <CharString name="cid00221" fdSelectIndex="0">
+          778 54 40 312 40 0 40 hstemhm
+          153 40 0 40 311 40 0 40 hintmask 10110010
+          624 15 rmoveto
+          14 14 -13 13 -10 10 -74 75 rcurveline
+          27 33 16 43 47 vvcurveto
+          47 -16 43 -28 34 vhcurveto
+          74 74 10 10 14 13 -14 14 rlinecurve
+          -15 14 -13 -13 -10 -10 -74 -74 rcurveline
+          27 -34 -42 17 -47 hhcurveto
+          -47 -43 -17 -27 -33 hvcurveto
+          -75 75 -10 10 -13 13 -15 -14 rlinecurve
+          -14 -14 14 -14 10 -10 74 -74 rcurveline
+          -27 -34 -17 -43 -47 vvcurveto
+          -47 17 -43 27 -33 vhcurveto
+          -74 -75 -10 -10 -14 -13 14 -14 rlinecurve
+          15 -14 13 13 10 10 74 74 rcurveline
+          -27 34 43 -17 47 hhcurveto
+          47 43 17 27 33 hvcurveto
+          75 -74 10 -10 13 -13 14 14 rlinecurve
+          -80 235 rmoveto
+          -86 -69 -70 -86 vhcurveto
+          hintmask 01001100
+          -86 -70 70 86 86 70 70 86 86 69 -70 -86 hvcurveto
+          endchar
+        </CharString>
+        <CharString name="cid00307" fdSelectIndex="0">
           785 -22 31 233 31 401 31 41 38 134 -20 hstemhm
           56 103 418 89 hintmask 11100110
           735 242 rmoveto
@@ -217,7 +252,7 @@
           78 70 67 105 2 hvcurveto
           endchar
         </CharString>
-        <CharString name="Gcaron">
+        <CharString name="cid00309" fdSelectIndex="0">
           785 -22 31 233 31 401 31 52 -21 133 -20 hstemhm
           56 103 418 89 hintmask 11100110
           735 242 rmoveto
@@ -244,33 +279,7 @@
           -10 16 -140 -66 -140 66 -12 -16 151 -117 rlineto
           endchar
         </CharString>
-        <CharString name="currency">
-          778 54 40 312 40 0 40 hstemhm
-          153 40 0 40 311 40 0 40 hintmask 10110010
-          624 15 rmoveto
-          14 14 -13 13 -10 10 -74 75 rcurveline
-          27 33 16 43 47 vvcurveto
-          47 -16 43 -28 34 vhcurveto
-          74 74 10 10 14 13 -14 14 rlinecurve
-          -15 14 -13 -13 -10 -10 -74 -74 rcurveline
-          27 -34 -42 17 -47 hhcurveto
-          -47 -43 -17 -27 -33 hvcurveto
-          -75 75 -10 10 -13 13 -15 -14 rlinecurve
-          -14 -14 14 -14 10 -10 74 -74 rcurveline
-          -27 -34 -17 -43 -47 vvcurveto
-          -47 17 -43 27 -33 vhcurveto
-          -74 -75 -10 -10 -14 -13 14 -14 rlinecurve
-          15 -14 13 13 10 10 74 74 rcurveline
-          -27 34 43 -17 47 hhcurveto
-          47 43 17 27 33 hvcurveto
-          75 -74 10 -10 13 -13 14 14 rlinecurve
-          -80 235 rmoveto
-          -86 -69 -70 -86 vhcurveto
-          hintmask 01001100
-          -86 -70 70 86 86 70 70 86 86 69 -70 -86 hvcurveto
-          endchar
-        </CharString>
-        <CharString name="gcommaaccent">
+        <CharString name="cid00314" fdSelectIndex="0">
           500 -206 23 190 58 45 23 16 23 247 23 -12 23 61 79 145 -20 hstemhm
           28 52 -20 75 -59 75 -44 52 0 75 75 75 35 52 -38 52 hintmask 0000011100000000
           259 554 rmoveto
@@ -328,10 +337,10 @@
 
   <hmtx>
     <mtx name=".notdef" width="280" lsb="0"/>
-    <mtx name="Gbreve" width="785" lsb="56"/>
-    <mtx name="Gcaron" width="785" lsb="56"/>
-    <mtx name="currency" width="778" lsb="147"/>
-    <mtx name="gcommaaccent" width="500" lsb="28"/>
+    <mtx name="cid00221" width="778" lsb="147"/>
+    <mtx name="cid00307" width="785" lsb="56"/>
+    <mtx name="cid00309" width="785" lsb="56"/>
+    <mtx name="cid00314" width="500" lsb="28"/>
   </hmtx>
 
 </ttFont>

@@ -79,7 +79,7 @@ pub fn parse_top_dict_index<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
 /// 2. Update all offsets.
 pub fn rewrite_top_dict_index(
     raw_top_dict: &[u8],
-    font_write_context: &mut Offsets,
+    offsets: &mut Offsets,
     sid_remapper: &SidRemapper,
     w: &mut Writer,
 ) -> Result<()> {
@@ -90,43 +90,50 @@ pub fn rewrite_top_dict_index(
     let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
     let mut dict_parser = DictionaryParser::new(raw_top_dict, &mut operands_buffer);
 
+    assert_ne!(offsets.ordering_sid, StringId(0));
+    assert_ne!(offsets.registry_sid, StringId(0));
+
+    // Write ROS operator.
+    sub_w.write(Number::from_i32(offsets.registry_sid.0 as i32));
+    sub_w.write(Number::from_i32(offsets.ordering_sid.0 as i32));
+    sub_w.write(Number::zero());
+    sub_w.write(ROS);
+
+    // Write FD_ARRAY
+    offsets.fd_array_offset.update_location(sub_w.len() + w.len());
+    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+    sub_w.write(FD_ARRAY);
+
+    // Write FD_SELECT
+    offsets.fd_select_offset.update_location(sub_w.len() + w.len());
+    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+    sub_w.write(&FD_SELECT);
+
+    // TODO: What about UIDBase and CIDCount?
+
     while let Some(operator) = dict_parser.parse_next() {
         match operator {
             // Important: When writing the offsets, we need to add the current length of w AND sub_w.
             CHARSET => {
-                font_write_context
-                    .charset_offset
-                    .update_location(sub_w.len() + w.len());
+                offsets.charset_offset.update_location(sub_w.len() + w.len());
                 DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
                 sub_w.write(operator)
             }
             ENCODING => {
-                font_write_context
-                    .encoding_offset
-                    .update_location(sub_w.len() + w.len());
+                offsets.encoding_offset.update_location(sub_w.len() + w.len());
                 DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
                 sub_w.write(operator);
             }
             CHAR_STRINGS => {
-                font_write_context
-                    .char_strings_offset
-                    .update_location(sub_w.len() + w.len());
+                offsets.char_strings_offset.update_location(sub_w.len() + w.len());
                 DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
                 sub_w.write(operator);
             }
             FD_ARRAY => {
-                font_write_context
-                    .fd_array_offset
-                    .update_location(sub_w.len() + w.len());
-                DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
-                sub_w.write(operator);
+                // We already wrote this.
             }
             FD_SELECT => {
-                font_write_context
-                    .fd_select_offset
-                    .update_location(sub_w.len() + w.len());
-                DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
-                sub_w.write(&operator);
+                // We already wrote this.
             }
             VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
             | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {
@@ -135,20 +142,7 @@ pub fn rewrite_top_dict_index(
                 sub_w.write(operator);
             }
             ROS => {
-                dict_parser.parse_operands().unwrap();
-                let operands = dict_parser.operands();
-
-                let arg1 = sid_remapper
-                    .get(StringId(u16::try_from(operands[0].as_u32().unwrap()).unwrap()))
-                    .unwrap();
-                let arg2 = sid_remapper
-                    .get(StringId(u16::try_from(operands[1].as_u32().unwrap()).unwrap()))
-                    .unwrap();
-
-                sub_w.write(Number::from_i32(arg1.0 as i32));
-                sub_w.write(Number::from_i32(arg2.0 as i32));
-                sub_w.write(&operands[2]);
-                sub_w.write(operator);
+                // We already wrote the ROS operator.
             }
             PRIVATE => {
                 // We convert SID-keyed fonts into CID-keyed fonts, so do not rewrite the
@@ -174,22 +168,11 @@ pub fn rewrite_top_dict_index(
     // that the contents of sub_w will be appended directly to w. However, when we create an index,
     // the INDEX header data will be appended in the beginning, meaning that we need to adjust the offsets
     // to account for that.
-    font_write_context.charset_offset.adjust_location(index.header_size);
-    font_write_context
-        .char_strings_offset
-        .adjust_location(index.header_size);
-    font_write_context.encoding_offset.adjust_location(index.header_size);
-    font_write_context.fd_array_offset.adjust_location(index.header_size);
-    font_write_context.fd_select_offset.adjust_location(index.header_size);
-
-    // TODO: This might not be entirely correct.
-    if let (Some(lens), Some(offsets)) = (
-        font_write_context.private_dicts_lens.first_mut(),
-        font_write_context.private_dicts_offsets.first_mut(),
-    ) {
-        lens.adjust_location(index.header_size);
-        offsets.adjust_location(index.header_size);
-    }
+    offsets.charset_offset.adjust_location(index.header_size);
+    offsets.char_strings_offset.adjust_location(index.header_size);
+    offsets.encoding_offset.adjust_location(index.header_size);
+    offsets.fd_array_offset.adjust_location(index.header_size);
+    offsets.fd_select_offset.adjust_location(index.header_size);
 
     w.write(index);
 

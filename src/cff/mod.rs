@@ -148,7 +148,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
 
     let mut offsets = match &table.font_kind {
         FontKind::Sid(_) => Offsets::new_sid(),
-        FontKind::Cid(cid) => Offsets::new_cid(fd_remapper.len()),
+        FontKind::Cid(_) => Offsets::new_cid(fd_remapper.len()),
     };
 
     let mut subsetted_font = {
@@ -157,6 +157,33 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
         w.write(table.header);
         // Name INDEX
         w.write(table.names);
+
+        // Get the strings that will be written into the String INDEX. This is necessary to do
+        // now because we need to push the strings for ROS (since SID-keyed fonts, which will be
+        // converted to CID-keyed, don't have this operator). So we need to do this before writing
+        // the Top DICT Index.
+        let new_strings = {
+            let mut new_strings = vec![];
+            for sid in sid_remapper.sids() {
+                new_strings.push(
+                    table
+                        .strings
+                        .get(sid.0.checked_sub(StringId::STANDARD_STRING_LEN).unwrap()
+                            as u32)
+                        .unwrap()
+                        .to_vec(),
+                );
+            }
+
+            offsets.registry_sid =
+                StringId(new_strings.len() as u16 + StringId::STANDARD_STRING_LEN);
+            new_strings.push(Vec::from(b"Adobe"));
+            offsets.ordering_sid =
+                StringId(new_strings.len() as u16 + StringId::STANDARD_STRING_LEN);
+            new_strings.push(Vec::from(b"Identity"));
+            new_strings
+        };
+
         // Top DICT INDEX
         rewrite_top_dict_index(
             table.top_dict_data.top_dict_raw,
@@ -165,7 +192,8 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
             &mut w,
         )?;
         // String INDEX
-        rewrite_sids(&sid_remapper, table.strings, &mut w)?;
+        let index = create_index(new_strings)?;
+        w.extend(&index.data);
         // Global Subr INDEX
         // We desubroutinized, so no global subroutines and thus empty index.
         w.write(&OwnedIndex::default());
@@ -235,40 +263,9 @@ fn update_offsets(font_write_context: &Offsets, buffer: &mut [u8]) -> Result<()>
     write(font_write_context.encoding_offset)?;
     write(font_write_context.charset_offset)?;
     write(font_write_context.char_strings_offset)?;
-
-    if font_write_context.fd_array_offset == DUMMY_OFFSET {
-        for offset in &font_write_context.private_dicts_lens {
-            write(*offset)?;
-        }
-
-        for offset in &font_write_context.private_dicts_offsets {
-            write(*offset)?;
-        }
-    }
-
     write(font_write_context.fd_select_offset)?;
     write(font_write_context.fd_array_offset)?;
 
-    Ok(())
-}
-
-fn rewrite_sids(
-    sid_remapper: &SidRemapper,
-    strings: Index,
-    w: &mut Writer,
-) -> Result<()> {
-    let mut new_strings = vec![];
-    for sid in sid_remapper.sids() {
-        new_strings.push(
-            strings
-                .get(sid.0.checked_sub(StringId::STANDARD_STRING_LEN).unwrap() as u32)
-                .unwrap()
-                .to_vec(),
-        );
-    }
-
-    let index = create_index(new_strings)?;
-    w.extend(&index.data);
     Ok(())
 }
 

@@ -4,23 +4,23 @@
   <GlyphOrder>
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
-    <GlyphID id="1" name="uni21E0"/>
-    <GlyphID id="2" name="uni21E1"/>
-    <GlyphID id="3" name="uni21E2"/>
-    <GlyphID id="4" name="uni21E3"/>
-    <GlyphID id="5" name="uni2273"/>
-    <GlyphID id="6" name="uni2274"/>
-    <GlyphID id="7" name="uni2275"/>
-    <GlyphID id="8" name="caronbelowcmb.h6"/>
-    <GlyphID id="9" name="circumflexcmb.h6"/>
-    <GlyphID id="10" name="circumflexbelowcmb.h6"/>
+    <GlyphID id="1" name="cid00803"/>
+    <GlyphID id="2" name="cid00804"/>
+    <GlyphID id="3" name="cid00805"/>
+    <GlyphID id="4" name="cid00806"/>
+    <GlyphID id="5" name="cid00950"/>
+    <GlyphID id="6" name="cid00951"/>
+    <GlyphID id="7" name="cid00952"/>
+    <GlyphID id="8" name="cid05600"/>
+    <GlyphID id="9" name="cid05601"/>
+    <GlyphID id="10" name="cid05602"/>
   </GlyphOrder>
 
   <head>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.0"/>
-    <checkSumAdjustment value="0x7f3824a4"/>
+    <checkSumAdjustment value="0x31bae08f"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00001011"/>
     <unitsPerEm value="1000"/>
@@ -156,6 +156,7 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
     <major value="1"/>
     <minor value="0"/>
     <CFFFont name="NewCMMath-Regular">
+      <ROS Registry="Adobe" Order="Identity" Supplement="0"/>
       <version value="4.5"/>
       <Notice value="(C) 2019-2021 Antonis Tsolomitis. 
 This work is released under the GUST Font License -- see http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt for details."/>
@@ -171,48 +172,38 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
       <FontMatrix value="0.001 0 0 0.001 0 0"/>
       <FontBBox value="-1042 -3060 4082 3560"/>
       <StrokeWidth value="0"/>
+      <CIDFontVersion value="0"/>
+      <CIDFontRevision value="0"/>
+      <CIDFontType value="0"/>
+      <CIDCount value="8720"/>
       <!-- charset is dumped separately as the 'GlyphOrder' element -->
-      <Encoding name="StandardEncoding"/>
-      <Private>
-        <BlueValues value="-22 0 431 448 666 666 677 705"/>
-        <OtherBlues value="-206 -205"/>
-        <BlueScale value="0.04546"/>
-        <BlueShift value="6"/>
-        <BlueFuzz value="0"/>
-        <StdHW value="40"/>
-        <StdVW value="40"/>
-        <StemSnapH value="22 31 36 40 44 56 61 67"/>
-        <StemSnapV value="40 46 60 64 69 75 79 83 89 95"/>
-        <ForceBold value="0"/>
-        <LanguageGroup value="0"/>
-        <ExpansionFactor value="0.06"/>
-        <initialRandomSeed value="0"/>
-        <defaultWidthX value="778"/>
-        <nominalWidthX value="606"/>
-      </Private>
+      <FDSelect format="0"/>
+      <FDArray>
+        <FontDict index="0">
+          <Private>
+            <BlueValues value="-22 0 431 448 666 666 677 705"/>
+            <OtherBlues value="-206 -205"/>
+            <BlueScale value="0.04546"/>
+            <BlueShift value="6"/>
+            <BlueFuzz value="0"/>
+            <StdHW value="40"/>
+            <StdVW value="40"/>
+            <StemSnapH value="22 31 36 40 44 56 61 67"/>
+            <StemSnapV value="40 46 60 64 69 75 79 83 89 95"/>
+            <ForceBold value="0"/>
+            <LanguageGroup value="0"/>
+            <ExpansionFactor value="0.06"/>
+            <initialRandomSeed value="0"/>
+            <defaultWidthX value="778"/>
+            <nominalWidthX value="606"/>
+          </Private>
+        </FontDict>
+      </FDArray>
       <CharStrings>
-        <CharString name=".notdef">
+        <CharString name=".notdef" fdSelectIndex="0">
           -326 endchar
         </CharString>
-        <CharString name="caronbelowcmb.h6">
-          975 -125 29 hstem
-          1581 -125 rmoveto
-          -5 29 -786 -114 -785 114 -5 -29 790 -150 rlineto
-          endchar
-        </CharString>
-        <CharString name="circumflexbelowcmb.h6">
-          975 -287 29 hstem
-          1581 -258 rmoveto
-          -791 150 -790 -150 5 -29 785 114 786 -114 rlineto
-          endchar
-        </CharString>
-        <CharString name="circumflexcmb.h6">
-          975 570 28 hstem
-          1581 598 rmoveto
-          -791 150 -790 -150 5 -28 785 114 786 -114 rlineto
-          endchar
-        </CharString>
-        <CharString name="uni21E0">
+        <CharString name="cid00803" fdSelectIndex="0">
           394 11 -21 240 40 hstem
           262 40 vstem
           447 270 rmoveto
@@ -233,7 +224,7 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
           -166 -40 rmoveto
           endchar
         </CharString>
-        <CharString name="uni21E1">
+        <CharString name="cid00804" fdSelectIndex="0">
           78 448 40 204 -20 hstem
           322 40 vstem
           322 304 rmoveto
@@ -257,7 +248,7 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
           40 hmoveto
           endchar
         </CharString>
-        <CharString name="uni21E2">
+        <CharString name="cid00805" fdSelectIndex="0">
           394 11 -21 240 40 hstem
           699 40 vstem
           554 270 rmoveto
@@ -281,7 +272,7 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
           -40 vmoveto
           endchar
         </CharString>
-        <CharString name="uni21E3">
+        <CharString name="cid00806" fdSelectIndex="0">
           78 12 40 640 -20 hstem
           322 40 vstem
           322 196 rmoveto
@@ -302,7 +293,7 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
           40 -166 rmoveto
           endchar
         </CharString>
-        <CharString name="uni2273">
+        <CharString name="cid00950" fdSelectIndex="0">
           170 -125 52 91 52 hstem
           57 24 614 23 vstem
           706 365 rmoveto
@@ -321,7 +312,7 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
           82 20 36 56 20 93 rrcurveto
           endchar
         </CharString>
-        <CharString name="uni2274">
+        <CharString name="cid00951" fdSelectIndex="0">
           170 -125 52 91 52 621 -20 hstem
           57 24 134 39 268 39 134 23 vstem
           718 51 rmoveto
@@ -348,7 +339,7 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
           -78 -214 -251 92 rlineto
           endchar
         </CharString>
-        <CharString name="uni2275">
+        <CharString name="cid00952" fdSelectIndex="0">
           170 -125 52 91 52 621 -20 hstem
           57 24 134 39 268 39 134 23 vstem
           718 51 rmoveto
@@ -375,6 +366,24 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
           -214 -79 50 140 rlineto
           endchar
         </CharString>
+        <CharString name="cid05600" fdSelectIndex="0">
+          975 -125 29 hstem
+          1581 -125 rmoveto
+          -5 29 -786 -114 -785 114 -5 -29 790 -150 rlineto
+          endchar
+        </CharString>
+        <CharString name="cid05601" fdSelectIndex="0">
+          975 570 28 hstem
+          1581 598 rmoveto
+          -791 150 -790 -150 5 -28 785 114 786 -114 rlineto
+          endchar
+        </CharString>
+        <CharString name="cid05602" fdSelectIndex="0">
+          975 -287 29 hstem
+          1581 -258 rmoveto
+          -791 150 -790 -150 5 -29 785 114 786 -114 rlineto
+          endchar
+        </CharString>
       </CharStrings>
     </CFFFont>
 
@@ -385,16 +394,16 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
 
   <hmtx>
     <mtx name=".notdef" width="280" lsb="0"/>
-    <mtx name="caronbelowcmb.h6" width="1581" lsb="0"/>
-    <mtx name="circumflexbelowcmb.h6" width="1581" lsb="0"/>
-    <mtx name="circumflexcmb.h6" width="1581" lsb="0"/>
-    <mtx name="uni21E0" width="1000" lsb="58"/>
-    <mtx name="uni21E1" width="684" lsb="82"/>
-    <mtx name="uni21E2" width="1000" lsb="58"/>
-    <mtx name="uni21E3" width="684" lsb="82"/>
-    <mtx name="uni2273" width="776" lsb="55"/>
-    <mtx name="uni2274" width="776" lsb="55"/>
-    <mtx name="uni2275" width="776" lsb="55"/>
+    <mtx name="cid00803" width="1000" lsb="58"/>
+    <mtx name="cid00804" width="684" lsb="82"/>
+    <mtx name="cid00805" width="1000" lsb="58"/>
+    <mtx name="cid00806" width="684" lsb="82"/>
+    <mtx name="cid00950" width="776" lsb="55"/>
+    <mtx name="cid00951" width="776" lsb="55"/>
+    <mtx name="cid00952" width="776" lsb="55"/>
+    <mtx name="cid05600" width="1581" lsb="0"/>
+    <mtx name="cid05601" width="1581" lsb="0"/>
+    <mtx name="cid05602" width="1581" lsb="0"/>
   </hmtx>
 
 </ttFont>
