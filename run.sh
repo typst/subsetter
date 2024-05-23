@@ -1,5 +1,5 @@
-FONT="/Users/lstampfl/Desktop/fonts-main/ofl/phetsarath/Phetsarath-Regular.ttf"
-GIDS="107"
+FONT="/Users/lstampfl/Desktop/fonts-main/ofl/handjet/Handjet[ELGR,ELSH,wght].ttf"
+GIDS="419"
 
 # Run normally
 

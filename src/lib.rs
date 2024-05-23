@@ -122,8 +122,6 @@ fn _subset(mut ctx: Context) -> Result<(Vec<u8>, GlyphRemapper)> {
         ctx.process(Tag::CFF)?;
     }
 
-    println!("reached");
-
     // Required tables.
     ctx.process(Tag::HEAD)?;
     ctx.process(Tag::HMTX)?;
@@ -131,7 +129,6 @@ fn _subset(mut ctx: Context) -> Result<(Vec<u8>, GlyphRemapper)> {
     ctx.process(Tag::NAME)?;
     ctx.process(Tag::OS2)?;
     ctx.process(Tag::POST)?;
-    println!("reached2");
 
 
     Ok(construct(ctx))
