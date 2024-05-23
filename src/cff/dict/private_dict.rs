@@ -3,7 +3,6 @@ use crate::cff::dict::operators::*;
 use crate::cff::dict::DictionaryParser;
 use crate::cff::number::Number;
 use crate::cff::remapper::FontDictRemapper;
-use crate::cff::sid_font::SIDMetadata;
 use crate::cff::Offsets;
 use crate::write::Writer;
 use crate::Error::SubsetError;
@@ -33,22 +32,13 @@ pub fn rewrite_cid_private_dicts(
 ) -> Result<()> {
     for (new_df, old_df) in fd_remapper.sorted_iter().enumerate() {
         let font_dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
-        rewrite_private_dict(offsets, font_dict.private_dict, w, new_df)?;
+        rewrite_cid_private_dict(offsets, font_dict.private_dict, w, new_df)?;
     }
 
     Ok(())
 }
 
-/// Write the private dicts of a SID font.
-pub fn rewrite_sid_private_dicts(
-    offsets: &mut Offsets,
-    sid_metadata: &SIDMetadata,
-    w: &mut Writer,
-) -> Result<()> {
-    rewrite_private_dict(offsets, sid_metadata.private_dict_data, w, 0)
-}
-
-fn rewrite_private_dict(
+pub(crate) fn rewrite_cid_private_dict(
     offsets: &mut Offsets,
     private_dict_data: &[u8],
     w: &mut Writer,

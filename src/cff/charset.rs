@@ -1,10 +1,7 @@
 use crate::cff::number::StringId;
-use crate::cff::remapper::SidRemapper;
-use crate::cff::FontKind;
 use crate::read::LazyArray16;
 use crate::read::{Readable, Reader};
 use crate::write::Writer;
-use crate::Error::{MalformedFont, SubsetError};
 use crate::GlyphRemapper;
 use crate::Result;
 
@@ -196,26 +193,16 @@ const EXPERT_SUBSET_ENCODING: &[u16] = &[
     340,  341,  342,  343,  344,  345,  346
 ];
 
-pub fn rewrite_charset(
-    sid_remapper: &SidRemapper,
-    kind: &FontKind,
-    charset: &Charset,
-    gid_mapper: &GlyphRemapper,
-    w: &mut Writer,
-) -> Result<()> {
+/// Rewrite the charset of the font. We do not perserve the CID's from the original font. Instead,
+/// we assign each glyph it's original glyph as the CID. This makes it easier to reference them
+/// from the PDF, since we know the CID a glyph will have before it's subsetted.
+pub fn rewrite_charset(gid_mapper: &GlyphRemapper, w: &mut Writer) -> Result<()> {
     // We always use format 0.
     w.write::<u8>(0);
 
     // Skip .notdef since it's implicit.
     for old_gid in gid_mapper.remapped_gids().skip(1) {
-        let original_sid = charset.gid_to_sid(old_gid).ok_or(MalformedFont)?;
-        let new_sid = match kind {
-            // For SID-keyed fonts, we need to find out the remapped SID
-            FontKind::Sid(_) => sid_remapper.get(original_sid).ok_or(SubsetError)?,
-            // For CID-keyed fonts, the SID actually represents CIDs, so it stays the same.
-            FontKind::Cid(_) => original_sid,
-        };
-        w.write(new_sid)
+        w.write(old_gid)
     }
 
     Ok(())

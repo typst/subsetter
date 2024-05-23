@@ -22,6 +22,8 @@ pub struct TopDictData<'a> {
     pub fd_array: Option<usize>,
     pub fd_select: Option<usize>,
     pub has_ros: bool,
+    pub registry_sid: Option<StringId>,
+    pub ordering_sd: Option<StringId>,
 }
 
 /// Parse the top dict and extract relevant data.
@@ -54,13 +56,14 @@ pub fn parse_top_dict_index<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
                 dict_parser.parse_operands()?;
                 let operands = dict_parser.operands();
 
-                top_dict
-                    .used_sids
-                    .insert(StringId(u16::try_from(operands[0].as_u32()?).ok()?));
-                top_dict
-                    .used_sids
-                    .insert(StringId(u16::try_from(operands[1].as_u32()?).ok()?));
+                let registry = StringId(u16::try_from(operands[0].as_u32()?).ok()?);
+                let ordering = StringId(u16::try_from(operands[1].as_u32()?).ok()?);
+                top_dict.used_sids.insert(registry);
+                top_dict.used_sids.insert(ordering);
+
                 top_dict.has_ros = true;
+                top_dict.registry_sid = Some(registry);
+                top_dict.ordering_sd = Some(ordering);
             }
             FD_ARRAY => top_dict.fd_array = Some(dict_parser.parse_offset()?),
             FD_SELECT => top_dict.fd_select = Some(dict_parser.parse_offset()?),
@@ -147,18 +150,10 @@ pub fn rewrite_top_dict_index(
                 sub_w.write(&operands[2]);
                 sub_w.write(operator);
             }
-            // TODO: Unify SID with CID?
             PRIVATE => {
-                if let (Some(lens), Some(offsets)) = (
-                    font_write_context.private_dicts_lens.first_mut(),
-                    font_write_context.private_dicts_offsets.first_mut(),
-                ) {
-                    lens.update_location(sub_w.len() + w.len());
-                    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
-                    offsets.update_location(sub_w.len() + w.len());
-                    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
-                    sub_w.write(PRIVATE);
-                }
+                // We convert SID-keyed fonts into CID-keyed fonts, so do not rewrite the
+                // private dict. The private dict of the SID-keyed font will be written into the
+                // font dict.
             }
             _ => {
                 dict_parser.parse_operands().unwrap();

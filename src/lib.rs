@@ -130,7 +130,6 @@ fn _subset(mut ctx: Context) -> Result<(Vec<u8>, GlyphRemapper)> {
     ctx.process(Tag::OS2)?;
     ctx.process(Tag::POST)?;
 
-
     Ok(construct(ctx))
 }
 

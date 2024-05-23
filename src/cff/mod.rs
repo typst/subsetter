@@ -13,10 +13,10 @@ mod subroutines;
 use super::*;
 use crate::cff::charset::{parse_charset, rewrite_charset, Charset};
 use crate::cff::charstring::Decompiler;
-use crate::cff::cid_font::{rewrite_fd_index, CIDMetadata};
-use crate::cff::dict::font_dict::rewrite_font_dict_index;
+use crate::cff::cid_font::{generate_fd_index, rewrite_fd_index, CIDMetadata};
+use crate::cff::dict::font_dict::{generate_font_dict_index, rewrite_font_dict_index};
 use crate::cff::dict::private_dict::{
-    rewrite_cid_private_dicts, rewrite_sid_private_dicts,
+    rewrite_cid_private_dict, rewrite_cid_private_dicts,
 };
 use crate::cff::dict::top_dict::{
     parse_top_dict_index, rewrite_top_dict_index, TopDictData,
@@ -104,6 +104,8 @@ struct Offsets {
     private_dicts_offsets: Vec<DeferredOffset>,
     fd_array_offset: DeferredOffset,
     fd_select_offset: DeferredOffset,
+    registry_sid: StringId,
+    ordering_sid: StringId,
 }
 
 impl Offsets {
@@ -117,6 +119,8 @@ impl Offsets {
             private_dicts_offsets: vec![DUMMY_OFFSET; num_font_dicts as usize],
             fd_select_offset: DUMMY_OFFSET,
             fd_array_offset: DUMMY_OFFSET,
+            registry_sid: StringId(0),
+            ordering_sid: StringId(0),
         }
     }
 
@@ -129,6 +133,8 @@ impl Offsets {
             private_dicts_offsets: vec![DUMMY_OFFSET],
             fd_select_offset: DUMMY_OFFSET,
             fd_array_offset: DUMMY_OFFSET,
+            registry_sid: StringId(0),
+            ordering_sid: StringId(0),
         }
     }
 }
@@ -140,9 +146,9 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     // NOTE: The charstrings are already in the new order that they need be written in.
     let (char_strings, fd_remapper) = subset_charstrings(&table, &ctx.mapper)?;
 
-    let mut offsets = match table.font_kind {
+    let mut offsets = match &table.font_kind {
         FontKind::Sid(_) => Offsets::new_sid(),
-        FontKind::Cid(_) => Offsets::new_cid(fd_remapper.len()),
+        FontKind::Cid(cid) => Offsets::new_cid(fd_remapper.len()),
     };
 
     let mut subsetted_font = {
@@ -166,37 +172,41 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
 
         offsets.charset_offset.update_value(w.len())?;
         // Charsets
-        rewrite_charset(
-            &sid_remapper,
-            &table.font_kind,
-            &table.charset,
-            &ctx.mapper,
-            &mut w,
-        )?;
+        rewrite_charset(&ctx.mapper, &mut w)?;
 
-        match table.font_kind {
-            FontKind::Sid(ref sid) => {
-                rewrite_sid_private_dicts(&mut offsets, sid, &mut w)?
+        match &table.font_kind {
+            FontKind::Sid(sid) => {
+                // Since we convert SID-keyed to CID-keyed, we write one private dict with index 0.
+                rewrite_cid_private_dict(&mut offsets, sid.private_dict_data, &mut w, 0)?;
             }
-            FontKind::Cid(ref cid) => {
+            FontKind::Cid(cid) => {
                 rewrite_cid_private_dicts(&fd_remapper, &mut offsets, cid, &mut w)?;
             }
         }
 
-        if let FontKind::Cid(ref cid_metadata) = table.font_kind {
-            offsets.fd_select_offset.update_value(w.len())?;
-            // FDSelect
-            rewrite_fd_index(&ctx.mapper, cid_metadata.fd_select, &fd_remapper, &mut w)?;
+        offsets.fd_select_offset.update_value(w.len())?;
+        // FDSelect
+        match &table.font_kind {
+            FontKind::Sid(_) => generate_fd_index(&ctx.mapper, &mut w)?,
+            FontKind::Cid(cid_metadata) => rewrite_fd_index(
+                &ctx.mapper,
+                cid_metadata.fd_select,
+                &fd_remapper,
+                &mut w,
+            )?,
+        };
 
-            // FDArray
-            offsets.fd_array_offset.update_value(w.len())?;
-            rewrite_font_dict_index(
+        // FDArray
+        offsets.fd_array_offset.update_value(w.len())?;
+        match &table.font_kind {
+            FontKind::Sid(_) => generate_font_dict_index(&mut offsets, &mut w)?,
+            FontKind::Cid(cid_metadata) => rewrite_font_dict_index(
                 &fd_remapper,
                 &sid_remapper,
                 &mut offsets,
                 cid_metadata,
                 &mut w,
-            )?
+            )?,
         }
 
         // Charstrings INDEX

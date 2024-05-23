@@ -23,8 +23,10 @@ fn main() {
         // bug because it does work with skrifa and freetype. fonttools ttx subset matches
         // the output you get when subsetting with fonttools.
         "Souliyo-Regular.ttf",
+        // Has `seac` operator.
+        "waltograph42.otf",
     ];
-    let paths = walkdir::WalkDir::new("/Users/lstampfl/Desktop/fonts")
+    let paths = walkdir::WalkDir::new(env!("FONTS_DIR"))
         .into_iter()
         .map(|p| p.unwrap().path().to_path_buf())
         .filter(|p| {
@@ -65,7 +67,7 @@ fn run_test(path: &Path, rng: &mut ThreadRng) -> Result<(), String> {
 
     let old_skrifa_face = skrifa::FontRef::new(&data).unwrap();
 
-    for _ in 0..200 {
+    for _ in 0..NUM_ITERATIONS {
         let num = dist.sample(rng);
         let sample = possible_gids.clone().into_iter().choose_multiple(rng, num);
         let sample_strings = sample.iter().map(|g| g.to_string()).collect::<Vec<_>>();
@@ -88,19 +90,21 @@ fn run_test(path: &Path, rng: &mut ThreadRng) -> Result<(), String> {
         glyph_outlines_ttf_parser(&old_ttf_face, &new_ttf_face, &remapper, &sample)
             .map_err(|g| {
                 format!(
-                    "outlines didn't match for gid {:?}, with sample {:?}",
+                    "outlines didn't match for gid 0 with ttf-parser {:?}, with sample {:?}",
                     g,
                     sample_strings.join(",")
                 )
             })?;
+
         glyph_outlines_skrifa(&old_skrifa_face, &new_skrifa_face, &remapper, &sample)
             .map_err(|g| {
                 format!(
-                    "outlines didn't match for gid {:?}, with sample {:?}",
+                    "outlines didn't match for gid 0 with skrifa {:?}, with sample {:?}",
                     g,
                     sample_strings.join(",")
                 )
             })?;
+
         ttf_parser_glyph_metrics(&old_ttf_face, &new_ttf_face, &remapper, &sample)
             .map_err(|e| {
                 format!(

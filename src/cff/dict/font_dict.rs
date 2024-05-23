@@ -53,11 +53,11 @@ pub fn parse_font_dict<'a>(
     Some(font_dict)
 }
 
-/// Write the new font DICT INDEX.
+/// Write the new font DICT INDEX for CID-keyed fonts.
 pub fn rewrite_font_dict_index(
     fd_remapper: &FontDictRemapper,
     sid_remapper: &SidRemapper,
-    font_write_context: &mut Offsets,
+    offsets: &mut Offsets,
     metadata: &CIDMetadata,
     w: &mut Writer,
 ) -> Result<()> {
@@ -81,14 +81,14 @@ pub fn rewrite_font_dict_index(
         // This means that these two offsets are a bit special compared to the others, since
         // we never use the `location` field of the offset and we don't overwrite it like we do
         // for the others.
-        font_write_context
+        offsets
             .private_dicts_lens
             .get(new_df as usize)
             .ok_or(SubsetError)?
             .value
             .write_as_5_bytes(&mut w);
 
-        font_write_context
+        offsets
             .private_dicts_offsets
             .get_mut(new_df as usize)
             .ok_or(SubsetError)?
@@ -100,6 +100,35 @@ pub fn rewrite_font_dict_index(
     }
 
     w.write(create_index(dicts)?);
+
+    Ok(())
+}
+
+/// Generate a new font DICT INDEX for SID-keyed fonts.
+pub fn generate_font_dict_index(offsets: &mut Offsets, w: &mut Writer) -> Result<()> {
+    let mut sub_w = Writer::new();
+
+    // Write the length and offset of the private dict.
+    // Private dicts have already been written, so the offsets are already correct.
+    // This means that these two offsets are a bit special compared to the others, since
+    // we never use the `location` field of the offset and we don't overwrite it like we do
+    // for the others.
+    offsets
+        .private_dicts_lens
+        .get(0)
+        .ok_or(SubsetError)?
+        .value
+        .write_as_5_bytes(&mut sub_w);
+
+    offsets
+        .private_dicts_offsets
+        .get_mut(0)
+        .ok_or(SubsetError)?
+        .value
+        .write_as_5_bytes(&mut sub_w);
+
+    sub_w.write(dict::operators::PRIVATE);
+    w.write(create_index(vec![sub_w.finish()])?);
 
     Ok(())
 }
