@@ -89,6 +89,9 @@ def font_name_to_function(font_name: str):
     font_name = (font_name
                  .replace("-", "")
                  .replace(".", "")
+                 .replace("[", "")
+                 .replace("]", "")
+                 .replace(",", "")
                  .replace("ttf", "")
                  .replace("otf", ""))
     return font_name

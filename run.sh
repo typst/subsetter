@@ -1,9 +1,9 @@
-FONT="/Users/lstampfl/Programming/Playground/python-playground/fonts/Syne-Regular.ttf"
-GIDS="0-10"
+FONT="/Users/lstampfl/Desktop/fonts-main/ofl/recursive/Recursive[CASL,CRSV,MONO,slnt,wght].ttf"
+GIDS="822"
 
 # Run normally
 
-fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap \
+fonttools subset $FONT --drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap,HVAR,MVAR,STAT,avar,fvar,gvar \
  --gids=$GIDS --glyph-names --desubroutinize --output-file=out_ft.otf \
  --notdef-outline --no-prune-unicode-ranges --no-prune-codepage-ranges &&
 fonttools ttx -f -o out_ft.xml out_ft.otf

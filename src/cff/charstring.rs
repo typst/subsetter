@@ -141,7 +141,7 @@ impl<'a> Decompiler<'a> {
                 }
                 _ => {
                     return Err(MalformedFont);
-                },
+                }
             }
         }
 

@@ -1,200 +1,239 @@
-use std::fs;
 use rand_distr::Distribution;
+use std::ffi::OsStr;
+use std::fs;
+use std::path::{Path, PathBuf};
 
-use rand::{Rng, SeedableRng, thread_rng};
-use rand::prelude::IteratorRandom;
-use skrifa::outline::{DrawSettings, HintingInstance, HintingMode, OutlinePen};
+use rand::distributions::WeightedIndex;
+use rand::prelude::{IteratorRandom, ThreadRng};
+use rand::thread_rng;
+use rayon::iter::IntoParallelRefIterator;
+use rayon::iter::ParallelIterator;
+use skrifa::instance::{LocationRef, Size};
+use skrifa::outline::{DrawSettings, OutlinePen};
+use skrifa::MetadataProvider;
+use subsetter::{subset, GlyphRemapper};
 use ttf_parser::GlyphId;
-use subsetter::{GlyphRemapper, subset};
+
+const NUM_ITERATIONS: usize = 200;
 
 fn main() {
-    let mut rng = thread_rng();
-    let paths = fs::read_dir("/Users/lstampfl/Programming/Playground/python-playground/fonts").unwrap();
+    let exclude_fonts = vec![
+        // Seems to be an invalid font for some reason, fonttools can't read it either.
+        Path::new("/Users/lstampfl/Desktop/fonts-main/ofl/souliyo/Souliyo-Regular.ttf"),
+        // Glyph 822 doesn't seem to draw properly with ttf-parser... But most likely a ttf-parser
+        // bug because it does work with skrifa and freetype. fonttools ttx subset matches
+        // the output you get when subsetting with fonttools.
+        Path::new("/Users/lstampfl/Desktop/fonts-main/ofl/souliyo/Souliyo-Regular.ttf"),
+    ];
+    let paths = walkdir::WalkDir::new("/Users/lstampfl/Desktop/fonts-main")
+        .into_iter()
+        .map(|p| p.unwrap().path().to_path_buf())
+        .filter(|p| {
+            let extension = p.extension().and_then(OsStr::to_str);
+            (extension == Some("ttf") || extension == Some("otf"))
+                && !exclude_fonts.contains(&p.as_path())
+        })
+        .collect::<Vec<_>>();
 
-    for path in paths {
-        let path = path.unwrap();
-        let data = fs::read(path.path()).unwrap();
-        let old_face = ttf_parser::Face::parse(&data, 0).unwrap();
-        let num_glyphs = old_face.number_of_glyphs();
-        let possible_gids = (0..num_glyphs).collect::<Vec<_>>();
+    loop {
+        println!("Starting an iteration...");
 
-        for _ in 0..500 {
-            let sample = possible_gids.clone().into_iter().choose_multiple(&mut rng, 15);
-            let (subset, remapper) = subset(&data, 0, &sample).unwrap();
-            let new_face = ttf_parser::Face::parse(&subset, 0).unwrap();
-            glyph_outlines_ttf_parser(&old_face, &new_face, &remapper, &sample).unwrap();
-        }
+        paths.par_iter().for_each(|path| {
+            let mut rng = thread_rng();
+            let extension = path.extension().and_then(OsStr::to_str);
+            let is_font_file = extension == Some("ttf") || extension == Some("otf");
+
+            if is_font_file {
+                match run_test(&path, &mut rng) {
+                    Ok(_) => {}
+                    Err(msg) => {
+                        println!("Error while fuzzing {:?}: {:}", path.clone(), msg)
+                    }
+                }
+            }
+        });
     }
 }
 
-// fn face_metrics(font_file: &str, gids: &str) {
-//     let ctx = get_test_context(font_file, gids).unwrap();
-//     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
-//     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
-//
-//     assert_eq!(old_face.width(), new_face.width(), "face width didn't match");
-//     assert_eq!(old_face.height(), new_face.height(), "face height didn't match");
-//     assert_eq!(old_face.ascender(), new_face.ascender(), "face ascender didn't match");
-//     assert_eq!(old_face.descender(), new_face.descender(), "face descender didn't match");
-//     assert_eq!(old_face.style(), new_face.style(), "face style didn't match");
-//     assert_eq!(
-//         old_face.capital_height(),
-//         new_face.capital_height(),
-//         "face capital didn't match"
-//     );
-//     assert_eq!(old_face.is_italic(), new_face.is_italic(), "face italic didn't match");
-//     assert_eq!(old_face.is_bold(), new_face.is_bold(), "face bold didn't match");
-//     assert_eq!(
-//         old_face.is_monospaced(),
-//         new_face.is_monospaced(),
-//         "face monospaced didn't match"
-//     );
-//     assert_eq!(old_face.is_oblique(), new_face.is_oblique(), "face oblique didn't match");
-//     assert_eq!(old_face.is_regular(), new_face.is_regular(), "face regular didn't match");
-//     assert_eq!(old_face.x_height(), new_face.x_height(), "face x_height didn't match");
-//     assert_eq!(
-//         old_face.strikeout_metrics(),
-//         new_face.strikeout_metrics(),
-//         "face strikeout metrics didn't match"
-//     );
-//     assert_eq!(
-//         old_face.subscript_metrics(),
-//         new_face.subscript_metrics(),
-//         "face subscript metrics didn't match"
-//     );
-//     assert_eq!(
-//         old_face.superscript_metrics(),
-//         new_face.superscript_metrics(),
-//         "face superscript matrics didn't match"
-//     );
-//     assert_eq!(
-//         old_face.typographic_ascender(),
-//         new_face.typographic_ascender(),
-//         "face typographic ascender didn't match"
-//     );
-//     assert_eq!(
-//         old_face.typographic_descender(),
-//         new_face.typographic_descender(),
-//         "face typographic descender didn't match"
-//     );
-//     assert_eq!(
-//         old_face.typographic_line_gap(),
-//         new_face.typographic_line_gap(),
-//         "face typographic line gap didn't match"
-//     );
-//     assert_eq!(
-//         old_face.units_per_em(),
-//         new_face.units_per_em(),
-//         "face units per em didn't match"
-//     );
-// }
+fn run_test(path: &Path, rng: &mut ThreadRng) -> Result<(), String> {
+    let data = fs::read(path).map_err(|_| "failed to read file".to_string())?;
+    let old_ttf_face = ttf_parser::Face::parse(&data, 0)
+        .map_err(|_| "failed to parse old face".to_string())?;
 
-// fn glyph_metrics(font_file: &str, gids: &str) {
-//     let ctx = get_test_context(font_file, gids).unwrap();
-//     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
-//     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
-//
-//     for glyph in ctx
-//         .gids
-//         .iter()
-//         .copied()
-//         .filter(|g| ctx.gids.contains(g) && *g < old_face.number_of_glyphs())
-//     {
-//         let mapped = ctx.mapper.get(glyph).unwrap();
-//
-//         assert_eq!(
-//             old_face.glyph_bounding_box(GlyphId(glyph)),
-//             new_face.glyph_bounding_box(GlyphId(mapped)),
-//             "{:?}",
-//             format!("metric glyph bounding box didn't match for glyph {}.", glyph)
-//         );
-//
-//         assert_eq!(
-//             old_face.glyph_hor_side_bearing(GlyphId(glyph)),
-//             new_face.glyph_hor_side_bearing(GlyphId(mapped)),
-//             "{:?}",
-//             format!(
-//                 "metric glyph horizontal side bearing didn't match for glyph {}.",
-//                 glyph
-//             )
-//         );
-//
-//         assert_eq!(
-//             old_face.glyph_hor_advance(GlyphId(glyph)),
-//             new_face.glyph_hor_advance(GlyphId(mapped)),
-//             "{:?}",
-//             format!("metric glyph horizontal advance didn't match for glyph {}.", glyph)
-//         );
-//
-//         assert_eq!(
-//             old_face.glyph_name(GlyphId(glyph)),
-//             new_face.glyph_name(GlyphId(mapped)),
-//             "{:?}",
-//             format!("metric glyph name didn't match for glyph {}.", glyph)
-//         );
-//
-//         if let Some(old_cff) = old_face.tables().cff {
-//             let new_cff = new_face.tables().cff.unwrap();
-//
-//             assert_eq!(
-//                 old_cff.glyph_cid(GlyphId(glyph)),
-//                 new_cff.glyph_cid(GlyphId(mapped)),
-//                 "{:?}",
-//                 format!("metric glyph cid didn't match for glyph {}.", glyph)
-//             );
-//         }
-//     }
-// }
+    if old_ttf_face.tables().cff.is_some() {
+        println!("{:?}", path);
+    }
 
-// fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
-//     let ctx = get_test_context(font_file, gids).unwrap();
-//     let old_face = skrifa::FontRef::new(&ctx.font).unwrap();
-//     let new_face = skrifa::FontRef::new(&ctx.subset).unwrap();
-//     let hinting_instance_old = HintingInstance::new(
-//         &old_face.outline_glyphs(),
-//         Size::new(150.0),
-//         LocationRef::default(),
-//         HintingMode::Smooth { lcd_subpixel: None, preserve_linear_metrics: false },
-//     )
-//         .unwrap();
-//
-//     let hinting_instance_new = HintingInstance::new(
-//         &new_face.outline_glyphs(),
-//         Size::new(150.0),
-//         LocationRef::default(),
-//         HintingMode::Smooth { lcd_subpixel: None, preserve_linear_metrics: false },
-//     )
-//         .unwrap();
-//
-//     let mut sink1 = Sink(vec![]);
-//     let mut sink2 = Sink(vec![]);
-//
-//     let num_glyphs = old_face.maxp().unwrap().num_glyphs();
-//
-//     for glyph in (0..num_glyphs).filter(|g| ctx.gids.contains(g)) {
-//         let new_glyph = ctx.mapper.get(glyph).unwrap();
-//         let settings = DrawSettings::hinted(&hinting_instance_old, true);
-//
-//         if let Some(glyph1) = old_face.outline_glyphs().get(skrifa::GlyphId::new(glyph)) {
-//             glyph1.draw(settings, &mut sink1).unwrap();
-//
-//             let settings = DrawSettings::hinted(&hinting_instance_new, true);
-//             let glyph2 = new_face
-//                 .outline_glyphs()
-//                 .get(skrifa::GlyphId::new(new_glyph))
-//                 .expect(&format!("failed to find glyph {} in new face", glyph));
-//             glyph2.draw(settings, &mut sink2).unwrap();
-//         }
-//     }
-// }
+    let num_glyphs = old_ttf_face.number_of_glyphs();
+    let possible_gids = (0..num_glyphs).collect::<Vec<_>>();
+    let dist = get_distribution(num_glyphs);
+
+    let old_skrifa_face = skrifa::FontRef::new(&data).unwrap();
+
+    for _ in 0..NUM_ITERATIONS {
+        let num = dist.sample(rng);
+        let sample = possible_gids.clone().into_iter().choose_multiple(rng, num);
+        let sample_strings = sample.iter().map(|g| g.to_string()).collect::<Vec<_>>();
+        let (subset, remapper) = subset(&data, 0, &sample).map_err(|_| {
+            format!("subset failed for gids {:?}", sample_strings.join(","))
+        })?;
+        let new_ttf_face = ttf_parser::Face::parse(&subset, 0).map_err(|_| {
+            format!(
+                "failed to parse new ttf face with gids {:?}",
+                sample_strings.join(",")
+            )
+        })?;
+        let new_skrifa_face = skrifa::FontRef::new(&subset).map_err(|_| {
+            format!(
+                "failed to parse new skrifa face with gids {:?}",
+                sample_strings.join(",")
+            )
+        })?;
+
+        glyph_outlines_ttf_parser(&old_ttf_face, &new_ttf_face, &remapper, &sample)
+            .map_err(|g| {
+                format!(
+                    "outlines didn't match for gid {:?}, with sample {:?}",
+                    g,
+                    sample_strings.join(",")
+                )
+            })?;
+        glyph_outlines_skrifa(&old_skrifa_face, &new_skrifa_face, &remapper, &sample)
+            .map_err(|g| {
+                format!(
+                    "outlines didn't match for gid {:?}, with sample {:?}",
+                    g,
+                    sample_strings.join(",")
+                )
+            })?;
+        ttf_parser_glyph_metrics(&old_ttf_face, &new_ttf_face, &remapper, &sample)
+            .map_err(|e| {
+                format!(
+                    "glyph metrics for sample {:?} didn't match: {:?}",
+                    sample_strings.join(","),
+                    e
+                )
+            })?;
+    }
+
+    Ok(())
+}
+
+fn get_distribution(num_glyphs: u16) -> WeightedIndex<usize> {
+    let mut weights = vec![0];
+
+    for i in 1..num_glyphs {
+        if i <= 10 {
+            weights.push(8000);
+        } else if i <= 50 {
+            weights.push(16000);
+        } else if i <= 200 {
+            weights.push(6000);
+        } else if i <= 2000 {
+            weights.push(100);
+        } else if i <= 5000 {
+            weights.push(2);
+        }
+    }
+
+    WeightedIndex::new(&weights).unwrap()
+}
+
+fn ttf_parser_glyph_metrics(
+    old_face: &ttf_parser::Face,
+    new_face: &ttf_parser::Face,
+    mapper: &GlyphRemapper,
+    gids: &[u16],
+) -> Result<(), String> {
+    for glyph in gids.iter().copied() {
+        let mapped = mapper.get(glyph).unwrap();
+
+        if old_face.glyph_bounding_box(GlyphId(glyph))
+            != new_face.glyph_bounding_box(GlyphId(mapped))
+        {
+            return Err(format!("glyph bounding box for glyph {:?} didn't match.", glyph));
+        }
+
+        if old_face.glyph_hor_side_bearing(GlyphId(glyph))
+            != new_face.glyph_hor_side_bearing(GlyphId(mapped))
+        {
+            return Err(format!(
+                "glyph hor side bearing for glyph {:?} didn't match.",
+                glyph
+            ));
+        }
+
+        if old_face.glyph_hor_advance(GlyphId(glyph))
+            != new_face.glyph_hor_advance(GlyphId(mapped))
+        {
+            return Err(format!("glyph hor advance for glyph {:?} didn't match.", glyph));
+        }
+    }
+
+    Ok(())
+}
+
+fn glyph_outlines_skrifa(
+    old_face: &skrifa::FontRef,
+    new_face: &skrifa::FontRef,
+    mapper: &GlyphRemapper,
+    gids: &[u16],
+) -> Result<(), String> {
+    // let hinting_instance_old = HintingInstance::new(
+    //     &old_face.outline_glyphs(),
+    //     Size::new(150.0),
+    //     LocationRef::default(),
+    //     HintingMode::Smooth { lcd_subpixel: None, preserve_linear_metrics: false },
+    // ).map_err(|_| "failed to create old hinting instance".to_string())?;
+    //
+    // let hinting_instance_new = HintingInstance::new(
+    //     &new_face.outline_glyphs(),
+    //     Size::new(150.0),
+    //     LocationRef::default(),
+    //     HintingMode::Smooth { lcd_subpixel: None, preserve_linear_metrics: false },
+    // ).map_err(|_| "failed to create new hinting instance".to_string())?;
+
+    let mut sink1 = Sink(vec![]);
+    let mut sink2 = Sink(vec![]);
+
+    for glyph in gids.iter().copied() {
+        let new_glyph = mapper.get(glyph).ok_or("failed to remap glyph".to_string())?;
+        // We don't to hinted because for some reason skrifa fails to do so even on the old face in many
+        // cases. So it's not a subsetting issue.
+        let settings = DrawSettings::unhinted(Size::new(150.0), LocationRef::default());
+
+        if let Some(glyph1) = old_face.outline_glyphs().get(skrifa::GlyphId::new(glyph)) {
+            glyph1
+                .draw(settings, &mut sink1)
+                .map_err(|e| format!("failed to draw old glyph {}: {}", glyph, e))?;
+
+            let settings =
+                DrawSettings::unhinted(Size::new(150.0), LocationRef::default());
+            let glyph2 = new_face
+                .outline_glyphs()
+                .get(skrifa::GlyphId::new(new_glyph))
+                .expect(&format!("failed to find glyph {} in new face", glyph));
+            glyph2
+                .draw(settings, &mut sink2)
+                .map_err(|e| format!("failed to draw new glyph {}: {}", glyph, e))?;
+
+            if sink1 != sink2 {
+                return Err(format!("{}", glyph));
+            } else {
+                return Ok(());
+            }
+        }
+    }
+
+    Ok(())
+}
 
 fn glyph_outlines_ttf_parser(
     old_face: &ttf_parser::Face,
     new_face: &ttf_parser::Face,
     mapper: &GlyphRemapper,
-    gids: &[u16]
+    gids: &[u16],
 ) -> Result<(), u16> {
-
     for glyph in gids {
         let new_glyph = mapper.get(*glyph).unwrap();
         let mut sink1 = Sink::default();
@@ -204,15 +243,15 @@ fn glyph_outlines_ttf_parser(
             new_face.outline_glyph(GlyphId(new_glyph), &mut sink2);
             if sink1 != sink2 {
                 return Err(*glyph);
-            }   else {
+            } else {
                 return Ok(());
             }
-        }   else {
-            return Ok(())
+        } else {
+            return Ok(());
         }
     }
 
-    return Ok(())
+    return Ok(());
 }
 
 // fn glyph_outlines_freetype(font_file: &str, gids: &str) {
@@ -241,20 +280,6 @@ fn glyph_outlines_ttf_parser(
 #[derive(Debug, Default, PartialEq)]
 struct Sink(Vec<Inst>);
 
-impl Sink {
-    fn from_freetype(outline: &freetype::Outline) -> Self {
-        let mut insts = vec![];
-
-        for contour in outline.contours_iter() {
-            for curve in contour {
-                insts.push(Inst::from_freetype_curve(curve))
-            }
-        }
-
-        Self(insts)
-    }
-}
-
 #[derive(Debug, PartialEq)]
 enum Inst {
     MoveTo(f32, f32),
@@ -262,25 +287,6 @@ enum Inst {
     QuadTo(f32, f32, f32, f32),
     CurveTo(f32, f32, f32, f32, f32, f32),
     Close,
-}
-
-impl Inst {
-    fn from_freetype_curve(curve: freetype::outline::Curve) -> Self {
-        match curve {
-            freetype::outline::Curve::Line(pt) => Inst::LineTo(pt.x as f32, pt.y as f32),
-            freetype::outline::Curve::Bezier2(pt1, pt2) => {
-                Inst::QuadTo(pt1.x as f32, pt1.y as f32, pt2.x as f32, pt2.y as f32)
-            }
-            freetype::outline::Curve::Bezier3(pt1, pt2, pt3) => Inst::CurveTo(
-                pt1.x as f32,
-                pt1.y as f32,
-                pt2.x as f32,
-                pt2.y as f32,
-                pt3.x as f32,
-                pt3.y as f32,
-            ),
-        }
-    }
 }
 
 impl OutlinePen for Sink {
