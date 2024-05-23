@@ -36,7 +36,9 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
             sub_post.write(index);
         } else {
             let index = index - 258;
-            let name = *names.get(index as usize).ok_or(MalformedFont)?;
+            // Phetsarath-Regular.ttf from Google Fonts seems to have a wrong name table.
+            // If name cannot be fetched, use empty name instead.
+            let name = names.get(index as usize).copied().unwrap_or(&[][..]);
             let name_len = u8::try_from(name.len()).map_err(|_| MalformedFont)?;
             let index = u16::try_from(string_index + 258).map_err(|_| SubsetError)?;
             sub_post.write(index);

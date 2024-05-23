@@ -1,7 +1,7 @@
 use rand_distr::Distribution;
 use std::ffi::OsStr;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use rand::distributions::WeightedIndex;
 use rand::prelude::{IteratorRandom, ThreadRng};

@@ -1,5 +1,5 @@
-FONT="/Users/lstampfl/Desktop/fonts-main/ofl/recursive/Recursive[CASL,CRSV,MONO,slnt,wght].ttf"
-GIDS="822"
+FONT="/Users/lstampfl/Desktop/fonts-main/ofl/phetsarath/Phetsarath-Regular.ttf"
+GIDS="107"
 
 # Run normally
 
@@ -11,8 +11,8 @@ fonttools ttx -f -o out_ft.xml out_ft.otf
 cargo run -- $FONT out_ss.otf $GIDS &&
 fonttools ttx -f -o out_ss.xml out_ss.otf
 
-hb-subset $FONT --desubroutinize --gids=$GIDS --output-file=out_hb.otf &&
-fonttools ttx -f -o out_hb.xml out_hb.otf
+#hb-subset $FONT --desubroutinize --gids=$GIDS --output-file=out_hb.otf &&
+#fonttools ttx -f -o out_hb.xml out_hb.otf
 
 # Bench against hb-subset
 #time ./target/release/subsetter $FONT out_ss.otf $GIDS
