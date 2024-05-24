@@ -97,28 +97,16 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
 /// glyph IDs that start from 0, so we cannot just reuse the old ones, but we
 /// need to define a mapping.
 #[derive(Debug, Clone)]
-pub struct GlyphRemapper(GlyphRemapperType);
+pub struct GlyphRemapper(Remapper<u16, u16>);
 
 impl GlyphRemapper {
-    /// Create a new instance of a glyph remapper.
+    /// Create a new instance of a glyph remapper. .notdef will always be a member
+    /// of the subset.
     pub fn new() -> Self {
         let mut remapper = Remapper::new();
         // .notdef is always a part of a subset.
         remapper.remap(0);
-        Self(GlyphRemapperType::CustomRemapper(remapper))
-    }
-
-    /// Create a new remapper that maps each glyph to itself.
-    pub fn identity() -> Self {
-        Self(GlyphRemapperType::IdentityRemapper)
-    }
-
-    /// Return whether the current mapper is an identity mapper.
-    pub fn is_identity(&self) -> bool {
-        match &self.0 {
-            GlyphRemapperType::CustomRemapper(_) => false,
-            GlyphRemapperType::IdentityRemapper => true,
-        }
+        Self(remapper)
     }
 
     /// Create a remapper from an existing set of glyphs
@@ -142,29 +130,19 @@ impl GlyphRemapper {
     }
 
     /// Get the number of gids that have been remapped.
-    pub(crate) fn num_gids(&self) -> u16 {
-        match &self.0 {
-            GlyphRemapperType::CustomRemapper(custom) => custom.len(),
-            // Function is not exposed to the outside, and we don't use the identity mapper in the crate.
-            GlyphRemapperType::IdentityRemapper => unreachable!(),
-        }
+    pub fn num_gids(&self) -> u16 {
+        self.0.len()
     }
 
     /// Remap a glyph ID, or return the existing mapping if the
     /// glyph ID has already been remapped before.
     pub fn remap(&mut self, old: u16) -> u16 {
-        match &mut self.0 {
-            GlyphRemapperType::CustomRemapper(custom) => custom.remap(old),
-            GlyphRemapperType::IdentityRemapper => old,
-        }
+        self.0.remap(old)
     }
 
     /// Get the mapping of a glyph ID, if it has been remapped before.
     pub fn get(&self, old: u16) -> Option<u16> {
-        match &self.0 {
-            GlyphRemapperType::CustomRemapper(custom) => custom.get(old),
-            GlyphRemapperType::IdentityRemapper => Some(old),
-        }
+        self.0.get(old)
     }
 
     /// Return an iterator that yields the old glyphs, in ascending order that
@@ -173,19 +151,7 @@ impl GlyphRemapper {
     /// Then the iterator will yield the following items in the order below. The order
     /// also implicitly defines the glyph IDs in the new mapping:
     /// 0 (0), 3 (1), 39 (2), 8 (3), 10 (4), 2 (5)
-    pub(crate) fn remapped_gids(&self) -> impl Iterator<Item = u16> + '_ {
-        match &self.0 {
-            GlyphRemapperType::CustomRemapper(custom) => custom.backward.iter().copied(),
-            // Function is not exposed to the outside, and we don't use the identity mapper in the crate.
-            GlyphRemapperType::IdentityRemapper => unreachable!(),
-        }
+    pub fn remapped_gids(&self) -> impl Iterator<Item = u16> + '_ {
+        self.0.backward.iter().copied()
     }
-}
-
-// TODO: Test identity remapper
-
-#[derive(Debug, Clone)]
-enum GlyphRemapperType {
-    CustomRemapper(Remapper<u16, u16>),
-    IdentityRemapper,
 }

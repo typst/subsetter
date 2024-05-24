@@ -201,8 +201,8 @@ pub fn rewrite_charset(gid_mapper: &GlyphRemapper, w: &mut Writer) -> Result<()>
     w.write::<u8>(0);
 
     // Skip .notdef since it's implicit.
-    for old_gid in gid_mapper.remapped_gids().skip(1) {
-        w.write(old_gid)
+    for i in 1..gid_mapper.num_gids() {
+        w.write(i)
     }
 
     Ok(())
