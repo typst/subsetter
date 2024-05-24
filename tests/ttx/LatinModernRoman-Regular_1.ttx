@@ -4,17 +4,17 @@
   <GlyphOrder>
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
-    <GlyphID id="1" name="cid00221"/>
-    <GlyphID id="2" name="cid00307"/>
-    <GlyphID id="3" name="cid00309"/>
-    <GlyphID id="4" name="cid00314"/>
+    <GlyphID id="1" name="cid00307"/>
+    <GlyphID id="2" name="cid00309"/>
+    <GlyphID id="3" name="cid00314"/>
+    <GlyphID id="4" name="cid00221"/>
   </GlyphOrder>
 
   <head>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0xed363bf1"/>
+    <checkSumAdjustment value="0xabf07d17"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>

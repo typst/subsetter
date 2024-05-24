@@ -4,26 +4,26 @@
   <GlyphOrder>
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
-    <GlyphID id="1" name="cid00371"/>
-    <GlyphID id="2" name="cid00372"/>
-    <GlyphID id="3" name="cid00373"/>
-    <GlyphID id="4" name="cid00374"/>
-    <GlyphID id="5" name="cid00375"/>
-    <GlyphID id="6" name="cid06543"/>
-    <GlyphID id="7" name="cid06544"/>
-    <GlyphID id="8" name="cid06545"/>
-    <GlyphID id="9" name="cid06546"/>
-    <GlyphID id="10" name="cid06547"/>
-    <GlyphID id="11" name="cid06548"/>
-    <GlyphID id="12" name="cid06549"/>
-    <GlyphID id="13" name="cid06550"/>
+    <GlyphID id="1" name="cid06543"/>
+    <GlyphID id="2" name="cid06544"/>
+    <GlyphID id="3" name="cid06545"/>
+    <GlyphID id="4" name="cid06546"/>
+    <GlyphID id="5" name="cid06547"/>
+    <GlyphID id="6" name="cid06548"/>
+    <GlyphID id="7" name="cid06549"/>
+    <GlyphID id="8" name="cid06550"/>
+    <GlyphID id="9" name="cid00371"/>
+    <GlyphID id="10" name="cid00372"/>
+    <GlyphID id="11" name="cid00373"/>
+    <GlyphID id="12" name="cid00374"/>
+    <GlyphID id="13" name="cid00375"/>
   </GlyphOrder>
 
   <head>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0xa6839873"/>
+    <checkSumAdjustment value="0x349fcebd"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -57,7 +57,7 @@
     <reserved2 value="0"/>
     <reserved3 value="0"/>
     <metricDataFormat value="0"/>
-    <numberOfHMetrics value="7"/>
+    <numberOfHMetrics value="11"/>
   </hhea>
 
   <maxp>

@@ -5,7 +5,7 @@
 use crate::*;
 
 #[test] fn clicker_script_regular_1() {test_font_tools("ClickerScript-Regular.ttf", "5,8,10,100-104", 1)}
-#[test] fn deja_vu_sans_mono_1() {test_font_tools("DejaVuSansMono.ttf", "100-105,140-155", 1)}
+#[test] fn deja_vu_sans_mono_1() {test_font_tools("DejaVuSansMono.ttf", "140-155,100-105", 1)}
 #[test] fn latin_modern_roman_regular_1() {test_font_tools("LatinModernRoman-Regular.otf", "307,309,314,221", 1)}
 #[test] fn m_p_l_u_s1p_regular_1() {test_font_tools("MPLUS1p-Regular.ttf", "3,45-50", 1)}
 #[test] fn noto_sans_c_j_ksc_regular_1() {test_font_tools("NotoSansCJKsc-Regular.otf", "6543-6550,371-375", 1)}

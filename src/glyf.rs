@@ -13,13 +13,13 @@ use super::*;
 use crate::Error::{MalformedFont, SubsetError};
 
 /// Form the glyph closure of all glyphs in `gid_set`.
-pub fn glyph_closure(face: &Face, gid_set: &mut BTreeSet<u16>) -> Result<()> {
+pub fn glyph_closure(face: &Face, glyph_remapper: &mut GlyphRemapper) -> Result<()> {
     let table = Table::new(face).ok_or(MalformedFont)?;
 
-    let mut process_glyphs = gid_set.iter().copied().collect::<Vec<_>>();
+    let mut process_glyphs = glyph_remapper.remapped_gids().collect::<Vec<_>>();
 
     while let Some(glyph) = process_glyphs.pop() {
-        gid_set.insert(glyph);
+        glyph_remapper.remap(glyph);
 
         let glyph_data = match table.glyph_data(glyph) {
             Some(glph_data) => glph_data,
@@ -36,7 +36,7 @@ pub fn glyph_closure(face: &Face, gid_set: &mut BTreeSet<u16>) -> Result<()> {
         // If we have a composite glyph, add its components to the closure.
         if num_contours < 0 {
             for component in component_glyphs(glyph_data).ok_or(MalformedFont)? {
-                if !gid_set.contains(&component) {
+                if glyph_remapper.get(component).is_none() {
                     process_glyphs.push(component);
                 }
             }

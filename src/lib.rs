@@ -63,12 +63,17 @@ use std::fmt::{self, Debug, Display, Formatter};
 /// - The `data` must be in the OpenType font format.
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
-pub fn subset(data: &[u8], index: u32, gids: &[u16]) -> Result<(Vec<u8>, GlyphRemapper)> {
-    let context = prepare_context(data, index, gids)?;
+pub fn subset(data: &[u8], index: u32, mapper: &GlyphRemapper) -> Result<Vec<u8>> {
+    let mapper = mapper.clone();
+    let context = prepare_context(data, index, mapper)?;
     _subset(context)
 }
 
-fn prepare_context<'a>(data: &'a [u8], index: u32, gids: &[u16]) -> Result<Context<'a>> {
+fn prepare_context(
+    data: &[u8],
+    index: u32,
+    mut gid_remapper: GlyphRemapper,
+) -> Result<Context> {
     let face = parse(data, index)?;
     let kind = match (face.table(Tag::GLYF), face.table(Tag::CFF)) {
         (Some(_), _) => FontKind::TrueType,
@@ -76,28 +81,20 @@ fn prepare_context<'a>(data: &'a [u8], index: u32, gids: &[u16]) -> Result<Conte
         _ => return Err(UnknownKind),
     };
 
-    let mut gid_set = BTreeSet::from_iter(gids.iter().copied());
-    // Need to insert this in case 0 is a component glyph.
-    gid_set.insert(0);
-
     if kind == FontKind::TrueType {
-        glyf::glyph_closure(&face, &mut gid_set)?;
+        glyf::glyph_closure(&face, &mut gid_remapper)?;
     }
-
-    let mapper = GlyphRemapper::new_from_glyphs(
-        gid_set.into_iter().collect::<Vec<_>>().as_slice(),
-    );
 
     Ok(Context {
         face,
-        mapper,
+        mapper: gid_remapper,
         kind,
         tables: vec![],
         long_loca: false,
     })
 }
 
-fn _subset(mut ctx: Context) -> Result<(Vec<u8>, GlyphRemapper)> {
+fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
     // See here for the required tables:
     // https://learn.microsoft.com/en-us/typography/opentype/spec/otff#required-tables
     // some of those are not strictly needed according to the PDF specification,
@@ -166,7 +163,7 @@ fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
 }
 
 /// Construct a brand new font.
-fn construct(mut ctx: Context) -> (Vec<u8>, GlyphRemapper) {
+fn construct(mut ctx: Context) -> Vec<u8> {
     ctx.tables.sort_by_key(|&(tag, _)| tag);
 
     let mut w = Writer::new();
@@ -226,7 +223,7 @@ fn construct(mut ctx: Context) -> (Vec<u8>, GlyphRemapper) {
         data[i..i + 4].copy_from_slice(&val.to_be_bytes());
     }
 
-    (data, ctx.mapper)
+    data
 }
 
 /// Calculate a checksum over the sliced data as a sum of u32s. If the data

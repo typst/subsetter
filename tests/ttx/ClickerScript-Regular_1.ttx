@@ -7,22 +7,22 @@
     <GlyphID id="1" name="E"/>
     <GlyphID id="2" name="H"/>
     <GlyphID id="3" name="J"/>
-    <GlyphID id="4" name="e"/>
-    <GlyphID id="5" name="Edieresis"/>
-    <GlyphID id="6" name="edieresis"/>
-    <GlyphID id="7" name="Emacron"/>
-    <GlyphID id="8" name="emacron"/>
-    <GlyphID id="9" name="Ebreve"/>
-    <GlyphID id="10" name="dieresis"/>
-    <GlyphID id="11" name="macron"/>
-    <GlyphID id="12" name="breve"/>
+    <GlyphID id="4" name="Edieresis"/>
+    <GlyphID id="5" name="edieresis"/>
+    <GlyphID id="6" name="Emacron"/>
+    <GlyphID id="7" name="emacron"/>
+    <GlyphID id="8" name="Ebreve"/>
+    <GlyphID id="9" name="breve"/>
+    <GlyphID id="10" name="macron"/>
+    <GlyphID id="11" name="e"/>
+    <GlyphID id="12" name="dieresis"/>
   </GlyphOrder>
 
   <head>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="1.0"/>
-    <checkSumAdjustment value="0xb01f5187"/>
+    <checkSumAdjustment value="0xa8bf0fd"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00001011"/>
     <unitsPerEm value="2048"/>
@@ -56,7 +56,7 @@
     <reserved2 value="0"/>
     <reserved3 value="0"/>
     <metricDataFormat value="0"/>
-    <numberOfHMetrics value="11"/>
+    <numberOfHMetrics value="13"/>
   </hhea>
 
   <maxp>

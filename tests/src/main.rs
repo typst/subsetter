@@ -19,7 +19,7 @@ mod font_tools;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 const FONT_TOOLS_REF: bool = false;
-const OVERWRITE_REFS: bool = true;
+const OVERWRITE_REFS: bool = false;
 
 struct TestContext {
     font: Vec<u8>,
@@ -57,7 +57,8 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
     let data = read_file(font_file);
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
     let gids_vec: Vec<_> = parse_gids(gids, face.number_of_glyphs());
-    let (subset, _) = subset(&data, 0, &gids_vec).unwrap();
+    let remapper = GlyphRemapper::new_from_glyphs(gids_vec.as_slice());
+    let subset = subset(&data, 0, &remapper).unwrap();
 
     std::fs::write(otf_path.clone(), subset).unwrap();
 
@@ -138,9 +139,10 @@ fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
     let data = read_file(font_file);
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
     let gids: Vec<_> = parse_gids(gids, face.number_of_glyphs());
-    let (subset, mapper) = subset(&data, 0, &gids)?;
+    let glyph_remapepr = GlyphRemapper::new_from_glyphs(gids.as_slice());
+    let subset = subset(&data, 0, &glyph_remapepr)?;
 
-    Ok(TestContext { font: data, subset, mapper, gids })
+    Ok(TestContext { font: data, subset, mapper: glyph_remapepr, gids })
 }
 
 fn parse_gids(gids: &str, max: u16) -> Vec<u16> {

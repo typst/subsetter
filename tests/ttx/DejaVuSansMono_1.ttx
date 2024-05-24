@@ -4,45 +4,45 @@
   <GlyphOrder>
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
-    <GlyphID id="1" name="E"/>
-    <GlyphID id="2" name="I"/>
-    <GlyphID id="3" name="N"/>
-    <GlyphID id="4" name="O"/>
-    <GlyphID id="5" name="U"/>
-    <GlyphID id="6" name="cent"/>
-    <GlyphID id="7" name="sterling"/>
-    <GlyphID id="8" name="currency"/>
-    <GlyphID id="9" name="yen"/>
-    <GlyphID id="10" name="brokenbar"/>
-    <GlyphID id="11" name="section"/>
-    <GlyphID id="12" name="Ecircumflex"/>
-    <GlyphID id="13" name="Edieresis"/>
-    <GlyphID id="14" name="Igrave"/>
-    <GlyphID id="15" name="Iacute"/>
-    <GlyphID id="16" name="Icircumflex"/>
-    <GlyphID id="17" name="Idieresis"/>
-    <GlyphID id="18" name="Eth"/>
-    <GlyphID id="19" name="Ntilde"/>
-    <GlyphID id="20" name="Ograve"/>
-    <GlyphID id="21" name="Oacute"/>
-    <GlyphID id="22" name="Ocircumflex"/>
-    <GlyphID id="23" name="Otilde"/>
-    <GlyphID id="24" name="Odieresis"/>
-    <GlyphID id="25" name="multiply"/>
-    <GlyphID id="26" name="Oslash"/>
-    <GlyphID id="27" name="Ugrave"/>
-    <GlyphID id="28" name="Diaeresis"/>
+    <GlyphID id="1" name="Ecircumflex"/>
+    <GlyphID id="2" name="Edieresis"/>
+    <GlyphID id="3" name="Igrave"/>
+    <GlyphID id="4" name="Iacute"/>
+    <GlyphID id="5" name="Icircumflex"/>
+    <GlyphID id="6" name="Idieresis"/>
+    <GlyphID id="7" name="Eth"/>
+    <GlyphID id="8" name="Ntilde"/>
+    <GlyphID id="9" name="Ograve"/>
+    <GlyphID id="10" name="Oacute"/>
+    <GlyphID id="11" name="Ocircumflex"/>
+    <GlyphID id="12" name="Otilde"/>
+    <GlyphID id="13" name="Odieresis"/>
+    <GlyphID id="14" name="multiply"/>
+    <GlyphID id="15" name="Oslash"/>
+    <GlyphID id="16" name="Ugrave"/>
+    <GlyphID id="17" name="cent"/>
+    <GlyphID id="18" name="sterling"/>
+    <GlyphID id="19" name="currency"/>
+    <GlyphID id="20" name="yen"/>
+    <GlyphID id="21" name="brokenbar"/>
+    <GlyphID id="22" name="section"/>
+    <GlyphID id="23" name="Grave"/>
+    <GlyphID id="24" name="U"/>
+    <GlyphID id="25" name="Diaeresis"/>
+    <GlyphID id="26" name="O"/>
+    <GlyphID id="27" name="Tilde"/>
+    <GlyphID id="28" name="Circumflex"/>
     <GlyphID id="29" name="Acute"/>
-    <GlyphID id="30" name="Tilde"/>
-    <GlyphID id="31" name="Grave"/>
-    <GlyphID id="32" name="Circumflex"/>
+    <GlyphID id="30" name="N"/>
+    <GlyphID id="31" name="I"/>
+    <GlyphID id="32" name="E"/>
   </GlyphOrder>
 
   <head>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.37"/>
-    <checkSumAdjustment value="0x48e131cc"/>
+    <checkSumAdjustment value="0x4bc7e78e"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00011111"/>
     <unitsPerEm value="2048"/>
@@ -2727,11 +2727,11 @@ DejaVu changes are in public domain
     </psNames>
     <extraNames>
       <!-- following are the name that are not taken from the standard Mac glyph order -->
-      <psName name="Diaeresis"/>
-      <psName name="Acute"/>
-      <psName name="Tilde"/>
       <psName name="Grave"/>
+      <psName name="Diaeresis"/>
+      <psName name="Tilde"/>
       <psName name="Circumflex"/>
+      <psName name="Acute"/>
     </extraNames>
   </post>
 

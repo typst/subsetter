@@ -70,8 +70,9 @@ fn run_test(path: &Path, rng: &mut ThreadRng) -> Result<(), String> {
     for _ in 0..NUM_ITERATIONS {
         let num = dist.sample(rng);
         let sample = possible_gids.clone().into_iter().choose_multiple(rng, num);
+        let remapper = GlyphRemapper::new_from_glyphs(sample.as_slice());
         let sample_strings = sample.iter().map(|g| g.to_string()).collect::<Vec<_>>();
-        let (subset, remapper) = subset(&data, 0, &sample).map_err(|_| {
+        let subset = subset(&data, 0, &remapper).map_err(|_| {
             format!("subset failed for gids {:?}", sample_strings.join(","))
         })?;
         let new_ttf_face = ttf_parser::Face::parse(&subset, 0).map_err(|_| {

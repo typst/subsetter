@@ -96,6 +96,7 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
 /// This is necessary because a font needs to have a contiguous sequence of
 /// glyph IDs that start from 0, so we cannot just reuse the old ones, but we
 /// need to define a mapping.
+#[derive(Debug, Clone)]
 pub struct GlyphRemapper(GlyphRemapperType);
 
 impl GlyphRemapper {
@@ -120,17 +121,24 @@ impl GlyphRemapper {
         }
     }
 
-    /// Create a remapper from an existing set of glyphs. The method
-    /// will ensure that the mapping is monotonically increasing.
+    /// Create a remapper from an existing set of glyphs
     pub fn new_from_glyphs(glyphs: &[u16]) -> Self {
         let mut map = Self::new();
-        let sorted = BTreeSet::from_iter(glyphs);
 
-        for glyph in sorted {
+        for glyph in glyphs {
             map.remap(*glyph);
         }
 
         map
+    }
+
+    /// Create a remapper from an existing set of glyphs. The method
+    /// will ensure that the mapping is monotonically increasing.
+    pub fn new_from_glyphs_sorted(glyphs: &[u16]) -> Self {
+        let mut sorted =
+            BTreeSet::from_iter(glyphs).iter().map(|g| **g).collect::<Vec<_>>();
+        sorted.sort();
+        GlyphRemapper::new_from_glyphs(&sorted)
     }
 
     /// Get the number of gids that have been remapped.
@@ -174,6 +182,9 @@ impl GlyphRemapper {
     }
 }
 
+// TODO: Test identity remapper
+
+#[derive(Debug, Clone)]
 enum GlyphRemapperType {
     CustomRemapper(Remapper<u16, u16>),
     IdentityRemapper,

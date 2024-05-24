@@ -1,5 +1,5 @@
 use std::env;
-use subsetter::subset;
+use subsetter::{subset, GlyphRemapper};
 
 fn parse_gids(gids: &str) -> Vec<u16> {
     if gids == "*" {
@@ -29,8 +29,9 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let data = std::fs::read(&args[1]).unwrap();
     let gids = parse_gids(args.get(3).to_owned().unwrap_or(&"0-5".to_owned()));
+    let remapper = GlyphRemapper::new_from_glyphs(gids.as_slice());
 
-    let (sub, _) = subset(&data, 0, &gids).unwrap();
+    let sub = subset(&data, 0, &remapper).unwrap();
 
     std::fs::write(args.get(2).unwrap_or(&"res.otf".to_owned()), sub).unwrap();
 }

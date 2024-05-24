@@ -4,26 +4,26 @@
   <GlyphOrder>
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
-    <GlyphID id="1" name="caron"/>
-    <GlyphID id="2" name="quoteright"/>
-    <GlyphID id="3" name="uniFFFC"/>
-    <GlyphID id="4" name="uniFFFD"/>
-    <GlyphID id="5" name="uni01F0"/>
-    <GlyphID id="6" name="uni02BC"/>
-    <GlyphID id="7" name="uni0237"/>
-    <GlyphID id="8" name="uni2E00"/>
-    <GlyphID id="9" name="uni2E05"/>
-    <GlyphID id="10" name="uni2E1D"/>
-    <GlyphID id="11" name="uni2E0D"/>
-    <GlyphID id="12" name="uni2E03"/>
-    <GlyphID id="13" name="uni2E0A"/>
+    <GlyphID id="1" name="uniFFFC"/>
+    <GlyphID id="2" name="uniFFFD"/>
+    <GlyphID id="3" name="uni01F0"/>
+    <GlyphID id="4" name="uni02BC"/>
+    <GlyphID id="5" name="uni2E00"/>
+    <GlyphID id="6" name="uni2E05"/>
+    <GlyphID id="7" name="uni2E1D"/>
+    <GlyphID id="8" name="uni2E0D"/>
+    <GlyphID id="9" name="uni2E03"/>
+    <GlyphID id="10" name="uni2E0A"/>
+    <GlyphID id="11" name="quoteright"/>
+    <GlyphID id="12" name="caron"/>
+    <GlyphID id="13" name="uni0237"/>
   </GlyphOrder>
 
   <head>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.007"/>
-    <checkSumAdjustment value="0xfca32ba6"/>
+    <checkSumAdjustment value="0xea432746"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -57,7 +57,7 @@
     <reserved2 value="0"/>
     <reserved3 value="0"/>
     <metricDataFormat value="0"/>
-    <numberOfHMetrics value="9"/>
+    <numberOfHMetrics value="14"/>
   </hhea>
 
   <maxp>
@@ -680,13 +680,13 @@
       <psName name="uniFFFD"/>
       <psName name="uni01F0"/>
       <psName name="uni02BC"/>
-      <psName name="uni0237"/>
       <psName name="uni2E00"/>
       <psName name="uni2E05"/>
       <psName name="uni2E1D"/>
       <psName name="uni2E0D"/>
       <psName name="uni2E03"/>
       <psName name="uni2E0A"/>
+      <psName name="uni0237"/>
     </extraNames>
   </post>
 
