@@ -267,10 +267,9 @@ fn glyph_metrics(font_file: &str, gids: &str) {
             format!("metric glyph horizontal advance didn't match for glyph {}.", glyph)
         );
 
-        // Assert that each glyph has the CID that corresponds to the GID in the original
-        // font.
+        // Assert that each glyph has an identity CID-to-GID mapping.
         if let Some(cff) = new_face.tables().cff {
-            assert_eq!(cff.glyph_cid(GlyphId(mapped)), Some(glyph))
+            assert_eq!(cff.glyph_cid(GlyphId(mapped)), Some(mapped))
         }
     }
 }

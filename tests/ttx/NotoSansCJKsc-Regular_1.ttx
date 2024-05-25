@@ -4,26 +4,26 @@
   <GlyphOrder>
     <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
     <GlyphID id="0" name=".notdef"/>
-    <GlyphID id="1" name="cid06543"/>
-    <GlyphID id="2" name="cid06544"/>
-    <GlyphID id="3" name="cid06545"/>
-    <GlyphID id="4" name="cid06546"/>
-    <GlyphID id="5" name="cid06547"/>
-    <GlyphID id="6" name="cid06548"/>
-    <GlyphID id="7" name="cid06549"/>
-    <GlyphID id="8" name="cid06550"/>
-    <GlyphID id="9" name="cid00371"/>
-    <GlyphID id="10" name="cid00372"/>
-    <GlyphID id="11" name="cid00373"/>
-    <GlyphID id="12" name="cid00374"/>
-    <GlyphID id="13" name="cid00375"/>
+    <GlyphID id="1" name="cid00001"/>
+    <GlyphID id="2" name="cid00002"/>
+    <GlyphID id="3" name="cid00003"/>
+    <GlyphID id="4" name="cid00004"/>
+    <GlyphID id="5" name="cid00005"/>
+    <GlyphID id="6" name="cid00006"/>
+    <GlyphID id="7" name="cid00007"/>
+    <GlyphID id="8" name="cid00008"/>
+    <GlyphID id="9" name="cid00009"/>
+    <GlyphID id="10" name="cid00010"/>
+    <GlyphID id="11" name="cid00011"/>
+    <GlyphID id="12" name="cid00012"/>
+    <GlyphID id="13" name="cid00013"/>
   </GlyphOrder>
 
   <head>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0x349fcebd"/>
+    <checkSumAdjustment value="0x2171e78b"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -285,73 +285,7 @@
           318 -409 -318 -409 rlineto
           endchar
         </CharString>
-        <CharString name="cid00371" fdSelectIndex="3">
-          -63 -13 73 190 65 169 73 100 110 hstemhm
-          52 89 -89 90 -10 111 104 111 -26 80 hintmask 1110100100000000
-          312 -13 rmoveto
-          73 58 24 31 47 hvcurveto
-          -32 61 rlineto
-          -27 -41 -42 -16 -53 hhcurveto
-          hintmask 1110010010000000
-          -103 -71 74 116 -6 hvcurveto
-          366 hlineto
-          2 14 2 18 20 vvcurveto
-          155 -78 100 -139 vhcurveto
-          hintmask 1110100100000000
-          -124 -119 -109 -177 -179 115 -105 145 hvcurveto
-          hintmask 1110100010000000
-          -171 328 rmoveto
-          108 11 68 61 77 hhcurveto
-          85 50 -59 -110 hvcurveto
-          hintmask 1111001100000000
-          -245 342 rmoveto
-          31 25 24 31 31 -25 24 -31 -32 -23 -24 -31 -31 23 -24 32 hvcurveto
-          216 hmoveto
-          30 25 24 31 31 -25 24 -30 -33 -23 -24 -31 -31 23 -24 33 hvcurveto
-          endchar
-        </CharString>
-        <CharString name="cid00372" fdSelectIndex="1">
-          684 69 hstem
-          687 80 vstem
-          151 753 rmoveto
-          -69 536 vlineto
-          -72 0 -87 -20 -119 vhcurveto
-          79 -8 rlineto
-          21 120 0 91 75 vvcurveto
-          69 vlineto
-          endchar
-        </CharString>
-        <CharString name="cid00373" fdSelectIndex="1">
-          676 68 hstem
-          357 70 268 71 vstem
-          151 744 rmoveto
-          -68 206 vlineto
-          -1 -59 -5 -87 -30 -122 69 -15 rcurveline
-          38 147 -1 107 60 vvcurveto
-          37 vlineto
-          57 hmoveto
-          -68 211 vlineto
-          -71 -1 -91 -19 -125 vhcurveto
-          71 -7 rlineto
-          20 131 0 97 74 vvcurveto
-          60 vlineto
-          endchar
-        </CharString>
-        <CharString name="cid00374" fdSelectIndex="1">
-          417 68 hstem
-          150 78 vstem
-          150 485 rmoveto
-          -68 622 68 -544 269 -78 vlineto
-          endchar
-        </CharString>
-        <CharString name="cid00375" fdSelectIndex="1">
-          401 68 216 68 hstem
-          150 80 vstem
-          150 469 rmoveto
-          -68 617 68 -537 216 514 68 -594 vlineto
-          endchar
-        </CharString>
-        <CharString name="cid06543" fdSelectIndex="2">
+        <CharString name="cid00001" fdSelectIndex="2">
           -71 52 48 58 245 60 75 58 82 55 81 57 hstemhm
           213 58 180 62 -62 66 257 28 22 68 -26 68 hintmask 1111110010100000
           517 607 rmoveto
@@ -396,7 +330,7 @@
           -27 27 -52 39 -44 30 10 20 7 22 6 23 rrcurveto
           endchar
         </CharString>
-        <CharString name="cid06544" fdSelectIndex="2">
+        <CharString name="cid00002" fdSelectIndex="2">
           111 59 98 56 97 56 96 59 95 65 hstem
           215 58 203 69 290 71 vstem
           545 421 rmoveto
@@ -433,7 +367,7 @@
           -40 -109 -70 -115 -22 -29 -21 -31 -17 -20 -17 -4 8 -18 10 -33 4 -14 14 6 22 5 108 13 -37 -56 -33 -43 -16 -18 -30 -37 -23 -26 -21 -5 8 -18 12 -33 3 -14 rrcurveto
           endchar
         </CharString>
-        <CharString name="cid06545" fdSelectIndex="2">
+        <CharString name="cid00003" fdSelectIndex="2">
           -76 67 152 60 -46.5 46.5 88 53.5 61.5 50 156 55 27 59 8 53 -29 29 hstemhm
           285 64 129 73 hintmask 1011110101100000
           629 82 rmoveto
@@ -492,7 +426,7 @@
           8 -17 10 -31 3 -13 rrcurveto
           endchar
         </CharString>
-        <CharString name="cid06546" fdSelectIndex="2">
+        <CharString name="cid00004" fdSelectIndex="2">
           -32 59 85 53 78 53 81 61 107 63 hstemhm
           212 60 51 70 -59 59 36 67 40 63 77.5 65.5 -55.5 68.5 95 66 hintmask 1111111011011000
           187 189 rmoveto
@@ -547,7 +481,7 @@
           85 251 -85 vlineto
           endchar
         </CharString>
-        <CharString name="cid06547" fdSelectIndex="2">
+        <CharString name="cid00005" fdSelectIndex="2">
           -42 64 110 59 109 64 65 59 108 60 65 65 hstemhm
           214 61 53 73 -60 60 41 68 -24 67 95 66 94 70 -21 70 hintmask 0111111000111000
           553 596 rmoveto
@@ -592,7 +526,7 @@
           8 -19 12 -36 4 -15 rrcurveto
           endchar
         </CharString>
-        <CharString name="cid06548" fdSelectIndex="2">
+        <CharString name="cid00006" fdSelectIndex="2">
           468 67 hstem
           91 56 51 54 220 65 120 52 46 67 vstem
           176 188 rmoveto
@@ -633,7 +567,7 @@
           -170 vlineto
           endchar
         </CharString>
-        <CharString name="cid06549" fdSelectIndex="2">
+        <CharString name="cid00007" fdSelectIndex="2">
           -78 66 -18 18 163 57 86 56 159 65 93 65 hstemhm
           212 57 176 67 142 63 145 67 hintmask 0111111111000000
           568 475 rmoveto
@@ -678,7 +612,7 @@
           -40 -109 -69 -115 -21 -29 -21 -31 -17 -20 -17 -4 8 -18 11 -33 3 -14 14 6 22 5 106 13 -36 -56 -32 -43 -16 -18 -30 -37 -22 -26 -21 -5 8 -18 10 -33 4 -14 rrcurveto
           endchar
         </CharString>
-        <CharString name="cid06550" fdSelectIndex="2">
+        <CharString name="cid00008" fdSelectIndex="2">
           -78 66 -18 18 163 57 86 56 159 65 93 65 -65 173 hstemhm
           212 58 175 67 138 67 -63 63 145 67 hintmask 0111110110110000
           568 475 rmoveto
@@ -719,6 +653,72 @@
           -40 -109 -70 -115 -21 -29 -21 -31 -17 -20 -17 -4 8 -18 11 -33 3 -14 14 6 22 5 106 13 -37 -56 -32 -43 -15 -18 -30 -37 -22 -26 -21 -5 8 -18 10 -33 4 -14 rrcurveto
           endchar
         </CharString>
+        <CharString name="cid00009" fdSelectIndex="3">
+          -63 -13 73 190 65 169 73 100 110 hstemhm
+          52 89 -89 90 -10 111 104 111 -26 80 hintmask 1110100100000000
+          312 -13 rmoveto
+          73 58 24 31 47 hvcurveto
+          -32 61 rlineto
+          -27 -41 -42 -16 -53 hhcurveto
+          hintmask 1110010010000000
+          -103 -71 74 116 -6 hvcurveto
+          366 hlineto
+          2 14 2 18 20 vvcurveto
+          155 -78 100 -139 vhcurveto
+          hintmask 1110100100000000
+          -124 -119 -109 -177 -179 115 -105 145 hvcurveto
+          hintmask 1110100010000000
+          -171 328 rmoveto
+          108 11 68 61 77 hhcurveto
+          85 50 -59 -110 hvcurveto
+          hintmask 1111001100000000
+          -245 342 rmoveto
+          31 25 24 31 31 -25 24 -31 -32 -23 -24 -31 -31 23 -24 32 hvcurveto
+          216 hmoveto
+          30 25 24 31 31 -25 24 -30 -33 -23 -24 -31 -31 23 -24 33 hvcurveto
+          endchar
+        </CharString>
+        <CharString name="cid00010" fdSelectIndex="1">
+          684 69 hstem
+          687 80 vstem
+          151 753 rmoveto
+          -69 536 vlineto
+          -72 0 -87 -20 -119 vhcurveto
+          79 -8 rlineto
+          21 120 0 91 75 vvcurveto
+          69 vlineto
+          endchar
+        </CharString>
+        <CharString name="cid00011" fdSelectIndex="1">
+          676 68 hstem
+          357 70 268 71 vstem
+          151 744 rmoveto
+          -68 206 vlineto
+          -1 -59 -5 -87 -30 -122 69 -15 rcurveline
+          38 147 -1 107 60 vvcurveto
+          37 vlineto
+          57 hmoveto
+          -68 211 vlineto
+          -71 -1 -91 -19 -125 vhcurveto
+          71 -7 rlineto
+          20 131 0 97 74 vvcurveto
+          60 vlineto
+          endchar
+        </CharString>
+        <CharString name="cid00012" fdSelectIndex="1">
+          417 68 hstem
+          150 78 vstem
+          150 485 rmoveto
+          -68 622 68 -544 269 -78 vlineto
+          endchar
+        </CharString>
+        <CharString name="cid00013" fdSelectIndex="1">
+          401 68 216 68 hstem
+          150 80 vstem
+          150 469 rmoveto
+          -68 617 68 -537 216 514 68 -594 vlineto
+          endchar
+        </CharString>
       </CharStrings>
     </CFFFont>
 
@@ -729,19 +729,19 @@
 
   <hmtx>
     <mtx name=".notdef" width="1000" lsb="100"/>
-    <mtx name="cid00371" width="554" lsb="52"/>
-    <mtx name="cid00372" width="920" lsb="151"/>
-    <mtx name="cid00373" width="920" lsb="151"/>
-    <mtx name="cid00374" width="920" lsb="150"/>
-    <mtx name="cid00375" width="920" lsb="150"/>
-    <mtx name="cid06543" width="1000" lsb="33"/>
-    <mtx name="cid06544" width="1000" lsb="32"/>
-    <mtx name="cid06545" width="1000" lsb="46"/>
-    <mtx name="cid06546" width="1000" lsb="35"/>
-    <mtx name="cid06547" width="1000" lsb="35"/>
-    <mtx name="cid06548" width="1000" lsb="40"/>
-    <mtx name="cid06549" width="1000" lsb="32"/>
-    <mtx name="cid06550" width="1000" lsb="32"/>
+    <mtx name="cid00001" width="1000" lsb="33"/>
+    <mtx name="cid00002" width="1000" lsb="32"/>
+    <mtx name="cid00003" width="1000" lsb="46"/>
+    <mtx name="cid00004" width="1000" lsb="35"/>
+    <mtx name="cid00005" width="1000" lsb="35"/>
+    <mtx name="cid00006" width="1000" lsb="40"/>
+    <mtx name="cid00007" width="1000" lsb="32"/>
+    <mtx name="cid00008" width="1000" lsb="32"/>
+    <mtx name="cid00009" width="554" lsb="52"/>
+    <mtx name="cid00010" width="920" lsb="151"/>
+    <mtx name="cid00011" width="920" lsb="151"/>
+    <mtx name="cid00012" width="920" lsb="150"/>
+    <mtx name="cid00013" width="920" lsb="150"/>
   </hmtx>
 
 </ttFont>
