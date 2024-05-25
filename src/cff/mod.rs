@@ -151,6 +151,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let mut subsetted_font = {
         let mut w = Writer::new();
         // HEADER
+        // TODO: Update offsize
         w.write(table.header);
         // Name INDEX
         w.write(table.names);
@@ -243,6 +244,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
 
     // Rewrite the dummy offsets.
     update_offsets(&offsets, subsetted_font.as_mut_slice())?;
+    // println!("{:?}", subsetted_font);
 
     ctx.push(Tag::CFF, subsetted_font);
 
