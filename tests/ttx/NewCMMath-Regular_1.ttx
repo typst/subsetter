@@ -20,7 +20,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.0"/>
-    <checkSumAdjustment value="0xfd023e05"/>
+    <checkSumAdjustment value="0x3d485eb5"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00001011"/>
     <unitsPerEm value="1000"/>
