@@ -7,11 +7,15 @@ use crate::Result;
 /// from the PDF, since we know the CID a glyph will have before it's subsetted.
 pub fn rewrite_charset(gid_mapper: &GlyphRemapper, w: &mut Writer) -> Result<()> {
     if gid_mapper.num_gids() == 1 {
-        // We only have .notdef
+        // We only have .notdef, so use format 0.
         w.write::<u8>(0);
     } else {
+        // Use format 2.
         w.write::<u8>(2);
+
         w.write::<u16>(1);
+        // -2 because -1 for not including .notdef and -1 since the first glyph
+        // in the range is not counted.
         w.write::<u16>(gid_mapper.num_gids() - 2);
     }
 
