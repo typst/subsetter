@@ -55,6 +55,7 @@ pub use crate::remapper::GlyphRemapper;
 use crate::write::{Writeable, Writer};
 use crate::Error::{MalformedFont, UnknownKind};
 use std::borrow::Cow;
+use std::collections::BTreeSet;
 use std::fmt::{self, Debug, Display, Formatter};
 
 /// Subset a font face to include less glyphs and tables.

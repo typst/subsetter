@@ -1,3 +1,4 @@
+use crate::cff::charset::charset_id;
 use crate::cff::dict::font_dict;
 use crate::cff::dict::font_dict::FontDict;
 use crate::cff::dict::top_dict::TopDictData;
@@ -15,11 +16,17 @@ pub fn parse_cid_metadata<'a>(
     top_dict: &TopDictData,
     number_of_glyphs: u16,
 ) -> Option<CIDMetadata<'a>> {
-    let (fd_array_offset, fd_select_offset) =
-        match (top_dict.fd_array, top_dict.fd_select) {
-            (Some(a), Some(b)) => (a, b),
+    let (charset_offset, fd_array_offset, fd_select_offset) =
+        match (top_dict.charset, top_dict.fd_array, top_dict.fd_select) {
+            (Some(a), Some(b), Some(c)) => (a, b, c),
             _ => return None, // charset, FDArray and FDSelect must be set.
         };
+
+    if charset_offset <= charset_id::EXPERT_SUBSET {
+        // 'There are no predefined charsets for CID fonts.'
+        // Adobe Technical Note #5176, chapter 18 CID-keyed Fonts
+        return None;
+    }
 
     let mut metadata = CIDMetadata::default();
 
