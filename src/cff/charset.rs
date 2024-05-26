@@ -196,7 +196,7 @@ const EXPERT_SUBSET_ENCODING: &[u16] = &[
 /// Rewrite the charset of the font. We do not perserve the CID's from the original font. Instead,
 /// we assign each glyph it's original glyph as the CID. This makes it easier to reference them
 /// from the PDF, since we know the CID a glyph will have before it's subsetted.
-pub fn rewrite_charset(gid_mapper: &GlyphRemapper, w: &mut Writer) -> std::result::Result<()> {
+pub fn rewrite_charset(gid_mapper: &GlyphRemapper, w: &mut Writer) -> Result<()> {
     if gid_mapper.num_gids() == 1 {
         // We only have .notdef, so use format 0.
         w.write::<u8>(0);
