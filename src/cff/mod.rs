@@ -11,7 +11,7 @@ mod sid_font;
 mod subroutines;
 
 use super::*;
-use crate::cff::charset::{parse_charset, rewrite_charset, Charset};
+use crate::cff::charset::rewrite_charset;
 use crate::cff::charstring::Decompiler;
 use crate::cff::cid_font::{generate_fd_index, rewrite_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::{generate_font_dict_index, rewrite_font_dict_index};
@@ -26,7 +26,6 @@ use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::sid_font::SIDMetadata;
 use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
 use crate::Error::SubsetError;
-use charset::charset_id;
 use number::{IntegerNumber, StringId};
 use std::cmp::PartialEq;
 use std::collections::BTreeSet;
@@ -44,7 +43,6 @@ pub struct Table<'a> {
     top_dict_data: TopDictData<'a>,
     strings: Index<'a>,
     global_subrs: Index<'a>,
-    charset: Charset<'a>,
     char_strings: Index<'a>,
     font_kind: FontKind<'a>,
 }
@@ -139,7 +137,7 @@ impl Offsets {
 pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let table = Table::parse(ctx).unwrap();
 
-    let sid_remapper = get_sid_remapper(&table, &ctx.mapper);
+    let sid_remapper = get_sid_remapper(&table);
     // NOTE: The charstrings are already in the new order that they need be written in.
     let (char_strings, fd_remapper) = subset_charstrings(&table, &ctx.mapper)?;
 
@@ -328,20 +326,14 @@ fn subset_charstrings<'a>(
 }
 
 /// Get the SID remapper
-fn get_sid_remapper(table: &Table, gid_remapper: &GlyphRemapper) -> SidRemapper {
+fn get_sid_remapper(table: &Table) -> SidRemapper {
     let mut sid_remapper = SidRemapper::new();
     for sid in &table.top_dict_data.used_sids {
         sid_remapper.remap(*sid);
     }
 
     match table.font_kind {
-        FontKind::Sid(_) => {
-            for gid in gid_remapper.remapped_gids() {
-                if let Some(sid) = table.charset.gid_to_sid(gid) {
-                    sid_remapper.remap(sid);
-                }
-            }
-        }
+        FontKind::Sid(_) => {}
         FontKind::Cid(ref cid) => {
             for font_dict in &cid.font_dicts {
                 if let Some(sid) = font_dict.font_name_sid {
@@ -393,17 +385,6 @@ impl<'a> Table<'a> {
             .filter(|n| *n > 0)
             .ok_or(MalformedFont)?;
 
-        let charset = match top_dict_data.charset {
-            Some(charset_id::ISO_ADOBE) => Charset::ISOAdobe,
-            Some(charset_id::EXPERT) => Charset::Expert,
-            Some(charset_id::EXPERT_SUBSET) => Charset::ExpertSubset,
-            Some(offset) => {
-                let mut s = Reader::new_at(cff, offset);
-                parse_charset(number_of_glyphs, &mut s).ok_or(MalformedFont)?
-            }
-            None => Charset::ISOAdobe, // default
-        };
-
         let font_kind = if top_dict_data.has_ros {
             FontKind::Cid(
                 cid_font::parse_cid_metadata(cff, &top_dict_data, number_of_glyphs)
@@ -419,7 +400,6 @@ impl<'a> Table<'a> {
             top_dict_data,
             strings,
             global_subrs,
-            charset,
             char_strings,
             font_kind,
         })
