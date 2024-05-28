@@ -101,18 +101,6 @@ pub fn rewrite_top_dict_index(
     sub_w.write(Number::zero());
     sub_w.write(ROS);
 
-    // Write FD_ARRAY
-    offsets.fd_array_offset.update_location(sub_w.len() + w.len());
-    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
-    sub_w.write(FD_ARRAY);
-
-    // Write FD_SELECT
-    offsets.fd_select_offset.update_location(sub_w.len() + w.len());
-    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
-    sub_w.write(&FD_SELECT);
-
-    // TODO: What about UIDBase and CIDCount?
-
     while let Some(operator) = dict_parser.parse_next() {
         match operator {
             // Important: When writing the offsets, we need to add the current length of w AND sub_w.
@@ -158,6 +146,19 @@ pub fn rewrite_top_dict_index(
             }
         }
     }
+
+    // VERY IMPORTANT NOTE: Previously, we wrote those two entries directly after ROS.
+    // However, for some reason not known to me, Apple Preview does not like show the CFF font
+    // at all if that's the case. This is why we now write the offsets in the very end.
+    // Write FD_ARRAY
+    offsets.fd_array_offset.update_location(sub_w.len() + w.len());
+    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+    sub_w.write(FD_ARRAY);
+
+    // Write FD_SELECT
+    offsets.fd_select_offset.update_location(sub_w.len() + w.len());
+    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+    sub_w.write(&FD_SELECT);
 
     let finished = sub_w.finish();
 
