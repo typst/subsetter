@@ -14,7 +14,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0x4dbae57b"/>
+    <checkSumAdjustment value="0x6046841e"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -55,83 +55,6 @@
     <tableVersion value="0x5000"/>
     <numGlyphs value="5"/>
   </maxp>
-
-  <OS_2>
-    <!-- The fields 'usFirstCharIndex' and 'usLastCharIndex'
-         will be recalculated by the compiler -->
-    <version value="3"/>
-    <xAvgCharWidth value="549"/>
-    <usWeightClass value="400"/>
-    <usWidthClass value="5"/>
-    <fsType value="00000000 00001100"/>
-    <ySubscriptXSize value="650"/>
-    <ySubscriptYSize value="600"/>
-    <ySubscriptXOffset value="0"/>
-    <ySubscriptYOffset value="75"/>
-    <ySuperscriptXSize value="650"/>
-    <ySuperscriptYSize value="600"/>
-    <ySuperscriptXOffset value="0"/>
-    <ySuperscriptYOffset value="350"/>
-    <yStrikeoutSize value="40"/>
-    <yStrikeoutPosition value="258"/>
-    <sFamilyClass value="0"/>
-    <panose>
-      <bFamilyType value="0"/>
-      <bSerifStyle value="0"/>
-      <bWeight value="5"/>
-      <bProportion value="0"/>
-      <bContrast value="0"/>
-      <bStrokeVariation value="0"/>
-      <bArmStyle value="0"/>
-      <bLetterForm value="0"/>
-      <bMidline value="0"/>
-      <bXHeight value="0"/>
-    </panose>
-    <ulUnicodeRange1 value="00100000 00000000 00000000 00000111"/>
-    <ulUnicodeRange2 value="00000000 00000000 00000000 00000000"/>
-    <ulUnicodeRange3 value="00000000 00000000 00000000 00000000"/>
-    <ulUnicodeRange4 value="00000000 00000000 00000000 00000000"/>
-    <achVendID value="UKWN"/>
-    <fsSelection value="00000000 01000000"/>
-    <usFirstCharIndex value="32"/>
-    <usLastCharIndex value="64260"/>
-    <sTypoAscender value="806"/>
-    <sTypoDescender value="-194"/>
-    <sTypoLineGap value="200"/>
-    <usWinAscent value="1127"/>
-    <usWinDescent value="290"/>
-    <ulCodePageRange1 value="00100000 00000000 00000001 10010011"/>
-    <ulCodePageRange2 value="00000000 00000000 00000000 00000000"/>
-    <sxHeight value="431"/>
-    <sCapHeight value="683"/>
-    <usDefaultChar value="0"/>
-    <usBreakChar value="32"/>
-    <usMaxContext value="4"/>
-  </OS_2>
-
-  <name>
-    <namerecord nameID="0" platformID="3" platEncID="1" langID="0x409">
-      Copyright 2003, 2009 B. Jackowski and J. M. Nowacki (on behalf of TeX users groups). This work is released under the GUST Font License --  see http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt for details.
-    </namerecord>
-    <namerecord nameID="1" platformID="3" platEncID="1" langID="0x409">
-      LM Roman 10
-    </namerecord>
-    <namerecord nameID="2" platformID="3" platEncID="1" langID="0x409">
-      Regular
-    </namerecord>
-    <namerecord nameID="3" platformID="3" platEncID="1" langID="0x409">
-      2.004;UKWN;LMRoman10-Regular
-    </namerecord>
-    <namerecord nameID="4" platformID="3" platEncID="1" langID="0x409">
-      LMRoman10-Regular
-    </namerecord>
-    <namerecord nameID="5" platformID="3" platEncID="1" langID="0x409">
-      Version 2.004;PS 2.004;hotconv 1.0.49;makeotf.lib2.0.14853
-    </namerecord>
-    <namerecord nameID="6" platformID="3" platEncID="1" langID="0x409">
-      LMRoman10-Regular
-    </namerecord>
-  </name>
 
   <post>
     <formatType value="3.0"/>

@@ -15,7 +15,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.137"/>
-    <checkSumAdjustment value="0x31d738c3"/>
+    <checkSumAdjustment value="0xaafc1da6"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00011001"/>
     <unitsPerEm value="2048"/>
@@ -70,59 +70,6 @@
     <maxComponentElements value="6"/>
     <maxComponentDepth value="1"/>
   </maxp>
-
-  <OS_2>
-    <!-- The fields 'usFirstCharIndex' and 'usLastCharIndex'
-         will be recalculated by the compiler -->
-    <version value="3"/>
-    <xAvgCharWidth value="1158"/>
-    <usWeightClass value="400"/>
-    <usWidthClass value="5"/>
-    <fsType value="00000000 00000000"/>
-    <ySubscriptXSize value="1434"/>
-    <ySubscriptYSize value="1331"/>
-    <ySubscriptXOffset value="0"/>
-    <ySubscriptYOffset value="287"/>
-    <ySuperscriptXSize value="1434"/>
-    <ySuperscriptYSize value="1331"/>
-    <ySuperscriptXOffset value="0"/>
-    <ySuperscriptYOffset value="977"/>
-    <yStrikeoutSize value="102"/>
-    <yStrikeoutPosition value="512"/>
-    <sFamilyClass value="0"/>
-    <panose>
-      <bFamilyType value="2"/>
-      <bSerifStyle value="0"/>
-      <bWeight value="0"/>
-      <bProportion value="0"/>
-      <bContrast value="0"/>
-      <bStrokeVariation value="0"/>
-      <bArmStyle value="0"/>
-      <bLetterForm value="0"/>
-      <bMidline value="0"/>
-      <bXHeight value="0"/>
-    </panose>
-    <ulUnicodeRange1 value="11100000 00000000 00000010 11111111"/>
-    <ulUnicodeRange2 value="01010000 00000000 00100000 01011011"/>
-    <ulUnicodeRange3 value="00000000 00000000 00000000 00100000"/>
-    <ulUnicodeRange4 value="00000000 00000000 00000000 00000000"/>
-    <achVendID value="GOOG"/>
-    <fsSelection value="00000000 01000000"/>
-    <usFirstCharIndex value="0"/>
-    <usLastCharIndex value="65533"/>
-    <sTypoAscender value="1536"/>
-    <sTypoDescender value="-512"/>
-    <sTypoLineGap value="102"/>
-    <usWinAscent value="1946"/>
-    <usWinDescent value="512"/>
-    <ulCodePageRange1 value="00100000 00000000 00000001 10011111"/>
-    <ulCodePageRange2 value="00000000 00000000 00000000 00000000"/>
-    <sxHeight value="1082"/>
-    <sCapHeight value="1456"/>
-    <usDefaultChar value="32"/>
-    <usBreakChar value="32"/>
-    <usMaxContext value="3"/>
-  </OS_2>
 
   <hmtx>
     <mtx name=".notdef" width="908" lsb="100"/>
@@ -1526,30 +1473,6 @@
 
   </glyf>
 
-  <name>
-    <namerecord nameID="0" platformID="3" platEncID="1" langID="0x409">
-      Copyright 2011 Google Inc. All Rights Reserved.
-    </namerecord>
-    <namerecord nameID="1" platformID="3" platEncID="1" langID="0x409">
-      Roboto
-    </namerecord>
-    <namerecord nameID="2" platformID="3" platEncID="1" langID="0x409">
-      Regular
-    </namerecord>
-    <namerecord nameID="3" platformID="3" platEncID="1" langID="0x409">
-      Roboto
-    </namerecord>
-    <namerecord nameID="4" platformID="3" platEncID="1" langID="0x409">
-      Roboto
-    </namerecord>
-    <namerecord nameID="5" platformID="3" platEncID="1" langID="0x409">
-      Version 2.137; 2017
-    </namerecord>
-    <namerecord nameID="6" platformID="3" platEncID="1" langID="0x409">
-      Roboto-Regular
-    </namerecord>
-  </name>
-
   <post>
     <formatType value="3.0"/>
     <italicAngle value="0.0"/>
@@ -1561,10 +1484,5 @@
     <minMemType1 value="0"/>
     <maxMemType1 value="0"/>
   </post>
-
-  <gasp>
-    <gaspRange rangeMaxPPEM="8" rangeGaspBehavior="2"/>
-    <gaspRange rangeMaxPPEM="65535" rangeGaspBehavior="15"/>
-  </gasp>
 
 </ttFont>

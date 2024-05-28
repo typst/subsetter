@@ -44,7 +44,6 @@ mod glyf;
 mod head;
 mod hmtx;
 mod maxp;
-mod name;
 mod post;
 mod read;
 mod remapper;
@@ -96,13 +95,15 @@ fn prepare_context(
 fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
     // See here for the required tables:
     // https://learn.microsoft.com/en-us/typography/opentype/spec/otff#required-tables
-    // some of those are not strictly needed according to the PDF specification,
-    // but it's still better to include them.
+    // but some of those are not strictly needed according to the PDF specification.
 
     // Of the above tables, we are not including the following ones:
     // - CFF2: Since we don't support CFF2
     // - VORG: PDF doesn't use that table.
-    // - CMAP: CID fonts in PDF define their own cmaps, so we don't need to include
+    // - CMAP: CID fonts in PDF define their own cmaps, so we don't need to include them in the font.
+    // - GASP: Not mandated by PDF specification, and ghostscript also seems to exclude them.
+    // - NAME: Not mandated by PDF specification, and ghostscript also seems to exclude them.
+    // - OS2: Not mandated by PDF specification, and ghostscript also seems to exclude them.
     // it in the font program itself (see page 468 in the PDF spec.)
 
     if ctx.kind == FontKind::TrueType {
@@ -111,7 +112,6 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
         ctx.process(Tag::CVT)?; // won't be subsetted.
         ctx.process(Tag::FPGM)?; // won't be subsetted.
         ctx.process(Tag::PREP)?; // won't be subsetted.
-        ctx.process(Tag::GASP)?; // won't be subsetted.
     }
 
     if ctx.kind == FontKind::Cff {
@@ -122,8 +122,6 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
     ctx.process(Tag::HEAD)?;
     ctx.process(Tag::HMTX)?;
     ctx.process(Tag::MAXP)?;
-    ctx.process(Tag::NAME)?;
-    ctx.process(Tag::OS2)?;
     ctx.process(Tag::POST)?;
 
     Ok(construct(ctx))
@@ -273,18 +271,7 @@ impl<'a> Context<'a> {
             Tag::HHEA => panic!("handled by hmtx"),
             Tag::HMTX => hmtx::subset(self)?,
             Tag::POST => post::subset(self)?,
-            // TODO: cmap can actually also be dropped for PDF since we use
-            // CID-keyed fonts.
-            // "If used with a simple font dictionary, the font
-            // program must additionally contain a “cmap” table
-            // defining one or more encodings, as discussed in
-            // “Encodings for TrueType Fonts” on page 429. If
-            // used with a CIDFont dictionary, the “cmap” table
-            // is not needed, since the mapping from character codes
-            // to glyph descriptions is provided separately.
-            // Tag::CMAP => cmap::subset(self)?,
             Tag::MAXP => maxp::subset(self)?,
-            Tag::NAME => name::subset(self)?,
             _ => self.push(tag, data),
         }
 

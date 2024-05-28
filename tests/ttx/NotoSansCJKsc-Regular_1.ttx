@@ -23,7 +23,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0xf8144a41"/>
+    <checkSumAdjustment value="0x366ce754"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -64,92 +64,6 @@
     <tableVersion value="0x5000"/>
     <numGlyphs value="14"/>
   </maxp>
-
-  <OS_2>
-    <!-- The fields 'usFirstCharIndex' and 'usLastCharIndex'
-         will be recalculated by the compiler -->
-    <version value="3"/>
-    <xAvgCharWidth value="979"/>
-    <usWeightClass value="400"/>
-    <usWidthClass value="5"/>
-    <fsType value="00000000 00000000"/>
-    <ySubscriptXSize value="650"/>
-    <ySubscriptYSize value="600"/>
-    <ySubscriptXOffset value="0"/>
-    <ySubscriptYOffset value="75"/>
-    <ySuperscriptXSize value="650"/>
-    <ySuperscriptYSize value="600"/>
-    <ySuperscriptXOffset value="0"/>
-    <ySuperscriptYOffset value="350"/>
-    <yStrikeoutSize value="50"/>
-    <yStrikeoutPosition value="325"/>
-    <sFamilyClass value="0"/>
-    <panose>
-      <bFamilyType value="2"/>
-      <bSerifStyle value="11"/>
-      <bWeight value="5"/>
-      <bProportion value="0"/>
-      <bContrast value="0"/>
-      <bStrokeVariation value="0"/>
-      <bArmStyle value="0"/>
-      <bLetterForm value="0"/>
-      <bMidline value="0"/>
-      <bXHeight value="0"/>
-    </panose>
-    <ulUnicodeRange1 value="00110000 00000000 00000000 10000011"/>
-    <ulUnicodeRange2 value="00101011 11011111 00111100 00010000"/>
-    <ulUnicodeRange3 value="00000000 00000000 00000000 00010110"/>
-    <ulUnicodeRange4 value="00000000 00000000 00000000 00000000"/>
-    <achVendID value="GOOG"/>
-    <fsSelection value="00000000 01000000"/>
-    <usFirstCharIndex value="32"/>
-    <usLastCharIndex value="65535"/>
-    <sTypoAscender value="880"/>
-    <sTypoDescender value="-120"/>
-    <sTypoLineGap value="0"/>
-    <usWinAscent value="1160"/>
-    <usWinDescent value="288"/>
-    <ulCodePageRange1 value="01100000 00101110 00000001 00000111"/>
-    <ulCodePageRange2 value="00000000 00000000 00000000 00000000"/>
-    <sxHeight value="543"/>
-    <sCapHeight value="733"/>
-    <usDefaultChar value="0"/>
-    <usBreakChar value="32"/>
-    <usMaxContext value="6"/>
-  </OS_2>
-
-  <name>
-    <namerecord nameID="0" platformID="3" platEncID="1" langID="0x409">
-      © 2014-2021 Adobe (http://www.adobe.com/).
-    </namerecord>
-    <namerecord nameID="1" platformID="3" platEncID="1" langID="0x409">
-      Noto Sans CJK SC
-    </namerecord>
-    <namerecord nameID="2" platformID="3" platEncID="1" langID="0x409">
-      Regular
-    </namerecord>
-    <namerecord nameID="3" platformID="3" platEncID="1" langID="0x409">
-      2.004;GOOG;NotoSansCJKsc-Regular;ADOBE
-    </namerecord>
-    <namerecord nameID="4" platformID="3" platEncID="1" langID="0x409">
-      Noto Sans CJK SC
-    </namerecord>
-    <namerecord nameID="5" platformID="3" platEncID="1" langID="0x409">
-      Version 2.004;hotconv 1.0.118;makeotfexe 2.5.65603
-    </namerecord>
-    <namerecord nameID="6" platformID="3" platEncID="1" langID="0x409">
-      NotoSansCJKsc-Regular
-    </namerecord>
-    <namerecord nameID="1" platformID="3" platEncID="1" langID="0x804">
-      Noto Sans CJK SC
-    </namerecord>
-    <namerecord nameID="2" platformID="3" platEncID="1" langID="0x804">
-      Regular
-    </namerecord>
-    <namerecord nameID="4" platformID="3" platEncID="1" langID="0x804">
-      Noto Sans CJK SC
-    </namerecord>
-  </name>
 
   <post>
     <formatType value="3.0"/>
