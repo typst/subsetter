@@ -9,7 +9,7 @@
 //! left side bearing metrics.
 
 use super::*;
-use crate::Error::{MalformedFont, SubsetError};
+use crate::Error::OverflowError;
 
 pub fn subset(ctx: &mut Context) -> Result<()> {
     let hmtx = ctx.expect_table(Tag::HMTX).ok_or(MalformedFont)?;
@@ -26,7 +26,7 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
         };
 
         let last_advance_width = {
-            let index = 4 * num_h_metrics.checked_sub(1).ok_or(MalformedFont)? as usize;
+            let index = 4 * num_h_metrics.checked_sub(1).ok_or(OverflowError)? as usize;
             let mut r = Reader::new(hmtx.get(index..).ok_or(MalformedFont)?);
             r.read::<u16>().ok_or(MalformedFont)?
         };
@@ -58,7 +58,7 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
 
     // Find out the last index we need to include the advance width for.
     let mut last_advance_width_index =
-        u16::try_from(new_metrics.len()).map_err(|_| SubsetError)? - 1;
+        u16::try_from(new_metrics.len()).map_err(|_| OverflowError)? - 1;
     let last_advance_width = new_metrics[last_advance_width_index as usize].0;
 
     for gid in new_metrics.iter().rev().skip(1) {
@@ -72,7 +72,7 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
     let mut sub_hmtx = Writer::new();
 
     for (index, metric) in new_metrics.iter().enumerate() {
-        let index = u16::try_from(index).map_err(|_| SubsetError)?;
+        let index = u16::try_from(index).map_err(|_| OverflowError)?;
         if index <= last_advance_width_index {
             sub_hmtx.write::<u16>(metric.0);
         }

@@ -6,7 +6,7 @@
 
 use super::*;
 use crate::read::LazyArray16;
-use crate::Error::{MalformedFont, SubsetError};
+use crate::Error::OverflowError;
 
 pub fn subset(ctx: &mut Context) -> Result<()> {
     let post = ctx.expect_table(Tag::POST).ok_or(MalformedFont)?;
@@ -39,8 +39,8 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
             // Phetsarath-Regular.ttf from Google Fonts seems to have a wrong name table.
             // If name cannot be fetched, use empty name instead.
             let name = names.get(index as usize).copied().unwrap_or(&[][..]);
-            let name_len = u8::try_from(name.len()).map_err(|_| MalformedFont)?;
-            let index = u16::try_from(string_index + 258).map_err(|_| SubsetError)?;
+            let name_len = u8::try_from(name.len()).map_err(|_| OverflowError)?;
+            let index = u16::try_from(string_index + 258).map_err(|_| OverflowError)?;
             sub_post.write(index);
 
             string_storage.write(name_len);

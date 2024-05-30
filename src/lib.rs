@@ -139,8 +139,10 @@ fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
         let subdata = data.get(offset as usize..).ok_or(MalformedFont)?;
         r = Reader::new(subdata);
         kind = r.read::<FontKind>().ok_or(MalformedFont)?;
+
+        // Cannot have nested collection
         if kind == FontKind::Collection {
-            return Err(UnknownKind);
+            return Err(MalformedFont);
         }
     }
 
@@ -461,15 +463,19 @@ type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     /// The file contains an unknown kind of font.
     UnknownKind,
-    /// The font seems to be malformed.
+    /// The font is malformed (or there is a bug in the font parsing logic).
     MalformedFont,
-    /// The font relies on some unimplemented feature, and thus we cannot guarantee
-    /// that the subsetted font would be correct.
+    /// The font relies on an unimplemented feature, and thus the subsetting
+    /// process couldn't be completed.
     Unimplemented,
-    /// An error occurred when subsetting the font.
+    /// An unexpected error occurred when subsetting the font. Indicates that there
+    /// is a logical bug in the subsetter.
     SubsetError,
-    /// Invald Mapper
-    InvalidGidMapper,
+    /// An overflow occurred during the computation. Could be either an issue
+    /// with the font itself, or a bug in the subsetter logic.
+    OverflowError,
+    /// An error occurred while processing the CFF table.
+    CFFError,
 }
 
 impl Display for Error {
@@ -479,7 +485,8 @@ impl Display for Error {
             Self::MalformedFont => f.write_str("malformed font"),
             Self::Unimplemented => f.write_str("unsupported feature in font"),
             Self::SubsetError => f.write_str("subsetting of font failed"),
-            Self::InvalidGidMapper => f.write_str("invalid gid mapper"),
+            Self::OverflowError => f.write_str("overflow occurred"),
+            Self::CFFError => f.write_str("processing CFF table failed"),
         }
     }
 }

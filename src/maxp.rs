@@ -3,7 +3,6 @@
 //! can be copied from the old table.
 
 use super::*;
-use crate::Error::MalformedFont;
 
 pub fn subset(ctx: &mut Context) -> Result<()> {
     let maxp = ctx.expect_table(Tag::MAXP).ok_or(MalformedFont)?;

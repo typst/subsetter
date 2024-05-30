@@ -10,7 +10,6 @@
 //! 4. We need to calculate which format to use in the `loca` table.
 //! 5. We need to update the `loca` table itself with the new offsets.
 use super::*;
-use crate::Error::{MalformedFont, SubsetError};
 
 /// Form the glyph closure of all glyphs in `gid_set`.
 pub fn glyph_closure(face: &Face, glyph_remapper: &mut GlyphRemapper) -> Result<()> {
@@ -177,7 +176,7 @@ fn remap_component_glyph(mapper: &GlyphRemapper, data: &[u8]) -> Result<Vec<u8>>
         let flags = r.read::<u16>().ok_or(MalformedFont)?;
         w.write(flags);
         let old_component = r.read::<u16>().ok_or(MalformedFont)?;
-        let new_component = mapper.get(old_component).ok_or(SubsetError)?;
+        let new_component = mapper.get(old_component).ok_or(MalformedFont)?;
         w.write(new_component);
 
         if flags & ARG_1_AND_2_ARE_WORDS != 0 {

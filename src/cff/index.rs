@@ -1,7 +1,7 @@
 use crate::cff::number::U24;
 use crate::read::{Readable, Reader};
 use crate::write::{Writeable, Writer};
-use crate::Error::MalformedFont;
+use crate::Error::OverflowError;
 use crate::Result;
 
 pub trait IndexSize: for<'a> Readable<'a> {
@@ -236,7 +236,7 @@ impl Default for OwnedIndex {
 
 /// Create an index from a vector of data.
 pub fn create_index(data: Vec<Vec<u8>>) -> Result<OwnedIndex> {
-    let count = u16::try_from(data.len()).map_err(|_| MalformedFont)?;
+    let count = u16::try_from(data.len()).map_err(|_| OverflowError)?;
     // + 1 Since we start counting from the preceding byte.
     let offsize = data.iter().map(|v| v.len() as u32).sum::<u32>() + 1;
 
@@ -266,11 +266,11 @@ pub fn create_index(data: Vec<Vec<u8>>) -> Result<OwnedIndex> {
 
         match offset_size {
             OffsetSize::Size1 => {
-                let num = u8::try_from(cur_offset).map_err(|_| MalformedFont)?;
+                let num = u8::try_from(cur_offset).map_err(|_| OverflowError)?;
                 w.write(num);
             }
             OffsetSize::Size2 => {
-                let num = u16::try_from(cur_offset).map_err(|_| MalformedFont)?;
+                let num = u16::try_from(cur_offset).map_err(|_| OverflowError)?;
                 w.write(num);
             }
             OffsetSize::Size3 => {

@@ -1,5 +1,5 @@
 use crate::cff::number::Number;
-use crate::Error::MalformedFont;
+use crate::Error::CFFError;
 use crate::Result;
 
 /// The maximum number of operands allowed during parsing.
@@ -26,7 +26,7 @@ impl<'a> ArgumentsStack<'a> {
     #[inline]
     pub fn push(&mut self, n: Number<'a>) -> Result<()> {
         if self.len() == MAX_OPERANDS_LEN {
-            Err(MalformedFont)
+            Err(CFFError)
         } else {
             self.data.push(n);
             Ok(())

@@ -6,7 +6,7 @@ use crate::cff::index::{parse_index, Index};
 use crate::cff::remapper::FontDictRemapper;
 use crate::read::{LazyArray16, Reader};
 use crate::write::Writer;
-use crate::Error::SubsetError;
+use crate::Error::{MalformedFont, SubsetError};
 use crate::GlyphRemapper;
 use crate::Result;
 
@@ -125,7 +125,7 @@ pub fn rewrite_fd_index(
     w.write::<u8>(0);
 
     for gid in gid_remapper.remapped_gids() {
-        let old_fd = fd_select.font_dict_index(gid).ok_or(SubsetError)?;
+        let old_fd = fd_select.font_dict_index(gid).ok_or(MalformedFont)?;
         let new_fd = fd_remapper.get(old_fd).ok_or(SubsetError)?;
         w.write(new_fd);
     }

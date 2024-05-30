@@ -4,7 +4,7 @@ use crate::cff::operator::Operator;
 use crate::cff::subroutines::SubroutineHandler;
 use crate::read::Reader;
 use crate::write::Writer;
-use crate::Error::{MalformedFont, Unimplemented};
+use crate::Error::{CFFError, Unimplemented};
 use crate::{Error, Result};
 use operators::*;
 use std::fmt::{Debug, Formatter};
@@ -52,21 +52,20 @@ impl<'a> Decompiler<'a> {
         while !r.at_end() {
             // We need to peak instead of read because parsing a number requires
             // access to the whole buffer.
-            let op = r.peak::<u8>().ok_or(Error::MalformedFont)?;
+            let op = r.peak::<u8>().ok_or(Error::CFFError)?;
 
             // Numbers
             if matches!(op, 28 | 32..=255) {
-                let number =
-                    Number::parse_char_string_number(&mut r).ok_or(MalformedFont)?;
+                let number = Number::parse_char_string_number(&mut r).ok_or(CFFError)?;
                 self.stack.push(number.clone())?;
                 program.push(Instruction::Operand(number));
                 continue;
             }
 
             // No numbers can appear now, so now we can actually read it.
-            let op = r.read::<u8>().ok_or(Error::MalformedFont)?;
+            let op = r.read::<u8>().ok_or(CFFError)?;
             let operator = if op == 12 {
-                Operator::from_two_byte(r.read::<u8>().ok_or(Error::MalformedFont)?)
+                Operator::from_two_byte(r.read::<u8>().ok_or(CFFError)?)
             } else {
                 Operator::from_one_byte(op)
             };
@@ -98,11 +97,11 @@ impl<'a> Decompiler<'a> {
 
                     // TODO: Add depth limit / detect recursions
                     let biased_index =
-                        self.stack.pop().and_then(|n| n.as_i32()).ok_or(MalformedFont)?;
+                        self.stack.pop().and_then(|n| n.as_i32()).ok_or(CFFError)?;
                     let gsubr = self
                         .gsubr_handler
                         .get_with_biased(biased_index)
-                        .ok_or(MalformedFont)?;
+                        .ok_or(CFFError)?;
                     self.decompile_inner(gsubr, program)?;
                 }
                 CALL_LOCAL_SUBROUTINE => {
@@ -110,11 +109,11 @@ impl<'a> Decompiler<'a> {
                     program.0.pop();
                     // TODO: Add depth limit / detect recursions
                     let biased_index =
-                        self.stack.pop().and_then(|n| n.as_i32()).ok_or(MalformedFont)?;
+                        self.stack.pop().and_then(|n| n.as_i32()).ok_or(CFFError)?;
                     let lsubr = self
                         .lsubr_handler
                         .get_with_biased(biased_index)
-                        .ok_or(MalformedFont)?;
+                        .ok_or(CFFError)?;
                     self.decompile_inner(lsubr, program)?;
                 }
                 HINT_MASK | COUNTER_MASK => {
@@ -125,9 +124,8 @@ impl<'a> Decompiler<'a> {
                         self.hint_mask_bytes = (self.hint_count + 7) / 8;
                     }
 
-                    let hint_bytes = r
-                        .read_bytes(self.hint_mask_bytes as usize)
-                        .ok_or(MalformedFont)?;
+                    let hint_bytes =
+                        r.read_bytes(self.hint_mask_bytes as usize).ok_or(CFFError)?;
                     program.push(Instruction::HintMask(hint_bytes));
                 }
                 ENDCHAR => {
@@ -140,7 +138,7 @@ impl<'a> Decompiler<'a> {
                     program.push(Instruction::Operator(operator));
                 }
                 _ => {
-                    return Err(MalformedFont);
+                    return Err(CFFError);
                 }
             }
         }

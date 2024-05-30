@@ -3,7 +3,6 @@
 //! glyph data. The checksum will be recalculated in the very end.
 
 use super::*;
-use crate::Error::MalformedFont;
 
 pub fn subset(ctx: &mut Context) -> Result<()> {
     let mut head = ctx.expect_table(Tag::HEAD).ok_or(MalformedFont)?.to_vec();

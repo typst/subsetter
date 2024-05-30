@@ -25,7 +25,7 @@ use crate::cff::index::{create_index, parse_index, skip_index, Index, OwnedIndex
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::sid_font::SIDMetadata;
 use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
-use crate::Error::SubsetError;
+use crate::Error::{OverflowError, SubsetError};
 use charset::charset_id;
 use number::{IntegerNumber, StringId};
 use std::cmp::PartialEq;
@@ -64,7 +64,7 @@ const DUMMY_OFFSET: DeferredOffset = DeferredOffset { location: 0, value: DUMMY_
 
 impl DeferredOffset {
     fn update_value(&mut self, value: usize) -> Result<()> {
-        self.value = IntegerNumber(i32::try_from(value).map_err(|_| SubsetError)?);
+        self.value = IntegerNumber(i32::try_from(value).map_err(|_| OverflowError)?);
         Ok(())
     }
 
@@ -365,7 +365,7 @@ impl<'a> Table<'a> {
         let major = r.read::<u8>().ok_or(MalformedFont)?;
 
         if major != 1 {
-            return Err(Error::Unimplemented);
+            return Err(Error::CFFError);
         }
 
         r.skip::<u8>(); // minor

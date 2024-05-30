@@ -7,7 +7,7 @@ use crate::cff::remapper::{FontDictRemapper, SidRemapper};
 use crate::cff::{dict, Offsets};
 use crate::read::Reader;
 use crate::write::Writer;
-use crate::Error::{MalformedFont, SubsetError};
+use crate::Error::SubsetError;
 use crate::Result;
 use std::array;
 
@@ -71,7 +71,7 @@ pub fn rewrite_font_dict_index(
 
         // Write the font name, if applicable.
         if let Some(sid) = dict.font_name_sid {
-            let new_sid = sid_remapper.get(sid).ok_or(MalformedFont)?;
+            let new_sid = sid_remapper.get(sid).ok_or(SubsetError)?;
             w.write(Number::from_i32(new_sid.0 as i32));
             w.write(dict::operators::FONT_NAME);
         }
