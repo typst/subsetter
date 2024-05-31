@@ -17,7 +17,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="1.062"/>
-    <checkSumAdjustment value="0xb76611cd"/>
+    <checkSumAdjustment value="0xef3cad6b"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000010 00101011"/>
     <unitsPerEm value="1000"/>
@@ -72,54 +72,6 @@
     <maxComponentElements value="1"/>
     <maxComponentDepth value="1"/>
   </maxp>
-
-  <OS_2>
-    <!-- The fields 'usFirstCharIndex' and 'usLastCharIndex'
-         will be recalculated by the compiler -->
-    <version value="1"/>
-    <xAvgCharWidth value="907"/>
-    <usWeightClass value="400"/>
-    <usWidthClass value="5"/>
-    <fsType value="00000000 00000000"/>
-    <ySubscriptXSize value="650"/>
-    <ySubscriptYSize value="700"/>
-    <ySubscriptXOffset value="0"/>
-    <ySubscriptYOffset value="140"/>
-    <ySuperscriptXSize value="650"/>
-    <ySuperscriptYSize value="700"/>
-    <ySuperscriptXOffset value="0"/>
-    <ySuperscriptYOffset value="480"/>
-    <yStrikeoutSize value="49"/>
-    <yStrikeoutPosition value="258"/>
-    <sFamilyClass value="2054"/>
-    <panose>
-      <bFamilyType value="2"/>
-      <bSerifStyle value="11"/>
-      <bWeight value="5"/>
-      <bProportion value="2"/>
-      <bContrast value="2"/>
-      <bStrokeVariation value="2"/>
-      <bArmStyle value="3"/>
-      <bLetterForm value="2"/>
-      <bMidline value="2"/>
-      <bXHeight value="7"/>
-    </panose>
-    <ulUnicodeRange1 value="11100001 00000000 00001010 11111111"/>
-    <ulUnicodeRange2 value="01101010 01000111 11111101 11111011"/>
-    <ulUnicodeRange3 value="00000010 00000000 00000000 00010010"/>
-    <ulUnicodeRange4 value="00000000 00000000 00000000 00000000"/>
-    <achVendID value="M+  "/>
-    <fsSelection value="00000000 01000000"/>
-    <usFirstCharIndex value="32"/>
-    <usLastCharIndex value="65535"/>
-    <sTypoAscender value="860"/>
-    <sTypoDescender value="-140"/>
-    <sTypoLineGap value="90"/>
-    <usWinAscent value="1075"/>
-    <usWinDescent value="320"/>
-    <ulCodePageRange1 value="01100000 00010010 00000001 10111111"/>
-    <ulCodePageRange2 value="11011111 11110111 00000000 00000000"/>
-  </OS_2>
 
   <hmtx>
     <mtx name=".notdef" width="364" lsb="33"/>
@@ -1018,9 +970,5 @@
       <!-- following are the name that are not taken from the standard Mac glyph order -->
     </extraNames>
   </post>
-
-  <gasp>
-    <gaspRange rangeMaxPPEM="65535" rangeGaspBehavior="2"/>
-  </gasp>
 
 </ttFont>

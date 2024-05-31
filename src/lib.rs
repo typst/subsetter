@@ -96,13 +96,14 @@ fn prepare_context(
 fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
     // See here for the required tables:
     // https://learn.microsoft.com/en-us/typography/opentype/spec/otff#required-tables
-    // some of those are not strictly needed according to the PDF specification,
-    // but it's still better to include them.
+    // but some of those are not strictly needed according to the PDF specification.
 
     // Of the above tables, we are not including the following ones:
     // - CFF2: Since we don't support CFF2
     // - VORG: PDF doesn't use that table.
-    // - CMAP: CID fonts in PDF define their own cmaps, so we don't need to include
+    // - CMAP: CID fonts in PDF define their own cmaps, so we don't need to include them in the font.
+    // - GASP: Not mandated by PDF specification, and ghostscript also seems to exclude them.
+    // - OS2: Not mandated by PDF specification, and ghostscript also seems to exclude them.
     // it in the font program itself (see page 468 in the PDF spec.)
 
     if ctx.kind == FontKind::TrueType {
@@ -111,7 +112,6 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
         ctx.process(Tag::CVT)?; // won't be subsetted.
         ctx.process(Tag::FPGM)?; // won't be subsetted.
         ctx.process(Tag::PREP)?; // won't be subsetted.
-        ctx.process(Tag::GASP)?; // won't be subsetted.
     }
 
     if ctx.kind == FontKind::Cff {
@@ -122,8 +122,10 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
     ctx.process(Tag::HEAD)?;
     ctx.process(Tag::HMTX)?;
     ctx.process(Tag::MAXP)?;
+    // NAME is also not strictly needed, and ghostscript removes it when subsetting.
+    // However, it contains copyright information which probably should not be removed...
+    // Even though it can free up a lot of space for some fonts.
     ctx.process(Tag::NAME)?;
-    ctx.process(Tag::OS2)?;
     ctx.process(Tag::POST)?;
 
     Ok(construct(ctx))
