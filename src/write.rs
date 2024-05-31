@@ -52,15 +52,17 @@ pub trait Writeable: Sized {
     fn write(&self, w: &mut Writer);
 }
 
-impl<const N: usize> Writeable for [u8; N] {
+impl<T: Writeable, const N: usize> Writeable for [T; N] {
     fn write(&self, w: &mut Writer) {
-        w.extend(self)
+        for i in self {
+            w.write(i);
+        }
     }
 }
 
 impl Writeable for u8 {
     fn write(&self, w: &mut Writer) {
-        w.write::<[u8; 1]>(self.to_be_bytes());
+        w.extend(&self.to_be_bytes());
     }
 }
 

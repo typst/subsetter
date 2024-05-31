@@ -1,4 +1,5 @@
 use crate::cff::cid_font::CIDMetadata;
+use crate::cff::dict::operators::*;
 use crate::cff::dict::private_dict::parse_subr_offset;
 use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{create_index, parse_index, Index};
@@ -18,8 +19,10 @@ pub struct FontDict<'a> {
     pub local_subrs: Index<'a>,
     /// The underlying data of the private dict.
     pub private_dict: &'a [u8],
-    /// The StringID of the font name in this font DICT, if it exists.
-    pub font_name_sid: Option<StringId>,
+    /// The StringID of the font name in this font DICT.
+    pub font_name: Option<StringId>,
+    /// The font matrix.
+    pub font_matrix: Option<[Number; 6]>,
 }
 
 /// Parse a font DICT.
@@ -31,22 +34,23 @@ pub fn parse_font_dict<'a>(
 
     let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
     let mut dict_parser = DictionaryParser::new(font_dict_data, &mut operands_buffer);
-    // TODO: Can a font dict include other operators as well? Wasn't able to find information
-    // on that in the spec, and the CFF fonts I tried only included those two.
     while let Some(operator) = dict_parser.parse_next() {
-        if operator == dict::operators::PRIVATE {
-            let private_dict_range = dict_parser.parse_range()?;
-            let private_dict_data = font_data.get(private_dict_range.clone())?;
-            font_dict.private_dict = private_dict_data;
-            font_dict.local_subrs = {
-                let subrs_offset = parse_subr_offset(private_dict_data)?;
-                let start = private_dict_range.start.checked_add(subrs_offset)?;
-                let subrs_data = font_data.get(start..)?;
-                let mut r = Reader::new(subrs_data);
-                parse_index::<u16>(&mut r)?
-            };
-        } else if operator == dict::operators::FONT_NAME {
-            font_dict.font_name_sid = Some(dict_parser.parse_sid()?);
+        match operator {
+            PRIVATE => {
+                let private_dict_range = dict_parser.parse_range()?;
+                let private_dict_data = font_data.get(private_dict_range.clone())?;
+                font_dict.private_dict = private_dict_data;
+                font_dict.local_subrs = {
+                    let subrs_offset = parse_subr_offset(private_dict_data)?;
+                    let start = private_dict_range.start.checked_add(subrs_offset)?;
+                    let subrs_data = font_data.get(start..)?;
+                    let mut r = Reader::new(subrs_data);
+                    parse_index::<u16>(&mut r)?
+                };
+            }
+            FONT_NAME => font_dict.font_name = Some(dict_parser.parse_sid()?),
+            FONT_MATRIX => font_dict.font_matrix = Some(dict_parser.parse_font_matrix()?),
+            _ => {}
         }
     }
 
@@ -69,12 +73,23 @@ pub fn rewrite_font_dict_index(
         let dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
         let mut w = Writer::new();
 
-        // Write the font name, if applicable.
-        if let Some(sid) = dict.font_name_sid {
-            let new_sid = sid_remapper.get(sid).ok_or(SubsetError)?;
-            w.write(Number::from_i32(new_sid.0 as i32));
-            w.write(dict::operators::FONT_NAME);
-        }
+        // We write some values by default. We do this because ghostscript seems to do it as well.
+        // Not sure if there is a good reason for that, but best to just mimic it.
+        w.write(Number::zero());
+        w.write(UNDERLINE_POSITION);
+
+        w.write(Number::zero());
+        w.write(UNDERLINE_THICKNESS);
+
+        w.write(dict.font_matrix.as_ref().unwrap_or(&[
+            Number::one(),
+            Number::zero(),
+            Number::zero(),
+            Number::one(),
+            Number::zero(),
+            Number::zero(),
+        ]));
+        w.write(FONT_MATRIX);
 
         // Write the length and offset of the private dict.
         // Private dicts have already been written, so the offsets are already correct.
@@ -94,8 +109,14 @@ pub fn rewrite_font_dict_index(
             .ok_or(SubsetError)?
             .value
             .write_as_5_bytes(&mut w);
+        w.write(PRIVATE);
 
-        w.write(dict::operators::PRIVATE);
+        if let Some(font_name) = dict.font_name.and_then(|s| sid_remapper.get_new_sid(s))
+        {
+            w.write(Number::from_i32(font_name.0 as i32));
+            w.write(FONT_NAME);
+        }
+
         dicts.push(w.finish());
     }
 

@@ -5,24 +5,25 @@ use crate::cff::remapper::SidRemapper;
 use crate::cff::{Offsets, DUMMY_VALUE};
 use crate::read::Reader;
 use crate::write::Writer;
+use crate::Error::SubsetError;
 use crate::Result;
 use std::array;
-use std::collections::BTreeSet;
 use std::ops::Range;
 
 /// Data parsed from a top dict.
 #[derive(Default, Debug, Clone)]
 pub struct TopDictData<'a> {
     pub top_dict_raw: &'a [u8],
-    pub used_sids: BTreeSet<StringId>,
     pub charset: Option<usize>,
     pub char_strings: Option<usize>,
     pub private: Option<Range<usize>>,
     pub fd_array: Option<usize>,
     pub fd_select: Option<usize>,
+    pub notice: Option<StringId>,
+    pub copyright: Option<StringId>,
+    pub font_name: Option<StringId>,
     pub has_ros: bool,
-    pub registry_sid: Option<StringId>,
-    pub ordering_sd: Option<StringId>,
+    pub font_matrix: Option<[Number; 6]>,
 }
 
 /// Parse the top dict and extract relevant data.
@@ -41,32 +42,21 @@ pub fn parse_top_dict_index<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
 
     while let Some(operator) = dict_parser.parse_next() {
         match operator {
-            // Grab the SIDs so that we can remap them.
-            VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
-            | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {
-                let sid = dict_parser.parse_sid()?;
-                top_dict.used_sids.insert(sid);
-            }
+            // We only need to preserve the copyrights and font name.
+            NOTICE => top_dict.notice = Some(dict_parser.parse_sid()?),
+            COPYRIGHT => top_dict.copyright = Some(dict_parser.parse_sid()?),
+            FONT_NAME => top_dict.font_name = Some(dict_parser.parse_sid()?),
             CHARSET => top_dict.charset = Some(dict_parser.parse_offset()?),
             // We don't care about encoding since we convert to CID-keyed font anyway.
             ENCODING => {}
             CHAR_STRINGS => top_dict.char_strings = Some(dict_parser.parse_offset()?),
             PRIVATE => top_dict.private = Some(dict_parser.parse_range()?),
-            ROS => {
-                dict_parser.parse_operands()?;
-                let operands = dict_parser.operands();
-
-                let registry = StringId(u16::try_from(operands[0].as_u32()?).ok()?);
-                let ordering = StringId(u16::try_from(operands[1].as_u32()?).ok()?);
-                top_dict.used_sids.insert(registry);
-                top_dict.used_sids.insert(ordering);
-
-                top_dict.has_ros = true;
-                top_dict.registry_sid = Some(registry);
-                top_dict.ordering_sd = Some(ordering);
-            }
+            // We will rewrite the ROS, so no need to grab it from here. But we need to
+            // register it so we know we are dealing with a CID-keyed font.
+            ROS => top_dict.has_ros = true,
             FD_ARRAY => top_dict.fd_array = Some(dict_parser.parse_offset()?),
             FD_SELECT => top_dict.fd_select = Some(dict_parser.parse_offset()?),
+            FONT_MATRIX => top_dict.font_matrix = Some(dict_parser.parse_font_matrix()?),
             _ => {}
         }
     }
@@ -78,7 +68,7 @@ pub fn parse_top_dict_index<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
 /// 1. Rewrite every operator that takes a SID with the new, remapped SID.
 /// 2. Update all offsets.
 pub fn rewrite_top_dict_index(
-    raw_top_dict: &[u8],
+    top_dict_data: &TopDictData,
     offsets: &mut Offsets,
     sid_remapper: &SidRemapper,
     w: &mut Writer,
@@ -86,66 +76,66 @@ pub fn rewrite_top_dict_index(
     use super::operators::*;
 
     let mut sub_w = Writer::new();
+    // See comment in font dict. We try to mimic behavior of ghostscript.
 
-    let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
-    let mut dict_parser = DictionaryParser::new(raw_top_dict, &mut operands_buffer);
-
-    assert_ne!(offsets.ordering_sid, StringId(0));
-    assert_ne!(offsets.registry_sid, StringId(0));
-
-    // Write the operators required for CID-keyed fonts. Since we convert SID-keyed fonts
-    // to CID-keyed, we need to do this manually in the beginning.
-    // Write ROS operator.
-    sub_w.write(Number::from_i32(offsets.registry_sid.0 as i32));
-    sub_w.write(Number::from_i32(offsets.ordering_sid.0 as i32));
+    // Write ROS.
+    sub_w
+        .write(Number::from_i32(sid_remapper.get(b"Adobe").ok_or(SubsetError)?.0 as i32));
+    sub_w.write(Number::from_i32(
+        sid_remapper.get(b"Identity").ok_or(SubsetError)?.0 as i32,
+    ));
     sub_w.write(Number::zero());
     sub_w.write(ROS);
 
-    while let Some(operator) = dict_parser.parse_next() {
-        match operator {
-            // Important: When writing the offsets, we need to add the current length of w AND sub_w.
-            CHARSET => {
-                offsets.charset_offset.update_location(sub_w.len() + w.len());
-                DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
-                sub_w.write(operator)
-            }
-            ENCODING => {
-                // Never write encoding, since we convert SID-keyed fonts to CID-keyed fonts.
-            }
-            CHAR_STRINGS => {
-                offsets.char_strings_offset.update_location(sub_w.len() + w.len());
-                DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
-                sub_w.write(operator);
-            }
-            FD_ARRAY => {
-                // We already wrote this.
-            }
-            FD_SELECT => {
-                // We already wrote this.
-            }
-            VERSION | NOTICE | COPYRIGHT | FULL_NAME | FAMILY_NAME | WEIGHT
-            | POSTSCRIPT | BASE_FONT_NAME | BASE_FONT_BLEND | FONT_NAME => {
-                let sid = sid_remapper.get(dict_parser.parse_sid().unwrap()).unwrap();
-                sub_w.write(Number::from_i32(sid.0 as i32));
-                sub_w.write(operator);
-            }
-            ROS => {
-                // We already wrote the ROS operator.
-            }
-            PRIVATE => {
-                // We convert SID-keyed fonts into CID-keyed fonts, so do not rewrite the
-                // private dict. The private dict of the SID-keyed font will be written into the
-                // font dict.
-            }
-            _ => {
-                dict_parser.parse_operands().unwrap();
-                let operands = dict_parser.operands();
-
-                sub_w.write(operands);
-                sub_w.write(operator);
-            }
-        }
+    if let Some(copyright) =
+        top_dict_data.copyright.and_then(|s| sid_remapper.get_new_sid(s))
+    {
+        sub_w.write(Number::from_i32(copyright.0 as i32));
+        sub_w.write(COPYRIGHT);
     }
+
+    if let Some(notice) = top_dict_data.notice.and_then(|s| sid_remapper.get_new_sid(s)) {
+        sub_w.write(Number::from_i32(notice.0 as i32));
+        sub_w.write(NOTICE);
+    }
+
+    if let Some(font_name) =
+        top_dict_data.font_name.and_then(|s| sid_remapper.get_new_sid(s))
+    {
+        sub_w.write(Number::from_i32(font_name.0 as i32));
+        sub_w.write(FONT_NAME);
+    }
+
+    sub_w.write(Number::zero());
+    sub_w.write(UNDERLINE_POSITION);
+
+    sub_w.write(Number::zero());
+    sub_w.write(UNDERLINE_THICKNESS);
+
+    sub_w.write(top_dict_data.font_matrix.as_ref().unwrap_or(&[
+        Number::from_f32(0.001),
+        Number::zero(),
+        Number::zero(),
+        Number::from_f32(0.001),
+        Number::zero(),
+        Number::zero(),
+    ]));
+    sub_w.write(FONT_MATRIX);
+
+    // Important: When writing the offsets, we need to add the current length of w AND sub_w.
+
+    // Charset
+    offsets.charset_offset.update_location(sub_w.len() + w.len());
+    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+    sub_w.write(CHARSET);
+
+    // Charstrings
+    offsets.char_strings_offset.update_location(sub_w.len() + w.len());
+    DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
+    sub_w.write(CHAR_STRINGS);
+
+    sub_w.write(Number::from_i32(u16::MAX as i32));
+    sub_w.write(CID_COUNT);
 
     // VERY IMPORTANT NOTE: Previously, we wrote those two entries directly after ROS.
     // However, for some reason not known to me, Apple Preview does not like show the CFF font
@@ -165,7 +155,7 @@ pub fn rewrite_top_dict_index(
     // TOP DICT INDEX always has size 1 in CFF.
     let index = create_index(vec![finished])?;
 
-    // This is important: The offsets we calculated before were calculated under the assumption
+    // The offsets we calculated before were calculated under the assumption
     // that the contents of sub_w will be appended directly to w. However, when we create an index,
     // the INDEX header data will be appended in the beginning, meaning that we need to adjust the offsets
     // to account for that.

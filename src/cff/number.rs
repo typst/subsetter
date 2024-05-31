@@ -9,12 +9,12 @@ const END_OF_FLOAT_FLAG: u8 = 0xf;
 /// because this way we can just rewrite them as is, and we don't need to
 /// write the logic for serializing a float from scratch. We can do this
 /// since we never need to actually manually construct a float. Only integer numbers.
-#[derive(Clone)]
-pub struct RealNumber<'a>(&'a [u8], f32);
+#[derive(Clone, Copy)]
+pub struct RealNumber(f32);
 
-impl Debug for RealNumber<'_> {
+impl Debug for RealNumber {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.1)
+        write!(f, "{}", self.0)
     }
 }
 
@@ -60,11 +60,8 @@ impl Writeable for FixedNumber {
     }
 }
 
-impl<'a> RealNumber<'a> {
-    pub fn parse(r: &mut Reader<'a>) -> Option<RealNumber<'a>> {
-        let mut bytes_reader = r.clone();
-        let start = r.offset();
-
+impl RealNumber {
+    pub fn parse(r: &mut Reader) -> Option<RealNumber> {
         let mut data = [0u8; FLOAT_STACK_LEN];
         let mut idx = 0;
 
@@ -94,15 +91,53 @@ impl<'a> RealNumber<'a> {
 
         let s = core::str::from_utf8(&data[..idx]).ok()?;
         let n = s.parse().ok()?;
-        let end = r.offset();
 
-        Some(RealNumber(bytes_reader.read_bytes(end - start)?, n))
+        Some(RealNumber(n))
     }
 }
 
-impl Writeable for RealNumber<'_> {
+impl Writeable for RealNumber {
+    // Not the fastest implementation, but floats don't appear that often anyway,
+    // so it's good enough.
     fn write(&self, w: &mut Writer) {
-        w.write(self.0);
+        let mut nibbles = vec![];
+
+        let string_form = format!("{:e}", self.0);
+        let mut r = Reader::new(string_form.as_bytes());
+
+        while !r.at_end() {
+            let byte = r.read::<u8>().unwrap();
+
+            match byte {
+                b'0'..=b'9' => nibbles.push(byte - 48),
+                b'.' => nibbles.push(0xA),
+                b'e' => {
+                    let next = r.peak::<u8>().unwrap();
+
+                    if next == b'-' {
+                        r.read::<u8>().unwrap();
+                        nibbles.push(0xC);
+                    } else {
+                        nibbles.push(0xb);
+                    }
+                }
+                b'-' => nibbles.push(0xE),
+                _ => unreachable!(),
+            }
+        }
+
+        nibbles.push(0xF);
+
+        if nibbles.len() % 2 != 0 {
+            nibbles.push(0xF);
+        }
+
+        // Prefix of fixed number.
+        w.write::<u8>(30);
+        for (first, second) in nibbles.chunks(2).map(|pair| (pair[0], pair[1])) {
+            let num = (first << 4) | second;
+            w.write(num);
+        }
     }
 }
 
@@ -163,26 +198,26 @@ impl Writeable for IntegerNumber {
     }
 }
 
-#[derive(Clone)]
-pub enum Number<'a> {
-    Real(RealNumber<'a>),
+#[derive(Clone, Copy)]
+pub enum Number {
+    Real(RealNumber),
     Integer(IntegerNumber),
     Fixed(FixedNumber),
 }
 
-impl Default for Number<'_> {
+impl Default for Number {
     fn default() -> Self {
         Number::zero()
     }
 }
 
-impl Debug for Number<'_> {
+impl Debug for Number {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_f64())
     }
 }
 
-impl Writeable for Number<'_> {
+impl Writeable for Number {
     fn write(&self, w: &mut Writer) {
         match self {
             Number::Real(real_num) => real_num.write(w),
@@ -192,16 +227,16 @@ impl Writeable for Number<'_> {
     }
 }
 
-impl<'a> Number<'a> {
-    pub fn parse_cff_number(r: &mut Reader<'a>) -> Option<Number<'a>> {
+impl Number {
+    pub fn parse_cff_number(r: &mut Reader) -> Option<Number> {
         Self::parse_number(r, false)
     }
 
-    pub fn parse_char_string_number(r: &mut Reader<'a>) -> Option<Number<'a>> {
+    pub fn parse_char_string_number(r: &mut Reader) -> Option<Number> {
         Self::parse_number(r, true)
     }
 
-    fn parse_number(r: &mut Reader<'a>, charstring_num: bool) -> Option<Number<'a>> {
+    fn parse_number(r: &mut Reader, charstring_num: bool) -> Option<Number> {
         match r.peak::<u8>()? {
             30 => Some(Number::Real(RealNumber::parse(r)?)),
             255 => {
@@ -219,14 +254,22 @@ impl<'a> Number<'a> {
         Number::Integer(IntegerNumber(num))
     }
 
+    pub fn from_f32(num: f32) -> Self {
+        Number::Real(RealNumber(num))
+    }
+
     pub fn zero() -> Self {
         Number::Integer(IntegerNumber(0))
+    }
+
+    pub fn one() -> Self {
+        Number::Integer(IntegerNumber(1))
     }
 
     pub fn as_f64(&self) -> f64 {
         match self {
             Number::Integer(int) => int.0 as f64,
-            Number::Real(real) => real.1 as f64,
+            Number::Real(real) => real.0 as f64,
             Number::Fixed(fixed) => fixed.as_f32() as f64,
         }
     }
@@ -235,8 +278,8 @@ impl<'a> Number<'a> {
         match self {
             Number::Integer(int) => Some(int.0),
             Number::Real(rn) => {
-                if rn.1.fract() == 0.0 {
-                    Some(rn.1 as i32)
+                if rn.0.fract() == 0.0 {
+                    Some(rn.0 as i32)
                 } else {
                     None
                 }
@@ -462,7 +505,23 @@ mod tests {
         let num = [0x1E, 0xE2, 0x49, 0x32, 0xA1, 0x2C, 0x2F];
         let mut r = Reader::new(&num);
         let real = RealNumber::parse(&mut r).unwrap();
-        assert_eq!(-249.3212, real.1);
+        assert_eq!(-249.3212, real.0);
+    }
+
+    #[test]
+    fn float_roundtrip() {
+        let nums = [0.58f32, -0.21, 3.98, 16.49, 159.18, 5906.2];
+
+        for num in nums {
+            let float = RealNumber(num);
+            let mut w = Writer::new();
+            w.write(float);
+            let buffer = w.finish();
+            let mut reader = Reader::new(&buffer);
+
+            let reparsed = RealNumber::parse(&mut reader).unwrap();
+            assert_eq!(reparsed.0, num);
+        }
     }
 
     #[test]

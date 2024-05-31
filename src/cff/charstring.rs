@@ -15,7 +15,7 @@ pub type CharString<'a> = &'a [u8];
 pub struct Decompiler<'a> {
     gsubr_handler: SubroutineHandler<'a>,
     lsubr_handler: SubroutineHandler<'a>,
-    stack: ArgumentsStack<'a>,
+    stack: ArgumentsStack,
     hint_count: u16,
     hint_mask_bytes: u16,
 }
@@ -155,7 +155,7 @@ impl<'a> Decompiler<'a> {
 /// A type of instruction in a charstring program.
 #[derive(Debug)]
 pub enum Instruction<'a> {
-    Operand(Number<'a>),
+    Operand(Number),
     Operator(Operator),
     HintMask(&'a [u8]),
 }

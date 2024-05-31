@@ -6,11 +6,11 @@ use crate::Result;
 const MAX_OPERANDS_LEN: usize = 48;
 
 /// An arguments stack for interpreting CFF DICTs and charstrings.
-pub struct ArgumentsStack<'a> {
-    pub data: Vec<Number<'a>>,
+pub struct ArgumentsStack {
+    pub data: Vec<Number>,
 }
 
-impl<'a> ArgumentsStack<'a> {
+impl ArgumentsStack {
     /// Create a new argument stack.
     pub fn new() -> Self {
         Self { data: vec![] }
@@ -24,7 +24,7 @@ impl<'a> ArgumentsStack<'a> {
 
     /// Push a new number onto the stack.
     #[inline]
-    pub fn push(&mut self, n: Number<'a>) -> Result<()> {
+    pub fn push(&mut self, n: Number) -> Result<()> {
         if self.len() == MAX_OPERANDS_LEN {
             Err(CFFError)
         } else {

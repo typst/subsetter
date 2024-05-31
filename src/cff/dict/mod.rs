@@ -16,7 +16,7 @@ pub struct DictionaryParser<'a> {
     /// Offset to the last operands start.
     operands_offset: usize,
     /// Actual operands.
-    operands: &'a mut [Number<'a>],
+    operands: &'a mut [Number],
     /// The number of operands in the `operands` array.
     operands_len: u16,
 }
@@ -24,7 +24,7 @@ pub struct DictionaryParser<'a> {
 impl<'a> DictionaryParser<'a> {
     /// Create a new dictionary parser.
     #[inline]
-    pub fn new(data: &'a [u8], operands_buffer: &'a mut [Number<'a>]) -> Self {
+    pub fn new(data: &'a [u8], operands_buffer: &'a mut [Number]) -> Self {
         DictionaryParser {
             data,
             offset: 0,
@@ -110,6 +110,25 @@ impl<'a> DictionaryParser<'a> {
         let operands = self.operands();
         if operands.len() == 1 {
             usize::try_from(operands[0].as_u32()?).ok()
+        } else {
+            None
+        }
+    }
+
+    /// Parse an offset from the current operands.
+    #[inline]
+    pub fn parse_font_matrix(&mut self) -> Option<[Number; 6]> {
+        self.parse_operands()?;
+        let operands = self.operands();
+        if operands.len() == 6 {
+            Some([
+                operands[0].clone(),
+                operands[1].clone(),
+                operands[2].clone(),
+                operands[3].clone(),
+                operands[4].clone(),
+                operands[5].clone(),
+            ])
         } else {
             None
         }

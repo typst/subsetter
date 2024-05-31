@@ -103,8 +103,6 @@ struct Offsets {
     private_dicts_offsets: Vec<DeferredOffset>,
     fd_array_offset: DeferredOffset,
     fd_select_offset: DeferredOffset,
-    registry_sid: StringId,
-    ordering_sid: StringId,
 }
 
 impl Offsets {
@@ -117,8 +115,6 @@ impl Offsets {
             private_dicts_offsets: vec![DUMMY_OFFSET; num_font_dicts as usize],
             fd_select_offset: DUMMY_OFFSET,
             fd_array_offset: DUMMY_OFFSET,
-            registry_sid: StringId(0),
-            ordering_sid: StringId(0),
         }
     }
 
@@ -130,16 +126,14 @@ impl Offsets {
             private_dicts_offsets: vec![DUMMY_OFFSET],
             fd_select_offset: DUMMY_OFFSET,
             fd_array_offset: DUMMY_OFFSET,
-            registry_sid: StringId(0),
-            ordering_sid: StringId(0),
         }
     }
 }
 
 pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let table = Table::parse(ctx).unwrap();
+    let sid_remapper = get_sid_remapper(&table).ok_or(SubsetError)?;
 
-    let sid_remapper = get_sid_remapper(&table, &ctx.mapper);
     // NOTE: The charstrings are already in the new order that they need be written in.
     let (char_strings, fd_remapper) = subset_charstrings(&table, &ctx.mapper)?;
 
@@ -155,42 +149,20 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
         w.write(table.header);
         // Name INDEX
         w.write(table.names);
-
-        // Get the strings that will be written into the String INDEX. This is necessary to do
-        // now because we need to push the strings for ROS (since SID-keyed fonts, which will be
-        // converted to CID-keyed, don't have this operator). So we need to do this before writing
-        // the Top DICT Index.
-        let new_strings = {
-            let mut new_strings = vec![];
-            for sid in sid_remapper.sids() {
-                new_strings.push(
-                    table
-                        .strings
-                        .get(sid.0.checked_sub(StringId::STANDARD_STRING_LEN).unwrap()
-                            as u32)
-                        .unwrap()
-                        .to_vec(),
-                );
-            }
-
-            offsets.registry_sid =
-                StringId(new_strings.len() as u16 + StringId::STANDARD_STRING_LEN);
-            new_strings.push(Vec::from(b"Adobe"));
-            offsets.ordering_sid =
-                StringId(new_strings.len() as u16 + StringId::STANDARD_STRING_LEN);
-            new_strings.push(Vec::from(b"Identity"));
-            new_strings
-        };
-
         // Top DICT INDEX
         rewrite_top_dict_index(
-            table.top_dict_data.top_dict_raw,
+            &table.top_dict_data,
             &mut offsets,
             &sid_remapper,
             &mut w,
         )?;
         // String INDEX
-        let index = create_index(new_strings)?;
+        let index = create_index(
+            sid_remapper
+                .sorted_strings()
+                .map(|s| Vec::from(s.as_ref()))
+                .collect::<Vec<_>>(),
+        )?;
         w.extend(&index.data);
         // Global Subr INDEX
         // We desubroutinized, so no global subroutines and thus empty index.
@@ -200,6 +172,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
         // Charsets
         rewrite_charset(&ctx.mapper, &mut w)?;
 
+        // Private dicts.
         match &table.font_kind {
             FontKind::Sid(sid) => {
                 // Since we convert SID-keyed to CID-keyed, we write one private dict with index 0.
@@ -328,30 +301,48 @@ fn subset_charstrings<'a>(
 }
 
 /// Get the SID remapper
-fn get_sid_remapper(table: &Table, gid_remapper: &GlyphRemapper) -> SidRemapper {
+fn get_sid_remapper<'a>(table: &Table<'a>) -> Option<SidRemapper<'a>> {
     let mut sid_remapper = SidRemapper::new();
-    for sid in &table.top_dict_data.used_sids {
-        sid_remapper.remap(*sid);
+    sid_remapper.remap(b"Adobe");
+    sid_remapper.remap(b"Identity");
+
+    let mut remap_sid = |sid: StringId| {
+        if sid.0 < StringId::STANDARD_STRING_LEN {
+            return Some(());
+        } else {
+            let string =
+                table.strings.get((sid.0 - StringId::STANDARD_STRING_LEN) as u32)?;
+            sid_remapper.remap_with_old_sid(sid, Cow::Borrowed(string));
+
+            Some(())
+        }
+    };
+
+    if let Some(copyright) = table.top_dict_data.copyright {
+        remap_sid(copyright)?;
+    }
+
+    if let Some(font_name) = table.top_dict_data.font_name {
+        remap_sid(font_name)?;
+    }
+
+    if let Some(notice) = table.top_dict_data.notice {
+        remap_sid(notice)?;
     }
 
     match table.font_kind {
-        FontKind::Sid(_) => {
-            for gid in gid_remapper.remapped_gids() {
-                if let Some(sid) = table.charset.gid_to_sid(gid) {
-                    sid_remapper.remap(sid);
-                }
-            }
-        }
+        // Since we turn SIDs into GIDs, nothing to do here.
+        FontKind::Sid(_) => {}
         FontKind::Cid(ref cid) => {
             for font_dict in &cid.font_dicts {
-                if let Some(sid) = font_dict.font_name_sid {
-                    sid_remapper.remap(sid);
+                if let Some(font_name) = font_dict.font_name {
+                    remap_sid(font_name)?;
                 }
             }
         }
     }
 
-    sid_remapper
+    Some(sid_remapper)
 }
 
 /// A high-level container that contains important information we need when
