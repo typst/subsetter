@@ -106,12 +106,6 @@ pub fn rewrite_top_dict_index(
         sub_w.write(FONT_NAME);
     }
 
-    sub_w.write(Number::zero());
-    sub_w.write(UNDERLINE_POSITION);
-
-    sub_w.write(Number::zero());
-    sub_w.write(UNDERLINE_THICKNESS);
-
     sub_w.write(top_dict_data.font_matrix.as_ref().unwrap_or(&[
         Number::from_f32(0.001),
         Number::zero(),

@@ -14,7 +14,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0x70cf622f"/>
+    <checkSumAdjustment value="0x3a41a448"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -97,24 +97,20 @@
     <minor value="0"/>
     <CFFFont name="LMRoman10-Regular">
       <ROS Registry="Adobe" Order="Identity" Supplement="0"/>
-      <version value="2.004"/>
       <Notice value="Copyright 2003, 2009 B. Jackowski and J. M. Nowacki (on behalf of TeX users groups). This work is released under the GUST Font License --  see http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt for details."/>
-      <FullName value="LMRoman10-Regular"/>
-      <FamilyName value="LMRoman10"/>
-      <Weight value="Normal"/>
       <isFixedPitch value="0"/>
       <ItalicAngle value="0"/>
-      <UnderlinePosition value="-146"/>
-      <UnderlineThickness value="40"/>
+      <UnderlinePosition value="-100"/>
+      <UnderlineThickness value="50"/>
       <PaintType value="0"/>
       <CharstringType value="2"/>
       <FontMatrix value="0.001 0 0 0.001 0 0"/>
-      <FontBBox value="-430 -290 1417 1127"/>
+      <FontBBox value="0 0 0 0"/>
       <StrokeWidth value="0"/>
       <CIDFontVersion value="0"/>
       <CIDFontRevision value="0"/>
       <CIDFontType value="0"/>
-      <CIDCount value="8720"/>
+      <CIDCount value="65535"/>
       <!-- charset is dumped separately as the 'GlyphOrder' element -->
       <FDSelect format="0"/>
       <FDArray>

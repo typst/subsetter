@@ -73,14 +73,6 @@ pub fn rewrite_font_dict_index(
         let dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
         let mut w = Writer::new();
 
-        // We write some values by default. We do this because ghostscript seems to do it as well.
-        // Not sure if there is a good reason for that, but best to just mimic it.
-        w.write(Number::zero());
-        w.write(UNDERLINE_POSITION);
-
-        w.write(Number::zero());
-        w.write(UNDERLINE_THICKNESS);
-
         w.write(dict.font_matrix.as_ref().unwrap_or(&[
             Number::one(),
             Number::zero(),

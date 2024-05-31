@@ -23,7 +23,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0x872fbe4f"/>
+    <checkSumAdjustment value="0x7627ceb7"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -116,19 +116,16 @@
     <CFFFont name="NotoSansCJKsc-Regular">
       <ROS Registry="Adobe" Order="Identity" Supplement="0"/>
       <Notice value="Copyright 2014-2021 Adobe (http://www.adobe.com/). Noto is a trademark of Google Inc."/>
-      <FullName value="Noto Sans CJK SC Regular"/>
-      <FamilyName value="Noto Sans CJK SC"/>
-      <Weight value="Regular"/>
       <isFixedPitch value="0"/>
       <ItalicAngle value="0"/>
-      <UnderlinePosition value="-150"/>
+      <UnderlinePosition value="-100"/>
       <UnderlineThickness value="50"/>
       <PaintType value="0"/>
       <CharstringType value="2"/>
       <FontMatrix value="0.001 0 0 0.001 0 0"/>
-      <FontBBox value="-1002 -1048 2928 1808"/>
+      <FontBBox value="0 0 0 0"/>
       <StrokeWidth value="0"/>
-      <CIDFontVersion value="2.00399995"/>
+      <CIDFontVersion value="0"/>
       <CIDFontRevision value="0"/>
       <CIDFontType value="0"/>
       <CIDCount value="65535"/>
@@ -137,6 +134,7 @@
       <FDArray>
         <FontDict index="0">
           <FontName value="NotoSansCJKsc-Regular-Generic"/>
+          <FontMatrix value="1 0 0 1 0 0"/>
           <Private>
             <BlueValues value="-250 -250 1100 1100"/>
             <BlueScale value="0.039625"/>
@@ -156,6 +154,7 @@
         </FontDict>
         <FontDict index="1">
           <FontName value="NotoSansCJKsc-Regular-Hangul"/>
+          <FontMatrix value="1 0 0 1 0 0"/>
           <Private>
             <BlueValues value="-250 -250 1100 1100"/>
             <BlueScale value="0.039625"/>
@@ -175,6 +174,7 @@
         </FontDict>
         <FontDict index="2">
           <FontName value="NotoSansCJKsc-Regular-Ideographs"/>
+          <FontMatrix value="1 0 0 1 0 0"/>
           <Private>
             <BlueValues value="-250 -250 1100 1100"/>
             <BlueScale value="0.039625"/>
@@ -194,6 +194,7 @@
         </FontDict>
         <FontDict index="3">
           <FontName value="NotoSansCJKsc-Regular-Proportional"/>
+          <FontMatrix value="1 0 0 1 0 0"/>
           <Private>
             <BlueValues value="-13 0 543 557 733 747"/>
             <OtherBlues value="-250 -229"/>
