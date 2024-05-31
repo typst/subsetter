@@ -19,7 +19,7 @@ mod font_tools;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 const FONT_TOOLS_REF: bool = false;
-const OVERWRITE_REFS: bool = true;
+const OVERWRITE_REFS: bool = false;
 
 struct TestContext {
     font: Vec<u8>,
@@ -166,6 +166,68 @@ fn parse_gids(gids: &str, max: u16) -> Vec<u16> {
     }
 
     gids
+}
+
+fn face_metrics(font_file: &str, gids: &str) {
+    let ctx = get_test_context(font_file, gids).unwrap();
+    let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
+    let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
+
+    assert_eq!(old_face.width(), new_face.width(), "face width didn't match");
+    assert_eq!(old_face.height(), new_face.height(), "face height didn't match");
+    assert_eq!(old_face.ascender(), new_face.ascender(), "face ascender didn't match");
+    assert_eq!(old_face.descender(), new_face.descender(), "face descender didn't match");
+    assert_eq!(old_face.style(), new_face.style(), "face style didn't match");
+    assert_eq!(
+        old_face.capital_height(),
+        new_face.capital_height(),
+        "face capital didn't match"
+    );
+    assert_eq!(old_face.is_italic(), new_face.is_italic(), "face italic didn't match");
+    assert_eq!(old_face.is_bold(), new_face.is_bold(), "face bold didn't match");
+    assert_eq!(
+        old_face.is_monospaced(),
+        new_face.is_monospaced(),
+        "face monospaced didn't match"
+    );
+    assert_eq!(old_face.is_oblique(), new_face.is_oblique(), "face oblique didn't match");
+    assert_eq!(old_face.is_regular(), new_face.is_regular(), "face regular didn't match");
+    assert_eq!(old_face.x_height(), new_face.x_height(), "face x_height didn't match");
+    assert_eq!(
+        old_face.strikeout_metrics(),
+        new_face.strikeout_metrics(),
+        "face strikeout metrics didn't match"
+    );
+    assert_eq!(
+        old_face.subscript_metrics(),
+        new_face.subscript_metrics(),
+        "face subscript metrics didn't match"
+    );
+    assert_eq!(
+        old_face.superscript_metrics(),
+        new_face.superscript_metrics(),
+        "face superscript matrics didn't match"
+    );
+    assert_eq!(
+        old_face.typographic_ascender(),
+        new_face.typographic_ascender(),
+        "face typographic ascender didn't match"
+    );
+    assert_eq!(
+        old_face.typographic_descender(),
+        new_face.typographic_descender(),
+        "face typographic descender didn't match"
+    );
+    assert_eq!(
+        old_face.typographic_line_gap(),
+        new_face.typographic_line_gap(),
+        "face typographic line gap didn't match"
+    );
+    assert_eq!(
+        old_face.units_per_em(),
+        new_face.units_per_em(),
+        "face units per em didn't match"
+    );
 }
 
 fn glyph_metrics(font_file: &str, gids: &str) {
