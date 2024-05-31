@@ -19,7 +19,7 @@ mod font_tools;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 const FONT_TOOLS_REF: bool = false;
-const OVERWRITE_REFS: bool = true;
+const OVERWRITE_REFS: bool = false;
 
 struct TestContext {
     font: Vec<u8>,

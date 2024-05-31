@@ -135,12 +135,15 @@ pub fn rewrite_fd_index(
 
 /// Write the FD INDEX for CID-keyed fonts. They all get mapped to the font DICT 0.
 pub fn generate_fd_index(gid_remapper: &GlyphRemapper, w: &mut Writer) -> Result<()> {
-    // We always use format 0, since it's the simplest.
+    // Format
+    w.write::<u8>(3);
+    // nRanges
+    w.write::<u16>(1);
+    // first
+    w.write::<u16>(0);
+    // fd index
     w.write::<u8>(0);
-
-    for _ in 0..gid_remapper.num_gids() {
-        w.write::<u8>(0);
-    }
-
+    // sentinel
+    w.write::<u16>(gid_remapper.num_gids());
     Ok(())
 }

@@ -121,6 +121,18 @@ pub fn rewrite_font_dict_index(
 pub fn generate_font_dict_index(offsets: &mut Offsets, w: &mut Writer) -> Result<()> {
     let mut sub_w = Writer::new();
 
+    // Similarly to ghostscript, write a default font matrix. Fixes issues for some printers
+    // https://leahneukirchen.org/blog/archive/2022/10/50-blank-pages-or-black-box-debugging-of-pdf-rendering-in-printers.html
+    sub_w.write(&[
+        Number::one(),
+        Number::zero(),
+        Number::zero(),
+        Number::one(),
+        Number::zero(),
+        Number::zero(),
+    ]);
+    sub_w.write(FONT_MATRIX);
+
     // Write the length and offset of the private dict.
     // Private dicts have already been written, so the offsets are already correct.
     // This means that these two offsets are a bit special compared to the others, since
@@ -140,7 +152,7 @@ pub fn generate_font_dict_index(offsets: &mut Offsets, w: &mut Writer) -> Result
         .value
         .write_as_5_bytes(&mut sub_w);
 
-    sub_w.write(dict::operators::PRIVATE);
+    sub_w.write(PRIVATE);
     w.write(create_index(vec![sub_w.finish()])?);
 
     Ok(())

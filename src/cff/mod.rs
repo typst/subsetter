@@ -132,10 +132,11 @@ impl Offsets {
 
 pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let table = Table::parse(ctx).unwrap();
-    let sid_remapper = get_sid_remapper(&table).ok_or(SubsetError)?;
 
     // NOTE: The charstrings are already in the new order that they need be written in.
     let (char_strings, fd_remapper) = subset_charstrings(&table, &ctx.mapper)?;
+
+    let sid_remapper = get_sid_remapper(&table, &fd_remapper).ok_or(SubsetError)?;
 
     let mut offsets = match &table.font_kind {
         FontKind::Sid(_) => Offsets::new_sid(),
@@ -145,8 +146,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let mut subsetted_font = {
         let mut w = Writer::new();
         // HEADER
-        // TODO: Update offsize
-        w.write(table.header);
+        w.write([1u8, 0, 4, 4]);
         // Name INDEX
         w.write(table.names);
         // Top DICT INDEX
@@ -301,7 +301,10 @@ fn subset_charstrings<'a>(
 }
 
 /// Get the SID remapper
-fn get_sid_remapper<'a>(table: &Table<'a>) -> Option<SidRemapper<'a>> {
+fn get_sid_remapper<'a>(
+    table: &Table<'a>,
+    fd_remapper: &FontDictRemapper,
+) -> Option<SidRemapper<'a>> {
     let mut sid_remapper = SidRemapper::new();
     sid_remapper.remap(b"Adobe");
     sid_remapper.remap(b"Identity");
@@ -334,7 +337,9 @@ fn get_sid_remapper<'a>(table: &Table<'a>) -> Option<SidRemapper<'a>> {
         // Since we turn SIDs into GIDs, nothing to do here.
         FontKind::Sid(_) => {}
         FontKind::Cid(ref cid) => {
-            for font_dict in &cid.font_dicts {
+            for font_dict in fd_remapper.sorted_iter() {
+                let font_dict = cid.font_dicts.get(font_dict as usize)?;
+
                 if let Some(font_name) = font_dict.font_name {
                     remap_sid(font_name)?;
                 }

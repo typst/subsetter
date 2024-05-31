@@ -14,7 +14,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0x3a41a448"/>
+    <checkSumAdjustment value="0xbb4babf0"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -112,9 +112,10 @@
       <CIDFontType value="0"/>
       <CIDCount value="65535"/>
       <!-- charset is dumped separately as the 'GlyphOrder' element -->
-      <FDSelect format="0"/>
+      <FDSelect format="3"/>
       <FDArray>
         <FontDict index="0">
+          <FontMatrix value="1 0 0 1 0 0"/>
           <Private>
             <BlueValues value="-22 0 431 448 666 677 683 705"/>
             <BlueScale value="0.04546"/>

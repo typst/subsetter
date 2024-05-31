@@ -102,7 +102,7 @@ impl Writeable for RealNumber {
     fn write(&self, w: &mut Writer) {
         let mut nibbles = vec![];
 
-        let string_form = format!("{:e}", self.0);
+        let string_form = format!("{}", self.0);
         let mut r = Reader::new(string_form.as_bytes());
 
         while !r.at_end() {
@@ -111,16 +111,6 @@ impl Writeable for RealNumber {
             match byte {
                 b'0'..=b'9' => nibbles.push(byte - 48),
                 b'.' => nibbles.push(0xA),
-                b'e' => {
-                    let next = r.peak::<u8>().unwrap();
-
-                    if next == b'-' {
-                        r.read::<u8>().unwrap();
-                        nibbles.push(0xC);
-                    } else {
-                        nibbles.push(0xb);
-                    }
-                }
                 b'-' => nibbles.push(0xE),
                 _ => unreachable!(),
             }
