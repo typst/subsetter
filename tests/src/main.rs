@@ -1,6 +1,6 @@
 use crate::Inst::{CurveTo, LineTo, QuadTo};
 use freetype::face::LoadFlag;
-use skrifa::outline::{DrawSettings, HintingInstance, HintingMode, OutlinePen};
+use skrifa::outline::{DrawSettings, OutlinePen};
 use skrifa::prelude::{LocationRef, Size};
 use skrifa::raw::TableProvider;
 use skrifa::MetadataProvider;
@@ -216,46 +216,27 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
     let old_face = skrifa::FontRef::new(&ctx.font).unwrap();
     let new_face = skrifa::FontRef::new(&ctx.subset).unwrap();
-    let hinting_instance_old = HintingInstance::new(
-        &old_face.outline_glyphs(),
-        Size::new(150.0),
-        LocationRef::default(),
-        HintingMode::Smooth { lcd_subpixel: None, preserve_linear_metrics: false },
-    )
-    .unwrap();
-
-    let hinting_instance_new = HintingInstance::new(
-        &new_face.outline_glyphs(),
-        Size::new(150.0),
-        LocationRef::default(),
-        HintingMode::Smooth { lcd_subpixel: None, preserve_linear_metrics: false },
-    )
-    .unwrap();
-
-    let mut sink1 = Sink(vec![]);
-    let mut sink2 = Sink(vec![]);
 
     let num_glyphs = old_face.maxp().unwrap().num_glyphs();
 
     for glyph in (0..num_glyphs).filter(|g| ctx.gids.contains(g)) {
+        let mut sink1 = Sink(vec![]);
+        let mut sink2 = Sink(vec![]);
+
         let new_glyph = ctx.mapper.get(glyph).unwrap();
-        let settings = DrawSettings::hinted(&hinting_instance_old, true);
+        let settings = DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
 
         if let Some(glyph1) = old_face.outline_glyphs().get(skrifa::GlyphId::new(glyph)) {
             glyph1.draw(settings, &mut sink1).unwrap();
 
-            let settings = DrawSettings::hinted(&hinting_instance_new, true);
+            let settings =
+                DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
             let glyph2 = new_face
                 .outline_glyphs()
                 .get(skrifa::GlyphId::new(new_glyph))
                 .expect(&format!("failed to find glyph {} in new face", glyph));
             glyph2.draw(settings, &mut sink2).unwrap();
-
-            assert_eq!(
-                sink1, sink2,
-                "glyph {} drawn with skrifa didn't match.",
-                glyph
-            );
+            assert_eq!(sink1, sink2, "glyph {} drawn with skrifa didn't match.", glyph);
         }
     }
 }
