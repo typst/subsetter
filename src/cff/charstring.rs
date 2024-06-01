@@ -38,7 +38,7 @@ impl<'a> Decompiler<'a> {
     /// Decompile a charstring with the given decompiler.
     pub fn decompile(mut self, charstring: CharString<'a>) -> Result<Program<'a>> {
         let mut program = Program::default();
-        self.decompile_inner(charstring, &mut program)?;
+        self.decompile_inner(charstring, &mut program, 1)?;
         Ok(program)
     }
 
@@ -46,7 +46,12 @@ impl<'a> Decompiler<'a> {
         &mut self,
         charstring: CharString<'a>,
         program: &mut Program<'a>,
+        depth: u8,
     ) -> Result<()> {
+        if depth > 64 {
+            return Err(CFFError);
+        }
+
         let mut r = Reader::new(charstring);
 
         while !r.at_end() {
@@ -57,7 +62,7 @@ impl<'a> Decompiler<'a> {
             // Numbers
             if matches!(op, 28 | 32..=255) {
                 let number = Number::parse_char_string_number(&mut r).ok_or(CFFError)?;
-                self.stack.push(number.clone())?;
+                self.stack.push(number)?;
                 program.push(Instruction::Operand(number));
                 continue;
             }
@@ -95,26 +100,25 @@ impl<'a> Decompiler<'a> {
                     // Pop the subroutine index from the program.
                     program.0.pop();
 
-                    // TODO: Add depth limit / detect recursions
                     let biased_index =
                         self.stack.pop().and_then(|n| n.as_i32()).ok_or(CFFError)?;
                     let gsubr = self
                         .gsubr_handler
                         .get_with_biased(biased_index)
                         .ok_or(CFFError)?;
-                    self.decompile_inner(gsubr, program)?;
+                    self.decompile_inner(gsubr, program, depth + 1)?;
                 }
                 CALL_LOCAL_SUBROUTINE => {
                     // Pop the subroutine index from the program.
                     program.0.pop();
-                    // TODO: Add depth limit / detect recursions
+
                     let biased_index =
                         self.stack.pop().and_then(|n| n.as_i32()).ok_or(CFFError)?;
                     let lsubr = self
                         .lsubr_handler
                         .get_with_biased(biased_index)
                         .ok_or(CFFError)?;
-                    self.decompile_inner(lsubr, program)?;
+                    self.decompile_inner(lsubr, program, depth + 1)?;
                 }
                 HINT_MASK | COUNTER_MASK => {
                     program.push(Instruction::Operator(operator));

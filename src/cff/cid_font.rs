@@ -107,7 +107,7 @@ impl FDSelect<'_> {
     }
 }
 
-/// Rewrite the FD INDEX.
+/// Rewrite the FD INDEX for CID-keyed font.
 pub fn rewrite_fd_index(
     gid_remapper: &GlyphRemapper,
     fd_select: FDSelect,
@@ -123,20 +123,5 @@ pub fn rewrite_fd_index(
         w.write(new_fd);
     }
 
-    Ok(())
-}
-
-/// Write the FD INDEX for CID-keyed fonts. They all get mapped to the font DICT 0.
-pub fn generate_fd_index(gid_remapper: &GlyphRemapper, w: &mut Writer) -> Result<()> {
-    // Format
-    w.write::<u8>(3);
-    // nRanges
-    w.write::<u16>(1);
-    // first
-    w.write::<u16>(0);
-    // fd index
-    w.write::<u8>(0);
-    // sentinel
-    w.write::<u16>(gid_remapper.num_gids());
     Ok(())
 }

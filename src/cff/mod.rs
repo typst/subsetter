@@ -13,7 +13,7 @@ mod subroutines;
 use super::*;
 use crate::cff::charset::rewrite_charset;
 use crate::cff::charstring::Decompiler;
-use crate::cff::cid_font::{generate_fd_index, rewrite_fd_index, CIDMetadata};
+use crate::cff::cid_font::{rewrite_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::{generate_font_dict_index, rewrite_font_dict_index};
 use crate::cff::dict::private_dict::{rewrite_cid_private_dicts, rewrite_private_dict};
 use crate::cff::dict::top_dict::{
@@ -25,6 +25,7 @@ use crate::cff::sid_font::SIDMetadata;
 use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
 use crate::Error::{OverflowError, SubsetError};
 use number::{IntegerNumber, StringId};
+use sid_font::generate_fd_index;
 use std::cmp::PartialEq;
 use std::collections::BTreeSet;
 

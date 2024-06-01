@@ -5,10 +5,16 @@ use std::collections::{BTreeMap, HashMap};
 
 pub type FontDictRemapper = Remapper<u8, u8>;
 
+/// Remap old SIDs to new SIDs, and also allow the insertion of
+/// new strings.
 pub struct SidRemapper<'a> {
+    /// Next SID to be assigned.
     counter: StringId,
+    /// A map from SIDs to their corresponding string.
     sid_to_string: BTreeMap<StringId, Cow<'a, [u8]>>,
+    /// A map from strings to their corresponding SID (so the reverse of `sid_to_string`).
     string_to_sid: HashMap<Cow<'a, [u8]>, StringId>,
+    /// A map from old SIDs to new SIDs.
     old_sid_to_new_sid: HashMap<StringId, StringId>,
 }
 
@@ -26,10 +32,12 @@ impl<'a> SidRemapper<'a> {
         self.string_to_sid.get(string).copied()
     }
 
+    /// Get the new SID to a correpsonding old SID.
     pub fn get_new_sid(&self, sid: StringId) -> Option<StringId> {
         self.old_sid_to_new_sid.get(&sid).copied()
     }
 
+    /// Remap a string.
     pub fn remap(&mut self, string: impl Into<Cow<'a, [u8]>> + Clone) -> StringId {
         *self.string_to_sid.entry(string.clone().into()).or_insert_with(|| {
             let value = self.counter;
@@ -41,6 +49,7 @@ impl<'a> SidRemapper<'a> {
         })
     }
 
+    /// Remap an old SID and its corresponding string.
     pub fn remap_with_old_sid(
         &mut self,
         sid: StringId,
@@ -55,6 +64,7 @@ impl<'a> SidRemapper<'a> {
         }
     }
 
+    /// Returns an iterator over the strings, ordered by their new SID.
     pub fn sorted_strings(&self) -> impl Iterator<Item = &Cow<'_, [u8]>> + '_ {
         self.sid_to_string.values().into_iter()
     }

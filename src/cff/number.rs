@@ -5,10 +5,6 @@ use std::fmt::{Debug, Formatter};
 const FLOAT_STACK_LEN: usize = 64;
 const END_OF_FLOAT_FLAG: u8 = 0xf;
 
-/// We only store real numbers as the bytes they were parsed from
-/// because this way we can just rewrite them as is, and we don't need to
-/// write the logic for serializing a float from scratch. We can do this
-/// since we never need to actually manually construct a float. Only integer numbers.
 #[derive(Clone, Copy)]
 pub struct RealNumber(f32);
 
@@ -124,6 +120,7 @@ impl Writeable for RealNumber {
 
         // Prefix of fixed number.
         w.write::<u8>(30);
+
         for (first, second) in nibbles.chunks(2).map(|pair| (pair[0], pair[1])) {
             let num = (first << 4) | second;
             w.write(num);
@@ -229,6 +226,7 @@ impl Number {
     fn parse_number(r: &mut Reader, charstring_num: bool) -> Option<Number> {
         match r.peak::<u8>()? {
             30 => Some(Number::Real(RealNumber::parse(r)?)),
+            // FIXED only exists in charstrings.
             255 => {
                 if charstring_num {
                     return Some(Number::Fixed(FixedNumber::parse(r)?));
@@ -329,7 +327,6 @@ fn parse_float_nibble(nibble: u8, mut idx: usize, data: &mut [u8]) -> Option<usi
     Some(idx)
 }
 
-/// A type-safe wrapper for string ID.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug, Hash, Ord)]
 pub struct StringId(pub u16);
 

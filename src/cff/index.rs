@@ -20,14 +20,11 @@ impl IndexSize for u32 {
     }
 }
 
-/// Parse an index.
-#[inline]
 pub fn parse_index<'a, T: IndexSize>(r: &mut Reader<'a>) -> Option<Index<'a>> {
     let count = r.read::<T>()?;
     parse_index_impl(count.to_u32(), r)
 }
 
-#[inline(never)]
 fn parse_index_impl<'a>(count: u32, r: &mut Reader<'a>) -> Option<Index<'a>> {
     if count == 0 || count == core::u32::MAX {
         return Some(Index::default());
@@ -40,7 +37,6 @@ fn parse_index_impl<'a>(count: u32, r: &mut Reader<'a>) -> Option<Index<'a>> {
         offset_size,
     };
 
-    // Last offset indicates a Data Index size.
     match offsets.last() {
         Some(last_offset) => {
             let data = r.read_bytes(last_offset as usize)?;
@@ -50,14 +46,11 @@ fn parse_index_impl<'a>(count: u32, r: &mut Reader<'a>) -> Option<Index<'a>> {
     }
 }
 
-/// Skip an index.
-#[inline]
 pub fn skip_index<T: IndexSize>(r: &mut Reader) -> Option<()> {
     let count = r.read::<T>()?;
     skip_index_impl(count.to_u32(), r)
 }
 
-#[inline(never)]
 fn skip_index_impl(count: u32, r: &mut Reader) -> Option<()> {
     if count == 0 || count == core::u32::MAX {
         return Some(());
@@ -216,7 +209,7 @@ impl Readable<'_> for OffsetSize {
     }
 }
 
-/// An index that owns it's data.
+/// An index that owns its data.
 pub struct OwnedIndex {
     pub data: Vec<u8>,
     pub header_size: usize,
