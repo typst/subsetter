@@ -34,7 +34,7 @@ fn main() {
         "NotoColorEmojiCompatTest-Regular.ttf",
     ];
 
-    let paths = walkdir::WalkDir::new(env!("FONTS_DIR"))
+    let paths = walkdir::WalkDir::new(std::env::var("FONTS_DIR").unwrap())
         .into_iter()
         .map(|p| p.unwrap().path().to_path_buf())
         .filter(|p| {
