@@ -86,13 +86,15 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
 }
 
 /// A remapper that allows to assign a new ordering to a subset of glyphs.
+///
 /// For example, let's say that we want to subset a font that only contains the
 /// glyphs 4, 9 and 16. In this case, the remapper could yield a remapping
 /// that assigns the following glyph IDs:
-/// 0 -> 0 (The .notdef glyph will always be included)
-/// 4 -> 1
-/// 9 -> 2
-/// 16 -> 3
+/// - 0 -> 0 (The .notdef glyph will always be included)
+/// - 4 -> 1
+/// - 9 -> 2
+/// - 16 -> 3
+///
 /// This is necessary because a font needs to have a contiguous sequence of
 /// glyph IDs that start from 0, so we cannot just reuse the old ones, but we
 /// need to define a mapping.
@@ -100,7 +102,7 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
 pub struct GlyphRemapper(Remapper<u16, u16>);
 
 impl GlyphRemapper {
-    /// Create a new instance of a glyph remapper. .notdef will always be a member
+    /// Create a new instance of a glyph remapper. `.notdef` will always be a member
     /// of the subset.
     pub fn new() -> Self {
         let mut remapper = Remapper::new();
@@ -148,8 +150,10 @@ impl GlyphRemapper {
     /// Return an iterator that yields the old glyphs, in ascending order that
     /// is defined by the remapping. For example, if we perform the following remappings:
     /// 3, 39, 8, 3, 10, 2
+    ///
     /// Then the iterator will yield the following items in the order below. The order
     /// also implicitly defines the glyph IDs in the new mapping:
+    ///
     /// 0 (0), 3 (1), 39 (2), 8 (3), 10 (4), 2 (5)
     pub fn remapped_gids(&self) -> impl Iterator<Item = u16> + '_ {
         self.0.backward.iter().copied()

@@ -1,39 +1,73 @@
 /*!
-Reduces the size and coverage of OpenType fonts with TrueType or CFF outlines.
+Reduces the size and coverage of OpenType fonts with TrueType or CFF outlines for embedding
+in PDFs. You can in general expect very good results in terms of font size, as most of the things
+that can be subsetted are also subsetted.
+
+# Scope
+**Note that the resulting font subsets will most likely be unusable in any other contexts than PDF writing,
+since a lot of information will be removed from the font which is not necessary in PDFs, but is
+necessary in other contexts.** This is on purpose, and for now, there are no plans to expand the
+scope of this crate to become a general purpose subsetter, as this is a massive undertaking and
+will make the already complex codebase even more complex.
+
+In the future,
+[klippa](https://github.com/googlefonts/fontations/tree/main/klippa) will hopefully fill the gap
+of a general-purpose subsetter in the Rust ecosystem.
+
+# Notes
+A couple of important notes if you want to use this crate in combination with your own pdf writer:
+
+- You must write your fonts as a CID font. This is because we remove the `cmap` table from the font,
+so you must provide your own cmap table in the PDF.
+- Copyright information in the font will be retained.
+- When writing a CID font in PDF, CIDs must be used to address glyphs. This can be pretty tricky,
+because the meaning of CID depends on the type of font you are embedding (see the PDF specification
+for more information). The subsetter will convert SID-keyed fonts to CID-keyed ones and an identity
+mapping from GID to CID for all fonts, regardless of the previous mapping. Because of this, you can
+always use the remapped GID as the CID for a glyph, and do not need to worry about the type of font
+you are embedding.
 
 # Example
-In the example below, we remove all glyphs except the ones with IDs 68, 69, 70.
-Those correspond to the letters 'a', 'b' and 'c'.
+In the example below, we remove all glyphs except the ones with IDs 68, 69, 70 from Noto Sans.
+Those correspond to the letters 'a', 'b' and 'c'. We then save the resulting font to disk.
 
 ```
-// use subsetter::{subset, Profile};
-//
-// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-// // Read the raw font data.
-// let data = std::fs::read("fonts/NotoSans-Regular.ttf")?;
-//
-// // Keep only three glyphs and the OpenType tables
-// // required for embedding the font in a PDF file.
-// let glyphs = &[68, 69, 70];
-// let profile = Profile::pdf(glyphs);
-// let sub = subset(&data, 0, profile)?;
-//
-// // Write the resulting file.
-// std::fs::write("target/Noto-Small.ttf", sub)?;
-// # Ok(())
-// # }
+use subsetter::{subset, GlyphRemapper};
+
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+// Read the raw font data.
+let data = std::fs::read("fonts/NotoSans-Regular.ttf")?;
+
+// These are the glyphs we want to keep.
+let glyphs = &[68, 69, 70];
+
+// Create a new glyph remapper that remaps our glyphs to new glyph IDs. This is necessary because
+// glyph IDs in fonts must be consecutive. So if we only include the glyphs 68, 69, 70 and remove all
+// other glyph IDs, in the new font they will have the glyph IDs 1, 2, 3.
+let mut remapper = GlyphRemapper::new();
+for glyph in glyphs {
+    remapper.remap(*glyph);
+}
+
+// Create the subset.
+let sub = subset(&data, 0, &remapper)?;
+
+// This is how you can access the new glyph ID of a glyph in the old font.
+for glyph in glyphs {
+    println!("Glyph {} has the ID {} in the new font", *glyph, remapper.get(*glyph).unwrap());
+}
+
+// Write the resulting file.
+std::fs::write("target/Noto-Small.ttf", sub)?;
+# Ok(())
+# }
 ```
 
-Notably, this subsetter does not really remove glyphs, just their outlines. This
-means that you don't have to worry about changed glyphs IDs. However, it also
-means that the resulting font won't always be as small as possible. To somewhat
-remedy this, this crate sometimes at least zeroes out unused data that it cannot
-fully remove. This helps if the font gets compressed, for example when embedding
-it in a PDF file.
-
-In the above example, the original font was 375 KB (188 KB zipped) while the
-resulting font is 36 KB (5 KB zipped).
+In the above example, the original font was 556 KB, while the
+resulting font is 1 KB.
 */
+
+// TODO: Add example that shows how to use it in combination with PDF.
 
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
@@ -56,7 +90,7 @@ use crate::Error::{MalformedFont, UnknownKind};
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display, Formatter};
 
-/// Subset a font face to include less glyphs and tables.
+/// Subset the font face to include only the necessary glyphs and tables.
 ///
 /// - The `data` must be in the OpenType font format.
 /// - The `index` is only relevant if the data contains a font collection
