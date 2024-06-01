@@ -34,7 +34,6 @@ it in a PDF file.
 In the above example, the original font was 375 KB (188 KB zipped) while the
 resulting font is 36 KB (5 KB zipped).
 */
-// TODO: Update code examples, README and look at documentation again.
 
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
@@ -81,7 +80,7 @@ fn prepare_context(
     };
 
     if kind == FontKind::TrueType {
-        glyf::glyph_closure(&face, &mut gid_remapper)?;
+        glyf::closure(&face, &mut gid_remapper)?;
     }
 
     Ok(Context {
@@ -104,7 +103,6 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
     // - CMAP: CID fonts in PDF define their own cmaps, so we don't need to include them in the font.
     // - GASP: Not mandated by PDF specification, and ghostscript also seems to exclude them.
     // - OS2: Not mandated by PDF specification, and ghostscript also seems to exclude them.
-    // it in the font program itself (see page 468 in the PDF spec.)
 
     if ctx.kind == FontKind::TrueType {
         // LOCA will be handled by GLYF
@@ -165,7 +163,7 @@ fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
     Ok(Face { data, records })
 }
 
-/// Construct a brand new font.
+/// Construct a brand-new font.
 fn construct(mut ctx: Context) -> Vec<u8> {
     ctx.tables.sort_by_key(|&(tag, _)| tag);
 
@@ -277,16 +275,6 @@ impl<'a> Context<'a> {
             Tag::HHEA => panic!("handled by hmtx"),
             Tag::HMTX => hmtx::subset(self)?,
             Tag::POST => post::subset(self)?,
-            // TODO: cmap can actually also be dropped for PDF since we use
-            // CID-keyed fonts.
-            // "If used with a simple font dictionary, the font
-            // program must additionally contain a “cmap” table
-            // defining one or more encodings, as discussed in
-            // “Encodings for TrueType Fonts” on page 429. If
-            // used with a CIDFont dictionary, the “cmap” table
-            // is not needed, since the mapping from character codes
-            // to glyph descriptions is provided separately.
-            // Tag::CMAP => cmap::subset(self)?,
             Tag::MAXP => maxp::subset(self)?,
             Tag::NAME => name::subset(self)?,
             _ => self.push(tag, data),
@@ -313,7 +301,7 @@ struct Face<'a> {
 
 impl<'a> Face<'a> {
     fn table(&self, tag: Tag) -> Option<&'a [u8]> {
-        let i = self.records.iter().position(|record| record.tag == tag)?;
+        let i = self.records.binary_search_by(|record| record.tag.cmp(&tag)).ok()?;
         let record = self.records.get(i)?;
         let start = record.offset as usize;
         let end = start + (record.length as usize);

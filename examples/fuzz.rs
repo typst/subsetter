@@ -17,7 +17,7 @@ use subsetter::{subset, GlyphRemapper};
 use ttf_parser::GlyphId;
 
 // Note that this is not really meant as an example for how to use this crate, but
-// rather just so that we can conveniently run a fuzzer.
+// rather just so that we can conveniently run the fuzzer.
 
 const NUM_ITERATIONS: usize = 200;
 
@@ -320,29 +320,6 @@ fn glyph_outlines_ttf_parser(
 
     return Ok(());
 }
-
-// fn glyph_outlines_freetype(font_file: &str, gids: &str) {
-//     let ctx = get_test_context(font_file, gids).unwrap();
-//     let library = freetype::Library::init().unwrap();
-//     let old_face = library.new_memory_face2(ctx.font, 0).unwrap();
-//     let new_face = library.new_memory_face2(ctx.subset, 0).unwrap();
-//     let num_glyphs = old_face.num_glyphs() as u16;
-//
-//     for glyph in (0..num_glyphs).filter(|g| ctx.gids.contains(g)) {
-//         let new_glyph = ctx.mapper.get(glyph).unwrap();
-//
-//         old_face.load_glyph(glyph as u32, LoadFlag::DEFAULT).unwrap();
-//         let old_outline = old_face.glyph().outline().unwrap();
-//
-//         new_face.load_glyph(new_glyph as u32, LoadFlag::DEFAULT).unwrap();
-//         let new_outline = new_face.glyph().outline().unwrap();
-//
-//         let sink1 = Sink::from_freetype(&old_outline);
-//         let sink2 = Sink::from_freetype(&new_outline);
-//
-//         assert_eq!(sink1, sink2, "glyph {} drawn with freetype didn't match.", glyph);
-//     }
-// }
 
 #[derive(Debug, Default, PartialEq)]
 struct Sink(Vec<Inst>);

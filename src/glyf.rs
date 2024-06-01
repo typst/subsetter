@@ -12,7 +12,7 @@
 use super::*;
 
 /// Form the glyph closure of all glyphs in `gid_set`.
-pub fn glyph_closure(face: &Face, glyph_remapper: &mut GlyphRemapper) -> Result<()> {
+pub fn closure(face: &Face, glyph_remapper: &mut GlyphRemapper) -> Result<()> {
     let table = Table::new(face).ok_or(MalformedFont)?;
 
     let mut process_glyphs = glyph_remapper.remapped_gids().collect::<Vec<_>>();
