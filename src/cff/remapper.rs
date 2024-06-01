@@ -66,7 +66,7 @@ impl<'a> SidRemapper<'a> {
 
     /// Returns an iterator over the strings, ordered by their new SID.
     pub fn sorted_strings(&self) -> impl Iterator<Item = &Cow<'_, [u8]>> + '_ {
-        self.sid_to_string.values().into_iter()
+        self.sid_to_string.values()
     }
 }
 

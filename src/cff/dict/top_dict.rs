@@ -139,7 +139,7 @@ pub fn rewrite_top_dict_index(
     // FD select.
     offsets.fd_select_offset.update_location(sub_w.len() + w.len());
     DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
-    sub_w.write(&FD_SELECT);
+    sub_w.write(FD_SELECT);
 
     let finished = sub_w.finish();
 

@@ -21,11 +21,16 @@ pub fn parse_cid_metadata<'a>(
             _ => return None,
         };
 
-    let mut metadata = CIDMetadata::default();
-
-    metadata.fd_array = {
-        let mut r = Reader::new_at(data, fd_array_offset);
-        parse_index::<u16>(&mut r)?
+    let mut metadata = CIDMetadata {
+        fd_array: {
+            let mut r = Reader::new_at(data, fd_array_offset);
+            parse_index::<u16>(&mut r)?
+        },
+        fd_select: {
+            let mut s = Reader::new_at(data, fd_select_offset);
+            parse_fd_select(number_of_glyphs, &mut s)?
+        },
+        ..CIDMetadata::default()
     };
 
     for font_dict_data in metadata.fd_array {
@@ -33,11 +38,6 @@ pub fn parse_cid_metadata<'a>(
             .font_dicts
             .push(font_dict::parse_font_dict(data, font_dict_data).unwrap_or_default());
     }
-
-    metadata.fd_select = {
-        let mut s = Reader::new_at(data, fd_select_offset);
-        parse_fd_select(number_of_glyphs, &mut s)?
-    };
 
     Some(metadata)
 }

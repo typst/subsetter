@@ -101,14 +101,20 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
 #[derive(Debug, Clone)]
 pub struct GlyphRemapper(Remapper<u16, u16>);
 
-impl GlyphRemapper {
-    /// Create a new instance of a glyph remapper. `.notdef` will always be a member
-    /// of the subset.
-    pub fn new() -> Self {
+impl Default for GlyphRemapper {
+    fn default() -> Self {
         let mut remapper = Remapper::new();
         // .notdef is always a part of a subset.
         remapper.remap(0);
         Self(remapper)
+    }
+}
+
+impl GlyphRemapper {
+    /// Create a new instance of a glyph remapper. `.notdef` will always be a member
+    /// of the subset.
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Create a remapper from an existing set of glyphs

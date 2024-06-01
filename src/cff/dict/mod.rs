@@ -101,12 +101,12 @@ impl<'a> DictionaryParser<'a> {
         let operands = self.operands();
         if operands.len() == 6 {
             Some([
-                operands[0].clone(),
-                operands[1].clone(),
-                operands[2].clone(),
-                operands[3].clone(),
-                operands[4].clone(),
-                operands[5].clone(),
+                operands[0],
+                operands[1],
+                operands[2],
+                operands[3],
+                operands[4],
+                operands[5],
             ])
         } else {
             None

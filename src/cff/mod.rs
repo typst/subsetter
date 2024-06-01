@@ -237,7 +237,7 @@ fn update_offsets(offsets: &Offsets, buffer: &mut [u8]) -> Result<()> {
 }
 
 /// Create the list of bytes that constitute the programs of the charstrings, sorted in the new glyph order.
-fn subset_charstrings<'a>(
+fn subset_charstrings(
     table: &Table,
     remapper: &GlyphRemapper,
 ) -> Result<(Vec<Vec<u8>>, FontDictRemapper)> {
@@ -306,7 +306,7 @@ fn get_sid_remapper<'a>(
 
     let mut remap_sid = |sid: StringId| {
         if sid.is_standard_string() {
-            return Some(());
+            Some(())
         } else {
             let string =
                 table.strings.get((sid.0 - StringId::STANDARD_STRING_LEN) as u32)?;

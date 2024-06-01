@@ -123,7 +123,7 @@ pub fn generate_font_dict_index(offsets: &mut Offsets, w: &mut Writer) -> Result
 
     // Similarly to ghostscript, write a default font matrix. Fixes issues for some printers
     // https://leahneukirchen.org/blog/archive/2022/10/50-blank-pages-or-black-box-debugging-of-pdf-rendering-in-printers.html
-    sub_w.write(&[
+    sub_w.write([
         Number::one(),
         Number::zero(),
         Number::zero(),
@@ -140,14 +140,14 @@ pub fn generate_font_dict_index(offsets: &mut Offsets, w: &mut Writer) -> Result
     // for the others.
     offsets
         .private_dicts_lens
-        .get(0)
+        .first()
         .ok_or(SubsetError)?
         .value
         .write_as_5_bytes(&mut sub_w);
 
     offsets
         .private_dicts_offsets
-        .get_mut(0)
+        .first_mut()
         .ok_or(SubsetError)?
         .value
         .write_as_5_bytes(&mut sub_w);
