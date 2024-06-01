@@ -2,7 +2,8 @@ name: Continuous integration
 on: [push, pull_request]
 
 jobs:
-  ci:
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,3 +18,15 @@ jobs:
         name: Build
       - run: cargo test --release
         name: Run tests
+
+    checks:
+      name: Check clippy, formatting, and documentation
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: dtolnay/rust-toolchain@stable
+        - uses: Swatinem/rust-cache@v2
+        - uses: taiki-e/install-action@cargo-hack
+        - run: cargo clippy --all-targets
+        - run: cargo fmt --check --all
+        - run: cargo doc --workspace --no-deps
