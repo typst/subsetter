@@ -1,3 +1,5 @@
+use freetype::face::LoadFlag;
+use freetype::Library;
 use rand_distr::Distribution;
 use std::ffi::OsStr;
 use std::fs;
@@ -25,7 +27,10 @@ fn main() {
         "Souliyo-Regular.ttf",
         // Has `seac` operator.
         "waltograph42.otf",
+        // Color font.
+        "NotoColorEmojiCompatTest-Regular.ttf",
     ];
+
     let paths = walkdir::WalkDir::new(env!("FONTS_DIR"))
         .into_iter()
         .map(|p| p.unwrap().path().to_path_buf())
@@ -40,12 +45,13 @@ fn main() {
         println!("Starting an iteration...");
 
         paths.par_iter().for_each(|path| {
+            let ft_library = freetype::Library::init().unwrap();
             let mut rng = thread_rng();
             let extension = path.extension().and_then(OsStr::to_str);
             let is_font_file = extension == Some("ttf") || extension == Some("otf");
 
             if is_font_file {
-                match run_test(&path, &mut rng) {
+                match run_test(&path, &mut rng, &ft_library) {
                     Ok(_) => {}
                     Err(msg) => {
                         println!("Error while fuzzing {:?}: {:}", path.clone(), msg)
@@ -56,7 +62,11 @@ fn main() {
     }
 }
 
-fn run_test(path: &Path, rng: &mut ThreadRng) -> Result<(), String> {
+fn run_test(
+    path: &Path,
+    rng: &mut ThreadRng,
+    ft_library: &Library,
+) -> Result<(), String> {
     let data = fs::read(path).map_err(|_| "failed to read file".to_string())?;
     let old_ttf_face = ttf_parser::Face::parse(&data, 0)
         .map_err(|_| "failed to parse old face".to_string())?;
@@ -66,6 +76,7 @@ fn run_test(path: &Path, rng: &mut ThreadRng) -> Result<(), String> {
     let dist = get_distribution(num_glyphs);
 
     let old_skrifa_face = skrifa::FontRef::new(&data).unwrap();
+    let old_freetype_face = ft_library.new_memory_face2(data.as_slice(), 0).unwrap();
 
     for _ in 0..NUM_ITERATIONS {
         let num = dist.sample(rng);
@@ -88,10 +99,18 @@ fn run_test(path: &Path, rng: &mut ThreadRng) -> Result<(), String> {
             )
         })?;
 
+        let new_freetype_face =
+            ft_library.new_memory_face2(subset.as_slice(), 0).map_err(|_| {
+                format!(
+                    "failed to parse new freetype face with gids {:?}",
+                    sample_strings.join(",")
+                )
+            })?;
+
         glyph_outlines_ttf_parser(&old_ttf_face, &new_ttf_face, &remapper, &sample)
             .map_err(|g| {
                 format!(
-                    "outlines didn't match for gid 0 with ttf-parser {:?}, with sample {:?}",
+                    "outlines didn't match for gid {:?} with ttf-parser, with sample {:?}",
                     g,
                     sample_strings.join(",")
                 )
@@ -100,11 +119,25 @@ fn run_test(path: &Path, rng: &mut ThreadRng) -> Result<(), String> {
         glyph_outlines_skrifa(&old_skrifa_face, &new_skrifa_face, &remapper, &sample)
             .map_err(|g| {
                 format!(
-                    "outlines didn't match for gid 0 with skrifa {:?}, with sample {:?}",
+                    "outlines didn't match for gid {:?} with skrifa, with sample {:?}",
                     g,
                     sample_strings.join(",")
                 )
             })?;
+
+        glyph_outlines_freetype(
+            &old_freetype_face,
+            &new_freetype_face,
+            &remapper,
+            &sample,
+        )
+        .map_err(|g| {
+            format!(
+                "outlines didn't match for gid {:?} with freetype, with sample {:?}",
+                g,
+                sample_strings.join(",")
+            )
+        })?;
 
         ttf_parser_glyph_metrics(&old_ttf_face, &new_ttf_face, &remapper, &sample)
             .map_err(|e| {
@@ -231,6 +264,34 @@ fn glyph_outlines_skrifa(
     Ok(())
 }
 
+fn glyph_outlines_freetype(
+    old_face: &freetype::Face<&[u8]>,
+    new_face: &freetype::Face<&[u8]>,
+    mapper: &GlyphRemapper,
+    gids: &[u16],
+) -> Result<(), String> {
+    for glyph in gids {
+        let new_glyph = mapper.get(*glyph).unwrap();
+
+        old_face.load_glyph(*glyph as u32, LoadFlag::DEFAULT).unwrap();
+        let old_outline = old_face.glyph().outline().unwrap();
+
+        new_face.load_glyph(new_glyph as u32, LoadFlag::DEFAULT).unwrap();
+        let new_outline = new_face.glyph().outline().unwrap();
+
+        let sink1 = Sink::from_freetype(&old_outline);
+        let sink2 = Sink::from_freetype(&new_outline);
+
+        if sink1 != sink2 {
+            return Err(format!("{}", glyph));
+        } else {
+            return Ok(());
+        }
+    }
+
+    return Ok(());
+}
+
 fn glyph_outlines_ttf_parser(
     old_face: &ttf_parser::Face,
     new_face: &ttf_parser::Face,
@@ -283,6 +344,20 @@ fn glyph_outlines_ttf_parser(
 #[derive(Debug, Default, PartialEq)]
 struct Sink(Vec<Inst>);
 
+impl Sink {
+    fn from_freetype(outline: &freetype::Outline) -> Self {
+        let mut insts = vec![];
+
+        for contour in outline.contours_iter() {
+            for curve in contour {
+                insts.push(Inst::from_freetype_curve(curve))
+            }
+        }
+
+        Self(insts)
+    }
+}
+
 #[derive(Debug, PartialEq)]
 enum Inst {
     MoveTo(f32, f32),
@@ -290,6 +365,25 @@ enum Inst {
     QuadTo(f32, f32, f32, f32),
     CurveTo(f32, f32, f32, f32, f32, f32),
     Close,
+}
+
+impl Inst {
+    fn from_freetype_curve(curve: freetype::outline::Curve) -> Self {
+        match curve {
+            freetype::outline::Curve::Line(pt) => Inst::LineTo(pt.x as f32, pt.y as f32),
+            freetype::outline::Curve::Bezier2(pt1, pt2) => {
+                Inst::QuadTo(pt1.x as f32, pt1.y as f32, pt2.x as f32, pt2.y as f32)
+            }
+            freetype::outline::Curve::Bezier3(pt1, pt2, pt3) => Inst::CurveTo(
+                pt1.x as f32,
+                pt1.y as f32,
+                pt2.x as f32,
+                pt2.y as f32,
+                pt3.x as f32,
+                pt3.y as f32,
+            ),
+        }
+    }
 }
 
 impl OutlinePen for Sink {
