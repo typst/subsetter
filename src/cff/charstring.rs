@@ -129,8 +129,8 @@ impl<'a> Decompiler<'a> {
                     program.push(Instruction::HintMask(hint_bytes));
                 }
                 ENDCHAR => {
-                    // We don't support seac for now. It's a deprecated feature and I wasn't
-                    // able to find a font that uses it.
+                    // We don't support seac for now. It's a deprecated feature and Typst for some
+                    // reason does not support it anyway.
                     if self.stack.len() >= 4 {
                         return Err(Unimplemented);
                     }

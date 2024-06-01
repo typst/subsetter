@@ -5,7 +5,7 @@ use crate::cff::dict::DictionaryParser;
 use crate::cff::index::{create_index, parse_index, Index};
 use crate::cff::number::{Number, StringId};
 use crate::cff::remapper::{FontDictRemapper, SidRemapper};
-use crate::cff::{dict, Offsets};
+use crate::cff::Offsets;
 use crate::read::Reader;
 use crate::write::Writer;
 use crate::Error::SubsetError;
