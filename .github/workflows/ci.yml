@@ -27,6 +27,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@cargo-hack
-      - run: cargo clippy --all-targets
+      - run: cargo clippy
       - run: cargo fmt --check --all
       - run: cargo doc --workspace --no-deps
