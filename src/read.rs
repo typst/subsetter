@@ -228,7 +228,7 @@ impl<'a, T: Readable<'a>> Iterator for LazyArrayIter16<'a, T> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.index += 1; // TODO: check
+        self.index += 1;
         self.data.get(self.index - 1)
     }
 
