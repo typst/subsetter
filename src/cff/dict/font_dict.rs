@@ -25,7 +25,6 @@ pub struct FontDict<'a> {
     pub font_matrix: Option<[Number; 6]>,
 }
 
-/// Parse a font DICT.
 pub fn parse_font_dict<'a>(
     font_data: &'a [u8],
     font_dict_data: &[u8],
@@ -57,7 +56,7 @@ pub fn parse_font_dict<'a>(
     Some(font_dict)
 }
 
-/// Write the new font DICT INDEX for CID-keyed fonts.
+/// Rewrite the font DICT INDEX for CID-keyed fonts.
 pub fn rewrite_font_dict_index(
     fd_remapper: &FontDictRemapper,
     sid_remapper: &SidRemapper,
@@ -73,6 +72,7 @@ pub fn rewrite_font_dict_index(
         let dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
         let mut w = Writer::new();
 
+        // See comment in `generate_font_dict_index`.
         w.write(dict.font_matrix.as_ref().unwrap_or(&[
             Number::one(),
             Number::zero(),
@@ -155,5 +155,6 @@ pub fn generate_font_dict_index(offsets: &mut Offsets, w: &mut Writer) -> Result
     sub_w.write(PRIVATE);
     w.write(create_index(vec![sub_w.finish()])?);
 
+    // TODO: Maybe write a font name as well? But shouldn't matter.
     Ok(())
 }

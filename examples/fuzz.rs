@@ -16,6 +16,9 @@ use skrifa::MetadataProvider;
 use subsetter::{subset, GlyphRemapper};
 use ttf_parser::GlyphId;
 
+// Note that this is not really meant as an example for how to use this crate, but
+// rather just so that we can conveniently run a fuzzer.
+
 const NUM_ITERATIONS: usize = 200;
 
 fn main() {

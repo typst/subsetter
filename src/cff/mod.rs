@@ -15,9 +15,7 @@ use crate::cff::charset::rewrite_charset;
 use crate::cff::charstring::Decompiler;
 use crate::cff::cid_font::{generate_fd_index, rewrite_fd_index, CIDMetadata};
 use crate::cff::dict::font_dict::{generate_font_dict_index, rewrite_font_dict_index};
-use crate::cff::dict::private_dict::{
-    rewrite_cid_private_dict, rewrite_cid_private_dicts,
-};
+use crate::cff::dict::private_dict::{rewrite_cid_private_dicts, rewrite_private_dict};
 use crate::cff::dict::top_dict::{
     parse_top_dict_index, rewrite_top_dict_index, TopDictData,
 };
@@ -39,7 +37,7 @@ pub(crate) enum FontKind<'a> {
 #[derive(Clone)]
 pub struct Table<'a> {
     names: &'a [u8],
-    top_dict_data: TopDictData<'a>,
+    top_dict_data: TopDictData,
     strings: Index<'a>,
     global_subrs: Index<'a>,
     char_strings: Index<'a>,
@@ -173,7 +171,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
         match &table.font_kind {
             FontKind::Sid(sid) => {
                 // Since we convert SID-keyed to CID-keyed, we write one private dict with index 0.
-                rewrite_cid_private_dict(&mut offsets, sid.private_dict_data, &mut w, 0)?;
+                rewrite_private_dict(&mut offsets, sid.private_dict_data, &mut w, 0)?;
             }
             FontKind::Cid(cid) => {
                 rewrite_cid_private_dicts(&fd_remapper, &mut offsets, cid, &mut w)?;

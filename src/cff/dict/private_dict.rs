@@ -23,7 +23,7 @@ pub fn parse_subr_offset(data: &[u8]) -> Option<usize> {
     None
 }
 
-/// Write the private dicts of a CID font.
+/// Write the private dicts of a CID font for each font dict.
 pub fn rewrite_cid_private_dicts(
     fd_remapper: &FontDictRemapper,
     offsets: &mut Offsets,
@@ -32,13 +32,13 @@ pub fn rewrite_cid_private_dicts(
 ) -> Result<()> {
     for (new_df, old_df) in fd_remapper.sorted_iter().enumerate() {
         let font_dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
-        rewrite_cid_private_dict(offsets, font_dict.private_dict, w, new_df)?;
+        rewrite_private_dict(offsets, font_dict.private_dict, w, new_df)?;
     }
 
     Ok(())
 }
 
-pub(crate) fn rewrite_cid_private_dict(
+pub(crate) fn rewrite_private_dict(
     offsets: &mut Offsets,
     private_dict_data: &[u8],
     w: &mut Writer,
@@ -53,6 +53,8 @@ pub(crate) fn rewrite_cid_private_dict(
 
         let mut sub_w = Writer::new();
 
+        // We just make sure that no subroutine offset gets written, all other operators stay the
+        // same.
         while let Some(operator) = dict_parser.parse_next() {
             match operator {
                 SUBRS => {

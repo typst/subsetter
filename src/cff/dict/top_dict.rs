@@ -10,10 +10,8 @@ use crate::Result;
 use std::array;
 use std::ops::Range;
 
-/// Data parsed from a top dict.
 #[derive(Default, Debug, Clone)]
-pub struct TopDictData<'a> {
-    pub top_dict_raw: &'a [u8],
+pub struct TopDictData {
     pub charset: Option<usize>,
     pub char_strings: Option<usize>,
     pub private: Option<Range<usize>>,
@@ -26,8 +24,7 @@ pub struct TopDictData<'a> {
     pub font_matrix: Option<[Number; 6]>,
 }
 
-/// Parse the top dict and extract relevant data.
-pub fn parse_top_dict_index<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
+pub fn parse_top_dict_index(r: &mut Reader) -> Option<TopDictData> {
     use super::operators::*;
     let mut top_dict = TopDictData::default();
 
@@ -35,7 +32,6 @@ pub fn parse_top_dict_index<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
 
     // The Top DICT INDEX should have only one dictionary in CFF fonts.
     let data = index.get(0)?;
-    top_dict.top_dict_raw = data;
 
     let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());
     let mut dict_parser = DictionaryParser::new(data, &mut operands_buffer);
@@ -52,7 +48,7 @@ pub fn parse_top_dict_index<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
             CHAR_STRINGS => top_dict.char_strings = Some(dict_parser.parse_offset()?),
             PRIVATE => top_dict.private = Some(dict_parser.parse_range()?),
             // We will rewrite the ROS, so no need to grab it from here. But we need to
-            // register it so we know we are dealing with a CID-keyed font.
+            // register it, so we know we are dealing with a CID-keyed font.
             ROS => top_dict.has_ros = true,
             FD_ARRAY => top_dict.fd_array = Some(dict_parser.parse_offset()?),
             FD_SELECT => top_dict.fd_select = Some(dict_parser.parse_offset()?),
@@ -64,9 +60,8 @@ pub fn parse_top_dict_index<'a>(r: &mut Reader<'a>) -> Option<TopDictData<'a>> {
     Some(top_dict)
 }
 
-/// Rewrite the top dict. Essentially, the two things we need to do are
-/// 1. Rewrite every operator that takes a SID with the new, remapped SID.
-/// 2. Update all offsets.
+/// Rewrite the top dict. Implementation is based on what ghostscript seems to keep when
+/// rewriting a font subset.
 pub fn rewrite_top_dict_index(
     top_dict_data: &TopDictData,
     offsets: &mut Offsets,
@@ -76,9 +71,8 @@ pub fn rewrite_top_dict_index(
     use super::operators::*;
 
     let mut sub_w = Writer::new();
-    // See comment in font dict. We try to mimic behavior of ghostscript.
 
-    // Write ROS.
+    // ROS.
     sub_w
         .write(Number::from_i32(sid_remapper.get(b"Adobe").ok_or(SubsetError)?.0 as i32));
     sub_w.write(Number::from_i32(
@@ -87,6 +81,7 @@ pub fn rewrite_top_dict_index(
     sub_w.write(Number::zero());
     sub_w.write(ROS);
 
+    // Copyright notices.
     if let Some(copyright) =
         top_dict_data.copyright.and_then(|s| sid_remapper.get_new_sid(s))
     {
@@ -99,6 +94,7 @@ pub fn rewrite_top_dict_index(
         sub_w.write(NOTICE);
     }
 
+    // Font name.
     if let Some(font_name) =
         top_dict_data.font_name.and_then(|s| sid_remapper.get_new_sid(s))
     {
@@ -106,6 +102,7 @@ pub fn rewrite_top_dict_index(
         sub_w.write(FONT_NAME);
     }
 
+    // Write a default font matrix, if it does not exist.
     sub_w.write(top_dict_data.font_matrix.as_ref().unwrap_or(&[
         Number::from_f32(0.001),
         Number::zero(),
@@ -116,8 +113,7 @@ pub fn rewrite_top_dict_index(
     ]));
     sub_w.write(FONT_MATRIX);
 
-    // Important: When writing the offsets, we need to add the current length of w AND sub_w.
-
+    // Note: When writing the offsets, we need to add the current length of w AND sub_w.
     // Charset
     offsets.charset_offset.update_location(sub_w.len() + w.len());
     DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
@@ -131,15 +127,16 @@ pub fn rewrite_top_dict_index(
     sub_w.write(Number::from_i32(u16::MAX as i32));
     sub_w.write(CID_COUNT);
 
-    // VERY IMPORTANT NOTE: Previously, we wrote those two entries directly after ROS.
+    // Note: Previously, we wrote those two entries directly after ROS.
     // However, for some reason not known to me, Apple Preview does not like show the CFF font
     // at all if that's the case. This is why we now write the offsets in the very end.
-    // Write FD_ARRAY
+
+    // FD array.
     offsets.fd_array_offset.update_location(sub_w.len() + w.len());
     DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
     sub_w.write(FD_ARRAY);
 
-    // Write FD_SELECT
+    // FD select.
     offsets.fd_select_offset.update_location(sub_w.len() + w.len());
     DUMMY_VALUE.write_as_5_bytes(&mut sub_w);
     sub_w.write(&FD_SELECT);
