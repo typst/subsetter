@@ -250,6 +250,12 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
                 .get(skrifa::GlyphId::new(new_glyph))
                 .expect(&format!("failed to find glyph {} in new face", glyph));
             glyph2.draw(settings, &mut sink2).unwrap();
+
+            assert_eq!(
+                sink1, sink2,
+                "glyph {} drawn with skrifa didn't match.",
+                glyph
+            );
         }
     }
 }

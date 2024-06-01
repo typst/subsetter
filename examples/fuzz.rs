@@ -276,19 +276,23 @@ fn glyph_outlines_freetype(
     for glyph in gids {
         let new_glyph = mapper.get(*glyph).unwrap();
 
-        old_face.load_glyph(*glyph as u32, LoadFlag::DEFAULT).unwrap();
-        let old_outline = old_face.glyph().outline().unwrap();
+        if old_face.load_glyph(*glyph as u32, LoadFlag::DEFAULT).is_ok() {
+            let old_outline = old_face.glyph().outline()
+                .ok_or(format!("failed to load outline for old glyph {}", glyph))?;
 
-        new_face.load_glyph(new_glyph as u32, LoadFlag::DEFAULT).unwrap();
-        let new_outline = new_face.glyph().outline().unwrap();
+            new_face.load_glyph(new_glyph as u32, LoadFlag::DEFAULT)
+                .map_err(|_| format!("failed to load glyph for new glyph {}", new_glyph))?;
+            let new_outline = new_face.glyph().outline()
+                .ok_or(format!("failed to load outline for new glyph {}", new_glyph))?;
 
-        let sink1 = Sink::from_freetype(&old_outline);
-        let sink2 = Sink::from_freetype(&new_outline);
+            let sink1 = Sink::from_freetype(&old_outline);
+            let sink2 = Sink::from_freetype(&new_outline);
 
-        if sink1 != sink2 {
-            return Err(format!("{}", glyph));
-        } else {
-            return Ok(());
+            if sink1 != sink2 {
+                return Err(format!("{}", glyph));
+            } else {
+                return Ok(());
+            }
         }
     }
 
