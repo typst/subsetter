@@ -92,17 +92,21 @@ impl DeferredOffset {
 /// Keeps track of the offsets that need to be written in the font.
 #[derive(Debug)]
 struct Offsets {
-    // TOP DICT DATA
+    /// Offset of the charset data.
     charset_offset: DeferredOffset,
+    /// Offset of the charstrings data.
     char_strings_offset: DeferredOffset,
+    /// Lengths of the private dicts (not strictly an offset, but we still use it for simplicity).
     private_dicts_lens: Vec<DeferredOffset>,
+    /// Offset of the private dicts.
     private_dicts_offsets: Vec<DeferredOffset>,
+    /// Offset of the fd array.
     fd_array_offset: DeferredOffset,
+    /// Offset of the fd select.
     fd_select_offset: DeferredOffset,
 }
 
 impl Offsets {
-    // TODO: Unify?
     pub fn new_cid(num_font_dicts: u8) -> Self {
         Self {
             char_strings_offset: DUMMY_OFFSET,
@@ -115,21 +119,14 @@ impl Offsets {
     }
 
     pub fn new_sid() -> Self {
-        Self {
-            char_strings_offset: DUMMY_OFFSET,
-            charset_offset: DUMMY_OFFSET,
-            private_dicts_lens: vec![DUMMY_OFFSET],
-            private_dicts_offsets: vec![DUMMY_OFFSET],
-            fd_select_offset: DUMMY_OFFSET,
-            fd_array_offset: DUMMY_OFFSET,
-        }
+        Self::new_cid(1)
     }
 }
 
 pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let table = Table::parse(ctx).unwrap();
 
-    // NOTE: The charstrings are already in the new order that they need be written in.
+    // Note: The charstrings are already in the new order that they need be written in.
     let (char_strings, fd_remapper) = subset_charstrings(&table, &ctx.mapper)?;
 
     let sid_remapper = get_sid_remapper(&table, &fd_remapper).ok_or(SubsetError)?;
@@ -142,6 +139,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
     let mut subsetted_font = {
         let mut w = Writer::new();
         // HEADER
+        // We always use OffSize 4 (but as far as I can tell this field is unused anyway).
         w.write([1u8, 0, 4, 4]);
         // Name INDEX
         w.write(table.names);
@@ -164,8 +162,8 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
         // We desubroutinized, so no global subroutines and thus empty index.
         w.write(&OwnedIndex::default());
 
-        offsets.charset_offset.update_value(w.len())?;
         // Charsets
+        offsets.charset_offset.update_value(w.len())?;
         rewrite_charset(&ctx.mapper, &mut w)?;
 
         // Private dicts.
@@ -179,8 +177,8 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
             }
         }
 
-        offsets.fd_select_offset.update_value(w.len())?;
         // FDSelect
+        offsets.fd_select_offset.update_value(w.len())?;
         match &table.font_kind {
             FontKind::Sid(_) => generate_fd_index(&ctx.mapper, &mut w)?,
             FontKind::Cid(cid_metadata) => rewrite_fd_index(
@@ -213,14 +211,13 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
 
     // Rewrite the dummy offsets.
     update_offsets(&offsets, subsetted_font.as_mut_slice())?;
-    // println!("{:?}", subsetted_font);
 
     ctx.push(Tag::CFF, subsetted_font);
 
     Ok(())
 }
 
-fn update_offsets(font_write_context: &Offsets, buffer: &mut [u8]) -> Result<()> {
+fn update_offsets(offsets: &Offsets, buffer: &mut [u8]) -> Result<()> {
     let mut write = |offset: DeferredOffset| {
         if offset != DUMMY_OFFSET {
             offset.write_into(buffer)?;
@@ -228,10 +225,13 @@ fn update_offsets(font_write_context: &Offsets, buffer: &mut [u8]) -> Result<()>
         Ok(())
     };
 
-    write(font_write_context.charset_offset)?;
-    write(font_write_context.char_strings_offset)?;
-    write(font_write_context.fd_select_offset)?;
-    write(font_write_context.fd_array_offset)?;
+    // Private dicts offset have already been written correctly, so no need to write them
+    // here.
+
+    write(offsets.charset_offset)?;
+    write(offsets.char_strings_offset)?;
+    write(offsets.fd_select_offset)?;
+    write(offsets.fd_array_offset)?;
 
     Ok(())
 }
@@ -296,7 +296,6 @@ fn subset_charstrings<'a>(
     Ok((char_strings.iter().map(|p| p.compile()).collect(), fd_remapper))
 }
 
-/// Get the SID remapper
 fn get_sid_remapper<'a>(
     table: &Table<'a>,
     fd_remapper: &FontDictRemapper,
@@ -329,16 +328,12 @@ fn get_sid_remapper<'a>(
         remap_sid(notice)?;
     }
 
-    match table.font_kind {
-        // Since we turn SIDs into GIDs, nothing to do here.
-        FontKind::Sid(_) => {}
-        FontKind::Cid(ref cid) => {
-            for font_dict in fd_remapper.sorted_iter() {
-                let font_dict = cid.font_dicts.get(font_dict as usize)?;
+    if let FontKind::Cid(ref cid) = table.font_kind {
+        for font_dict in fd_remapper.sorted_iter() {
+            let font_dict = cid.font_dicts.get(font_dict as usize)?;
 
-                if let Some(font_name) = font_dict.font_name {
-                    remap_sid(font_name)?;
-                }
+            if let Some(font_name) = font_dict.font_name {
+                remap_sid(font_name)?;
             }
         }
     }
@@ -346,8 +341,6 @@ fn get_sid_remapper<'a>(
     Some(sid_remapper)
 }
 
-/// A high-level container that contains important information we need when
-/// accesseing the data in the CFF font.
 impl<'a> Table<'a> {
     pub fn parse(ctx: &mut Context<'a>) -> Result<Self> {
         let cff = ctx.expect_table(Tag::CFF).ok_or(MalformedFont)?;
