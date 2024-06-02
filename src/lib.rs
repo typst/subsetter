@@ -168,8 +168,6 @@ fn parse(data: &[u8], index: u32) -> Result<Face<'_>> {
     let mut r = Reader::new(data);
     let mut kind = r.read::<FontKind>().ok_or(UnknownKind)?;
 
-    // TODO: Add a test font for ttc.
-
     // Parse font collection header if necessary.
     if kind == FontKind::Collection {
         r = Reader::new_at(data, 12 + 4 * (index as usize));

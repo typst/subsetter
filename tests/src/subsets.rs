@@ -188,3 +188,7 @@ use crate::*;
 #[test] fn syne_regular_subset_1_glyph_outlines_ttf_parser() {glyph_outlines_ttf_parser("Syne-Regular_subset.otf", "5")}
 #[test] fn syne_regular_subset_1_glyph_outlines_skrifa() {glyph_outlines_skrifa("Syne-Regular_subset.otf", "5")}
 #[test] fn syne_regular_subset_1_glyph_outlines_freetype() {glyph_outlines_freetype("Syne-Regular_subset.otf", "5")}
+#[test] fn test_t_t_cttc_1_glyph_metrics() {glyph_metrics("TestTTC.ttc", "*")}
+#[test] fn test_t_t_cttc_1_glyph_outlines_ttf_parser() {glyph_outlines_ttf_parser("TestTTC.ttc", "*")}
+#[test] fn test_t_t_cttc_1_glyph_outlines_skrifa() {glyph_outlines_skrifa("TestTTC.ttc", "*")}
+#[test] fn test_t_t_cttc_1_glyph_outlines_freetype() {glyph_outlines_freetype("TestTTC.ttc", "*")}

@@ -214,8 +214,8 @@ fn glyph_metrics(font_file: &str, gids: &str) {
 
 fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
-    let old_face = skrifa::FontRef::new(&ctx.font).unwrap();
-    let new_face = skrifa::FontRef::new(&ctx.subset).unwrap();
+    let old_face = skrifa::FontRef::from_index(&ctx.font, 0).unwrap();
+    let new_face = skrifa::FontRef::from_index(&ctx.subset, 0).unwrap();
 
     let num_glyphs = old_face.maxp().unwrap().num_glyphs();
 
