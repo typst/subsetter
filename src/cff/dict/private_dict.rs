@@ -5,7 +5,7 @@ use crate::cff::number::Number;
 use crate::cff::remapper::FontDictRemapper;
 use crate::cff::Offsets;
 use crate::write::Writer;
-use crate::Error::SubsetError;
+use crate::Error::{MalformedFont, SubsetError};
 use crate::Result;
 use std::array;
 
@@ -61,7 +61,7 @@ pub(crate) fn rewrite_private_dict(
                     // We don't have any subroutines, so don't rewrite this DICT entry.
                 }
                 _ => {
-                    dict_parser.parse_operands().unwrap();
+                    dict_parser.parse_operands().ok_or(MalformedFont)?;
                     let operands = dict_parser.operands();
 
                     sub_w.write(operands);

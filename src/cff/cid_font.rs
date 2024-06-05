@@ -36,7 +36,7 @@ pub fn parse_cid_metadata<'a>(
     for font_dict_data in metadata.fd_array {
         metadata
             .font_dicts
-            .push(font_dict::parse_font_dict(data, font_dict_data).unwrap_or_default());
+            .push(font_dict::parse_font_dict(data, font_dict_data)?);
     }
 
     Some(metadata)

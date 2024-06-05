@@ -40,11 +40,14 @@ pub fn parse_font_dict<'a>(
                 let private_dict_data = font_data.get(private_dict_range.clone())?;
                 font_dict.private_dict = private_dict_data;
                 font_dict.local_subrs = {
-                    let subrs_offset = parse_subr_offset(private_dict_data)?;
-                    let start = private_dict_range.start.checked_add(subrs_offset)?;
-                    let subrs_data = font_data.get(start..)?;
-                    let mut r = Reader::new(subrs_data);
-                    parse_index::<u16>(&mut r)?
+                    if let Some(subrs_offset) = parse_subr_offset(private_dict_data) {
+                        let start = private_dict_range.start.checked_add(subrs_offset)?;
+                        let subrs_data = font_data.get(start..)?;
+                        let mut r = Reader::new(subrs_data);
+                        parse_index::<u16>(&mut r)?
+                    } else {
+                        Index::default()
+                    }
                 };
             }
             FONT_NAME => font_dict.font_name = Some(dict_parser.parse_sid()?),
