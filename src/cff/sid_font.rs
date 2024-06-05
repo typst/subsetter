@@ -20,12 +20,16 @@ pub fn parse_sid_metadata<'a>(data: &'a [u8], top_dict: &TopDictData) -> SIDMeta
             let mut metadata = SIDMetadata::default();
             let private_dict_data = data.get(private_dict_range.clone())?;
 
-            let subrs_offset = parse_subr_offset(private_dict_data)?;
-            let start = private_dict_range.start.checked_add(subrs_offset)?;
-            let subrs_data = data.get(start..)?;
-            let mut r = Reader::new(subrs_data);
+            metadata.local_subrs =
+                if let Some(subrs_offset) = parse_subr_offset(private_dict_data) {
+                    let start = private_dict_range.start.checked_add(subrs_offset)?;
+                    let subrs_data = data.get(start..)?;
+                    let mut r = Reader::new(subrs_data);
+                    parse_index::<u16>(&mut r)?
+                } else {
+                    Index::default()
+                };
 
-            metadata.local_subrs = parse_index::<u16>(&mut r)?;
             metadata.private_dict_data = private_dict_data;
             Some(metadata)
         })
