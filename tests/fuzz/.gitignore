@@ -1,0 +1,11 @@
+# General
+.vscode
+_things
+desktop.ini
+.DS_Store
+
+# Rust
+/target
+bench/target
+debug
+.idea
