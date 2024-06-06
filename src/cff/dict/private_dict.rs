@@ -9,6 +9,8 @@ use crate::Error::{MalformedFont, SubsetError};
 use crate::Result;
 use std::array;
 
+// The parsing logic was adapted from ttf-parser.
+
 /// Parse the subroutine offset from a private dict.
 pub fn parse_subr_offset(data: &[u8]) -> Option<usize> {
     let mut operands_buffer: [Number; 48] = array::from_fn(|_| Number::zero());

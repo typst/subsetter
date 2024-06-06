@@ -93,6 +93,7 @@ pub struct Table<'a> {
 }
 
 impl<'a> Table<'a> {
+    // The parsing logic was adapted from ttf-parser.
     pub fn parse(data: &'a [u8]) -> Option<Self> {
         let mut r = Reader::new(data);
 

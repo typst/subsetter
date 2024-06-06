@@ -4,6 +4,7 @@ use crate::Result;
 
 const MAX_OPERANDS_LEN: usize = 48;
 
+// Taken from ttf-parser.
 /// TODO: Use array instead?
 pub struct ArgumentsStack {
     pub data: Vec<Number>,

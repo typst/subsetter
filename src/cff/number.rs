@@ -57,6 +57,7 @@ impl Writeable for FixedNumber {
 }
 
 impl RealNumber {
+    // The parsing logic was taken from ttf-parser.
     pub fn parse(r: &mut Reader) -> Option<RealNumber> {
         let mut data = [0u8; FLOAT_STACK_LEN];
         let mut idx = 0;

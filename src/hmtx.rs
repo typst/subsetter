@@ -8,6 +8,8 @@
 //! the number of glyphs that contain both, advance width and
 //! left side bearing metrics.
 
+// The parsing logic was taken from ttf-parser.
+
 use super::*;
 use crate::Error::OverflowError;
 

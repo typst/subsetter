@@ -10,6 +10,8 @@ use crate::Result;
 use std::array;
 use std::ops::Range;
 
+// The parsing logic was adapted from ttf-parser.
+
 #[derive(Default, Debug, Clone)]
 pub struct TopDictData {
     pub charset: Option<usize>,

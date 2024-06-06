@@ -4,6 +4,8 @@ use crate::write::{Writeable, Writer};
 use crate::Error::OverflowError;
 use crate::Result;
 
+// Taken from ttf-parser.
+
 pub trait IndexSize: for<'a> Readable<'a> {
     fn to_u32(self) -> u32;
 }

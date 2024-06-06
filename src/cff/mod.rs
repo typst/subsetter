@@ -341,6 +341,7 @@ fn get_sid_remapper<'a>(
     Some(sid_remapper)
 }
 
+// The parsing logic was taken from ttf-parser.
 impl<'a> Table<'a> {
     pub fn parse(ctx: &mut Context<'a>) -> Result<Self> {
         let cff = ctx.expect_table(Tag::CFF).ok_or(MalformedFont)?;

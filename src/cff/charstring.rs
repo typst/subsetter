@@ -11,6 +11,7 @@ use std::fmt::{Debug, Formatter};
 
 pub type CharString<'a> = &'a [u8];
 
+// Adapted from fonttools.
 /// A charstring decompiler.
 pub struct Decompiler<'a> {
     gsubr_handler: SubroutineHandler<'a>,

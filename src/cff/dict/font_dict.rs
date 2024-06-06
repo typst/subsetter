@@ -12,6 +12,8 @@ use crate::Error::SubsetError;
 use crate::Result;
 use std::array;
 
+// The parsing logic was adapted from ttf-parser.
+
 /// A font DICT.
 #[derive(Default, Clone, Debug)]
 pub struct FontDict<'a> {

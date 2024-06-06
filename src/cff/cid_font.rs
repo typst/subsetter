@@ -9,6 +9,8 @@ use crate::Error::{MalformedFont, SubsetError};
 use crate::GlyphRemapper;
 use crate::Result;
 
+// The parsing logic was taken from ttf-parser.
+
 /// Parse CID metadata from a font.
 pub fn parse_cid_metadata<'a>(
     data: &'a [u8],

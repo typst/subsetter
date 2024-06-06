@@ -12,6 +12,7 @@ pub struct SIDMetadata<'a> {
     pub private_dict_data: &'a [u8],
 }
 
+// The parsing logic was taken from ttf-parser.
 pub fn parse_sid_metadata<'a>(data: &'a [u8], top_dict: &TopDictData) -> SIDMetadata<'a> {
     top_dict
         .private
