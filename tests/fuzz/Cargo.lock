@@ -291,7 +291,7 @@ dependencies = [
 [[package]]
 name = "ttf-parser"
 version = "0.21.1"
-source = "git+https://github.com/RazrFalcon/ttf-parser?branch=master#9bbd432c2a41599dfbe2b572e72119b155083438"
+source = "git+https://github.com/RazrFalcon/ttf-parser?rev=9bbd432#9bbd432c2a41599dfbe2b572e72119b155083438"
 
 [[package]]
 name = "unicode-ident"

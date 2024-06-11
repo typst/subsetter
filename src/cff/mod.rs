@@ -301,8 +301,8 @@ fn get_sid_remapper<'a>(
     fd_remapper: &FontDictRemapper,
 ) -> Option<SidRemapper<'a>> {
     let mut sid_remapper = SidRemapper::new();
-    sid_remapper.remap(b"Adobe");
-    sid_remapper.remap(b"Identity");
+    sid_remapper.remap(&b"Adobe"[..]);
+    sid_remapper.remap(&b"Identity"[..]);
 
     let mut remap_sid = |sid: StringId| {
         if sid.is_standard_string() {
