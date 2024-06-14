@@ -98,6 +98,16 @@ impl<'a> DictionaryParser<'a> {
         }
     }
 
+    pub fn parse_font_bbox(&mut self) -> Option<[Number; 4]> {
+        self.parse_operands()?;
+        let operands = self.operands();
+        if operands.len() == 4 {
+            Some([operands[0], operands[1], operands[2], operands[3]])
+        } else {
+            None
+        }
+    }
+
     pub fn parse_font_matrix(&mut self) -> Option<[Number; 6]> {
         self.parse_operands()?;
         let operands = self.operands();
@@ -145,6 +155,7 @@ pub(crate) mod operators {
 
     // TOP DICT OPERATORS
     pub const NOTICE: Operator = Operator(OperatorType::OneByteOperator([1]));
+    pub const FONT_BBOX: Operator = Operator(OperatorType::OneByteOperator([5]));
     pub const COPYRIGHT: Operator =
         Operator(OperatorType::TwoByteOperator([TWO_BYTE_OPERATOR_MARK, 0]));
     pub const FONT_MATRIX: Operator =

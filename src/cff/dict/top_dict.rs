@@ -24,6 +24,7 @@ pub struct TopDictData {
     pub font_name: Option<StringId>,
     pub has_ros: bool,
     pub font_matrix: Option<[Number; 6]>,
+    pub font_bbox: Option<[Number; 4]>,
 }
 
 pub fn parse_top_dict_index(r: &mut Reader) -> Option<TopDictData> {
@@ -55,6 +56,7 @@ pub fn parse_top_dict_index(r: &mut Reader) -> Option<TopDictData> {
             FD_ARRAY => top_dict.fd_array = Some(dict_parser.parse_offset()?),
             FD_SELECT => top_dict.fd_select = Some(dict_parser.parse_offset()?),
             FONT_MATRIX => top_dict.font_matrix = Some(dict_parser.parse_font_matrix()?),
+            FONT_BBOX => top_dict.font_bbox = Some(dict_parser.parse_font_bbox()?),
             _ => {}
         }
     }
@@ -114,6 +116,15 @@ pub fn rewrite_top_dict_index(
         Number::zero(),
     ]));
     sub_w.write(FONT_MATRIX);
+
+    // Write a default font bbox, if it does not exist.
+    sub_w.write(top_dict_data.font_bbox.as_ref().unwrap_or(&[
+        Number::zero(),
+        Number::zero(),
+        Number::zero(),
+        Number::zero(),
+    ]));
+    sub_w.write(FONT_BBOX);
 
     // Note: When writing the offsets, we need to add the current length of w AND sub_w.
     // Charset

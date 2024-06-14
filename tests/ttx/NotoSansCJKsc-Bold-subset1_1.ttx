@@ -11,7 +11,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0x3a658607"/>
+    <checkSumAdjustment value="0xa7acfdf8"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -102,7 +102,7 @@
       <PaintType value="0"/>
       <CharstringType value="2"/>
       <FontMatrix value="0.001 0 0 0.001 0 0"/>
-      <FontBBox value="0 0 0 0"/>
+      <FontBBox value="-1013 -1046 2926 1806"/>
       <StrokeWidth value="0"/>
       <CIDFontVersion value="0"/>
       <CIDFontRevision value="0"/>
