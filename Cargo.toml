@@ -1,18 +1,29 @@
-[package]
-name = "subsetter"
-version = "0.1.1"
-authors = ["Laurenz Maedje <laurmaedje@gmail.com>, Laurenz Stampfl <laurenz.stampfl@gmail.com>"]
+[workspace]
+members = ["tests/cli", "tests/fuzz"]
+resolver = "2"
+
+[workspace.package]
+version = "0.11.0"
+authors = ["Laurenz <laurmaedje@gmail.com>, Laurenz Stampfl <laurenz.stampfl@gmail.com>"]
 edition = "2021"
-description = "Reduces the size and coverage of OpenType fonts."
 repository = "https://github.com/typst/subsetter"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
+
+[package]
+name = "subsetter"
+description = "Reduces the size and coverage of OpenType fonts."
 categories = ["compression", "encoding"]
 keywords = ["subsetting", "OpenType", "PDF"]
 exclude = ["fonts/*"]
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+repository = { workspace = true }
+readme = { workspace = true }
+license = { workspace = true }
 
 [dev-dependencies]
+freetype-rs = { git = "https://github.com/LaurenzV/freetype-rs", rev = "d27ea29" }
 skrifa = "0.19.1"
-ttf-parser = {git = "https://github.com/LaurenzV/ttf-parser", branch = "master"}
-freetype-rs = {git = "https://github.com/LaurenzV/freetype-rs"}
-
+ttf-parser = { git = "https://github.com/RazrFalcon/ttf-parser", rev = "9bbd432" }

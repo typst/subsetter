@@ -9,3 +9,8 @@ desktop.ini
 bench/target
 debug
 .idea
+
+# Tests
+tests/subsets
+tests/ttx/*.otf
+tests/ttx/*_ref.ttx
