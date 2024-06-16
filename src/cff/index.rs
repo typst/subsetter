@@ -1,143 +1,293 @@
-use std::fmt::{self, Debug, Formatter};
-use std::ops::{Deref, DerefMut};
+use crate::cff::number::U24;
+use crate::read::{Readable, Reader};
+use crate::write::{Writeable, Writer};
+use crate::Error::OverflowError;
+use crate::Result;
 
-use crate::{Error, Reader, Result, Structure, Writer};
+// Taken from ttf-parser.
 
-/// An INDEX data structure.
-#[derive(Clone)]
-pub struct Index<T>(pub Vec<T>);
+pub trait IndexSize: for<'a> Readable<'a> {
+    fn to_u32(self) -> u32;
+}
 
-impl<T> Index<T> {
-    /// Create a new index with a single entry.
-    pub fn from_one(item: T) -> Self {
-        Self(vec![item])
-    }
-
-    /// Extract the index's first entry.
-    pub fn into_one(self) -> Option<T> {
-        self.0.into_iter().next()
+impl IndexSize for u16 {
+    fn to_u32(self) -> u32 {
+        u32::from(self)
     }
 }
 
-impl<'a, T> Structure<'a> for Index<T>
-where
-    T: Structure<'a>,
-{
-    fn read(r: &mut Reader<'a>) -> Result<Self> {
-        let data = r.data();
-        let count = r.read::<u16>()? as usize;
-        if count == 0 {
-            return Ok(Self(vec![]));
+impl IndexSize for u32 {
+    fn to_u32(self) -> u32 {
+        self
+    }
+}
+
+pub fn parse_index<'a, T: IndexSize>(r: &mut Reader<'a>) -> Option<Index<'a>> {
+    let count = r.read::<T>()?;
+    parse_index_impl(count.to_u32(), r)
+}
+
+fn parse_index_impl<'a>(count: u32, r: &mut Reader<'a>) -> Option<Index<'a>> {
+    if count == 0 || count == core::u32::MAX {
+        return Some(Index::default());
+    }
+
+    let offset_size = r.read::<OffsetSize>()?;
+    let offsets_len = (count + 1).checked_mul(offset_size.to_u32())?;
+    let offsets = VarOffsets {
+        data: r.read_bytes(offsets_len as usize)?,
+        offset_size,
+    };
+
+    match offsets.last() {
+        Some(last_offset) => {
+            let data = r.read_bytes(last_offset as usize)?;
+            Some(Index { data, offsets })
+        }
+        None => Some(Index::default()),
+    }
+}
+
+pub fn skip_index<T: IndexSize>(r: &mut Reader) -> Option<()> {
+    let count = r.read::<T>()?;
+    skip_index_impl(count.to_u32(), r)
+}
+
+fn skip_index_impl(count: u32, r: &mut Reader) -> Option<()> {
+    if count == 0 || count == core::u32::MAX {
+        return Some(());
+    }
+
+    let offset_size = r.read::<OffsetSize>()?;
+    let offsets_len = (count + 1).checked_mul(offset_size.to_u32())?;
+    let offsets = VarOffsets {
+        data: r.read_bytes(offsets_len as usize)?,
+        offset_size,
+    };
+
+    if let Some(last_offset) = offsets.last() {
+        r.skip_bytes(last_offset as usize);
+    }
+
+    Some(())
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct VarOffsets<'a> {
+    pub data: &'a [u8],
+    pub offset_size: OffsetSize,
+}
+
+impl<'a> VarOffsets<'a> {
+    pub fn get(&self, index: u32) -> Option<u32> {
+        if index >= self.len() {
+            return None;
         }
 
-        let offsize = r.read::<Offsize>()? as usize;
-        let base = 3 + offsize * (count + 1) - 1;
-        let mut read_offset = || {
-            let mut bytes: [u8; 4] = [0; 4];
-            bytes[4 - offsize..4].copy_from_slice(r.take(offsize)?);
-            Ok(base + u32::from_be_bytes(bytes) as usize)
+        let start = index as usize * self.offset_size.to_usize();
+        let mut r = Reader::new_at(self.data, start);
+        let n: u32 = match self.offset_size {
+            OffsetSize::Size1 => u32::from(r.read::<u8>()?),
+            OffsetSize::Size2 => u32::from(r.read::<u16>()?),
+            OffsetSize::Size3 => r.read::<U24>()?.0,
+            OffsetSize::Size4 => r.read::<u32>()?,
         };
 
-        let mut objects = Vec::with_capacity(count);
-        let mut last = read_offset()?;
-        let mut skip = 0;
-        for _ in 0..count {
-            let offset = read_offset()?;
-            let slice = data.get(last..offset).ok_or(Error::InvalidOffset)?;
-            objects.push(T::read_at(slice, 0)?);
-            skip += slice.len();
-            last = offset;
-        }
-
-        r.skip(skip)?;
-        Ok(Self(objects))
+        // Offsets are offset by one byte in the font,
+        // so we have to shift them back.
+        n.checked_sub(1)
     }
 
-    fn write(&self, w: &mut Writer) {
-        w.write::<u16>(self.0.len() as u16);
-        if self.0.is_empty() {
-            return;
-        }
-
-        let mut buffer = Writer::new();
-        let mut offsets = vec![];
-        for object in &self.0 {
-            offsets.push(1 + buffer.len() as u32);
-            buffer.write_ref::<T>(object);
-        }
-
-        let end = 1 + buffer.len() as u32;
-        offsets.push(end);
-
-        let offsize = Offsize::select(end);
-        w.write::<Offsize>(offsize);
-
-        let offsize = offsize as usize;
-        for offset in offsets {
-            let bytes = u32::to_be_bytes(offset);
-            w.give(&bytes[4 - offsize..4]);
-        }
-
-        w.give(&buffer.finish());
-    }
-}
-
-impl<T: Debug> Debug for Index<T> {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.debug_list().entries(&self.0).finish()
-    }
-}
-
-impl<T> Deref for Index<T> {
-    type Target = [T];
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T> DerefMut for Index<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-/// The number of bytes an offset is encoded with.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-#[repr(u8)]
-enum Offsize {
-    One = 1,
-    Two = 2,
-    Three = 3,
-    Four = 4,
-}
-
-impl Offsize {
-    fn select(max: u32) -> Self {
-        if max < (1 << 8) {
-            Self::One
-        } else if max < (1 << 16) {
-            Self::Two
-        } else if max < (1 << 24) {
-            Self::Three
+    #[inline]
+    pub fn last(&self) -> Option<u32> {
+        if !self.is_empty() {
+            self.get(self.len() - 1)
         } else {
-            Self::Four
+            None
+        }
+    }
+
+    #[inline]
+    pub fn len(&self) -> u32 {
+        self.data.len() as u32 / self.offset_size as u32
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Index<'a> {
+    pub data: &'a [u8],
+    pub offsets: VarOffsets<'a>,
+}
+
+impl<'a> Default for Index<'a> {
+    #[inline]
+    fn default() -> Self {
+        Index {
+            data: b"",
+            offsets: VarOffsets { data: b"", offset_size: OffsetSize::Size1 },
         }
     }
 }
 
-impl Structure<'_> for Offsize {
-    fn read(r: &mut Reader) -> Result<Self> {
-        match r.read::<u8>()? {
-            1 => Ok(Self::One),
-            2 => Ok(Self::Two),
-            3 => Ok(Self::Three),
-            4 => Ok(Self::Four),
-            _ => Err(Error::InvalidOffset),
-        }
+impl<'a> IntoIterator for Index<'a> {
+    type Item = &'a [u8];
+    type IntoIter = IndexIter<'a>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        IndexIter { data: self, offset_index: 0 }
+    }
+}
+
+impl<'a> Index<'a> {
+    #[inline]
+    pub fn len(&self) -> u32 {
+        self.offsets.len().saturating_sub(1)
     }
 
-    fn write(&self, w: &mut Writer) {
-        w.write::<u8>(*self as u8);
+    pub fn get(&self, index: u32) -> Option<&'a [u8]> {
+        let next_index = index.checked_add(1)?;
+        let start = self.offsets.get(index)? as usize;
+        let end = self.offsets.get(next_index)? as usize;
+        self.data.get(start..end)
     }
+}
+
+pub struct IndexIter<'a> {
+    data: Index<'a>,
+    offset_index: u32,
+}
+
+impl<'a> Iterator for IndexIter<'a> {
+    type Item = &'a [u8];
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.offset_index == self.data.len() {
+            return None;
+        }
+
+        let index = self.offset_index;
+        self.offset_index += 1;
+        self.data.get(index)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum OffsetSize {
+    Size1 = 1,
+    Size2 = 2,
+    Size3 = 3,
+    Size4 = 4,
+}
+
+impl OffsetSize {
+    #[inline]
+    pub fn to_u32(self) -> u32 {
+        self as u32
+    }
+    #[inline]
+    pub fn to_usize(self) -> usize {
+        self as usize
+    }
+}
+
+impl Readable<'_> for OffsetSize {
+    const SIZE: usize = 1;
+
+    fn read(r: &mut Reader<'_>) -> Option<Self> {
+        match r.read::<u8>()? {
+            1 => Some(OffsetSize::Size1),
+            2 => Some(OffsetSize::Size2),
+            3 => Some(OffsetSize::Size3),
+            4 => Some(OffsetSize::Size4),
+            _ => None,
+        }
+    }
+}
+
+/// An index that owns its data.
+pub struct OwnedIndex {
+    pub data: Vec<u8>,
+    pub header_size: usize,
+}
+
+impl Writeable for OwnedIndex {
+    fn write(&self, w: &mut Writer) {
+        w.extend(&self.data);
+    }
+}
+
+impl Default for OwnedIndex {
+    fn default() -> Self {
+        Self { data: vec![0, 0], header_size: 2 }
+    }
+}
+
+/// Create an index from a vector of data.
+pub fn create_index(data: Vec<Vec<u8>>) -> Result<OwnedIndex> {
+    let count = u16::try_from(data.len()).map_err(|_| OverflowError)?;
+    // + 1 Since we start counting from the preceding byte.
+    let offsize = data.iter().map(|v| v.len() as u32).sum::<u32>() + 1;
+
+    // Empty Index only contains the count field
+    if count == 0 {
+        return Ok(OwnedIndex::default());
+    }
+
+    let offset_size = if offsize <= u8::MAX as u32 {
+        OffsetSize::Size1
+    } else if offsize <= u16::MAX as u32 {
+        OffsetSize::Size2
+    } else if offsize <= U24::MAX {
+        OffsetSize::Size3
+    } else {
+        OffsetSize::Size4
+    };
+
+    let mut w = Writer::new();
+    w.write(count);
+    w.write(offset_size as u8);
+
+    let mut cur_offset: u32 = 0;
+
+    let mut write_offset = |len| {
+        cur_offset += len;
+
+        match offset_size {
+            OffsetSize::Size1 => {
+                let num = u8::try_from(cur_offset).map_err(|_| OverflowError)?;
+                w.write(num);
+            }
+            OffsetSize::Size2 => {
+                let num = u16::try_from(cur_offset).map_err(|_| OverflowError)?;
+                w.write(num);
+            }
+            OffsetSize::Size3 => {
+                let num = U24(cur_offset);
+                w.write(num);
+            }
+            OffsetSize::Size4 => w.write(cur_offset),
+        }
+
+        Ok(())
+    };
+
+    write_offset(1)?;
+    for el in &data {
+        write_offset(el.len() as u32)?;
+    }
+
+    let header_size = w.len();
+
+    for el in &data {
+        w.extend(el);
+    }
+
+    Ok(OwnedIndex { header_size, data: w.finish() })
 }

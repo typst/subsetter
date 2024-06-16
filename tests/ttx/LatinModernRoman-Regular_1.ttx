@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="OTTO" ttLibVersion="4.50">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name="cid00001"/>
+    <GlyphID id="2" name="cid00002"/>
+    <GlyphID id="3" name="cid00003"/>
+    <GlyphID id="4" name="cid00004"/>
+  </GlyphOrder>
+
+  <head>
+    <!-- Most of this table will be recalculated by the compiler -->
+    <tableVersion value="1.0"/>
+    <fontRevision value="2.004"/>
+    <checkSumAdjustment value="0x45f2f96c"/>
+    <magicNumber value="0x5f0f3cf5"/>
+    <flags value="00000000 00000011"/>
+    <unitsPerEm value="1000"/>
+    <created value="Thu Oct  8 09:58:12 2009"/>
+    <modified value="Thu Oct  8 09:58:12 2009"/>
+    <xMin value="-430"/>
+    <yMin value="-290"/>
+    <xMax value="1417"/>
+    <yMax value="1127"/>
+    <macStyle value="00000000 00000000"/>
+    <lowestRecPPEM value="3"/>
+    <fontDirectionHint value="2"/>
+    <indexToLocFormat value="0"/>
+    <glyphDataFormat value="0"/>
+  </head>
+
+  <hhea>
+    <tableVersion value="0x00010000"/>
+    <ascent value="1127"/>
+    <descent value="-290"/>
+    <lineGap value="0"/>
+    <advanceWidthMax value="1457"/>
+    <minLeftSideBearing value="-430"/>
+    <minRightSideBearing value="-260"/>
+    <xMaxExtent value="1417"/>
+    <caretSlopeRise value="1"/>
+    <caretSlopeRun value="0"/>
+    <caretOffset value="0"/>
+    <reserved0 value="0"/>
+    <reserved1 value="0"/>
+    <reserved2 value="0"/>
+    <reserved3 value="0"/>
+    <metricDataFormat value="0"/>
+    <numberOfHMetrics value="5"/>
+  </hhea>
+
+  <maxp>
+    <tableVersion value="0x5000"/>
+    <numGlyphs value="5"/>
+  </maxp>
+
+  <name>
+    <namerecord nameID="0" platformID="3" platEncID="1" langID="0x409">
+      Copyright 2003, 2009 B. Jackowski and J. M. Nowacki (on behalf of TeX users groups). This work is released under the GUST Font License --  see http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt for details.
+    </namerecord>
+    <namerecord nameID="1" platformID="3" platEncID="1" langID="0x409">
+      LM Roman 10
+    </namerecord>
+    <namerecord nameID="2" platformID="3" platEncID="1" langID="0x409">
+      Regular
+    </namerecord>
+    <namerecord nameID="3" platformID="3" platEncID="1" langID="0x409">
+      2.004;UKWN;LMRoman10-Regular
+    </namerecord>
+    <namerecord nameID="4" platformID="3" platEncID="1" langID="0x409">
+      LMRoman10-Regular
+    </namerecord>
+    <namerecord nameID="5" platformID="3" platEncID="1" langID="0x409">
+      Version 2.004;PS 2.004;hotconv 1.0.49;makeotf.lib2.0.14853
+    </namerecord>
+    <namerecord nameID="6" platformID="3" platEncID="1" langID="0x409">
+      LMRoman10-Regular
+    </namerecord>
+  </name>
+
+  <post>
+    <formatType value="3.0"/>
+    <italicAngle value="0.0"/>
+    <underlinePosition value="-126"/>
+    <underlineThickness value="40"/>
+    <isFixedPitch value="0"/>
+    <minMemType42 value="0"/>
+    <maxMemType42 value="0"/>
+    <minMemType1 value="0"/>
+    <maxMemType1 value="0"/>
+  </post>
+
+  <CFF>
+    <major value="1"/>
+    <minor value="0"/>
+    <CFFFont name="LMRoman10-Regular">
+      <ROS Registry="Adobe" Order="Identity" Supplement="0"/>
+      <Notice value="Copyright 2003, 2009 B. Jackowski and J. M. Nowacki (on behalf of TeX users groups). This work is released under the GUST Font License --  see http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt for details."/>
+      <isFixedPitch value="0"/>
+      <ItalicAngle value="0"/>
+      <UnderlinePosition value="-100"/>
+      <UnderlineThickness value="50"/>
+      <PaintType value="0"/>
+      <CharstringType value="2"/>
+      <FontMatrix value="0.001 0 0 0.001 0 0"/>
+      <FontBBox value="-430 -290 1417 1127"/>
+      <StrokeWidth value="0"/>
+      <CIDFontVersion value="0"/>
+      <CIDFontRevision value="0"/>
+      <CIDFontType value="0"/>
+      <CIDCount value="65535"/>
+      <!-- charset is dumped separately as the 'GlyphOrder' element -->
+      <FDSelect format="3"/>
+      <FDArray>
+        <FontDict index="0">
+          <FontMatrix value="1 0 0 1 0 0"/>
+          <Private>
+            <BlueValues value="-22 0 431 448 666 677 683 705"/>
+            <BlueScale value="0.04546"/>
+            <BlueShift value="7"/>
+            <BlueFuzz value="0"/>
+            <StdHW value="31"/>
+            <StdVW value="69"/>
+            <StemSnapH value="22 23 25 26 28 30 31 38 40 42 45 106"/>
+            <StemSnapV value="25 66 69 75 77 83 86 89 92 97 103 107"/>
+            <ForceBold value="0"/>
+            <LanguageGroup value="0"/>
+            <ExpansionFactor value="0.06"/>
+            <initialRandomSeed value="0"/>
+            <defaultWidthX value="0"/>
+            <nominalWidthX value="0"/>
+          </Private>
+        </FontDict>
+      </FDArray>
+      <CharStrings>
+        <CharString name=".notdef" fdSelectIndex="0">
+          280 endchar
+        </CharString>
+        <CharString name="cid00001" fdSelectIndex="0">
+          785 -22 31 233 31 401 31 41 38 134 -20 hstemhm
+          56 103 418 89 hintmask 11100110
+          735 242 rmoveto
+          31 vlineto
+          -122 -3 rlineto
+          -40 -85 0 3 -36 hvcurveto
+          -31 32 vlineto
+          90 3 -11 -37 hvcurveto
+          -64 vlineto
+          -112 -127 -9 -28 -65 -198 35 298 299 197 33 60 107 91 -90 -147 20 vhcurveto
+          -14 2 0 -3 14 hhcurveto
+          16 0 3 21 hvcurveto
+          237 vlineto
+          17 0 7 -11 -4 -4 0 -12 -8 vhcurveto
+          -50 -74 rlineto
+          32 -32 -54 54 -99 hhcurveto
+          -186 -162 -158 -205 -205 160 -159 190 73 80 26 59 34 hvcurveto
+          -22 13 40 -40 11 hhcurveto
+          9 0 8 15 hvcurveto
+          174 vlineto
+          39 4 5 65 vhcurveto
+          hintmask 00011000
+          -193 676 rmoveto
+          -22 hlineto
+          -87 -2 -66 -47 -59 hhcurveto
+          -63 -63 49 85 -2 hvcurveto
+          -22 hlineto
+          -108 2 73 -64 74 hhcurveto
+          78 70 67 105 2 hvcurveto
+          endchar
+        </CharString>
+        <CharString name="cid00002" fdSelectIndex="0">
+          785 -22 31 233 31 401 31 52 -21 133 -20 hstemhm
+          56 103 418 89 hintmask 11100110
+          735 242 rmoveto
+          31 vlineto
+          -122 -3 rlineto
+          -40 -85 0 3 -36 hvcurveto
+          -31 32 vlineto
+          90 3 -11 -37 hvcurveto
+          -64 vlineto
+          -112 -127 -9 -28 -65 -198 35 298 299 197 33 60 107 91 -90 -147 20 vhcurveto
+          -14 2 0 -3 14 hhcurveto
+          16 0 3 21 hvcurveto
+          237 vlineto
+          17 0 7 -11 -4 -4 0 -12 -8 vhcurveto
+          -50 -74 rlineto
+          32 -32 -54 54 -99 hhcurveto
+          -186 -162 -158 -205 -205 160 -159 190 73 80 26 59 34 hvcurveto
+          -22 13 40 -40 11 hhcurveto
+          9 0 8 15 hvcurveto
+          174 vlineto
+          39 4 5 65 vhcurveto
+          hintmask 00011000
+          -192 611 rmoveto
+          -10 16 -140 -66 -140 66 -12 -16 151 -117 rlineto
+          endchar
+        </CharString>
+        <CharString name="cid00003" fdSelectIndex="0">
+          500 -206 23 190 58 45 23 16 23 247 23 -12 23 61 79 145 -20 hstemhm
+          28 52 -20 75 -59 75 -44 52 0 75 75 75 35 52 -38 52 hintmask 0000011100000000
+          259 554 rmoveto
+          19 -13 20 -27 -11 -11 -4 -8 -8 vhcurveto
+          -1 60 21 45 33 36 rrcurveto
+          4 4 1 1 3 vvcurveto
+          5 -4 3 -4 -9 -59 -59 -86 -48 18 -31 30 26 14 20 20 vhcurveto
+          226 -150 rmoveto
+          17 -12 32 -39 -20 -44 -6 -41 -42 vhcurveto
+          hintmask 0000100001000000
+          33 -42 -42 3 -22 hhcurveto
+          -93 -69 -69 -77 hvcurveto
+          hintmask 0000000000010000
+          -44 22 -38 25 -21 vhcurveto
+          hintmask 0010000000100000
+          -13 -15 -18 -33 -35 vvcurveto
+          -31 13 -38 31 -20 vhcurveto
+          hintmask 1111000010001110
+          -60 -17 -32 -43 -40 vvcurveto
+          -72 99 -55 122 118 104 51 78 35 -14 51 -51 28 vhcurveto
+          28 -53 -58 0 -61 hhcurveto
+          -25 -43 0 1 -7 hvcurveto
+          -32 4 -21 31 32 vvcurveto
+          4 0 23 17 20 vhcurveto
+          -28 39 41 -3 19 hhcurveto
+          93 69 69 77 37 -16 37 -25 23 hvcurveto
+          hintmask 0001010001000001
+          34 36 36 5 18 hhcurveto
+          0 7 0 3 -1 vhcurveto
+          -11 -4 -5 -11 -12 vvcurveto
+          -17 13 -12 16 10 19 7 23 vhcurveto
+          -176 -108 rmoveto
+          -27 -1 -32 -15 -25 vhcurveto
+          -12 -8 -23 -28 -40 hhcurveto
+          -87 0 100 23 hvcurveto
+          hintmask 1000100000100100
+          27 1 32 15 25 vhcurveto
+          12 8 23 28 40 hhcurveto
+          87 0 -100 -23 hvcurveto
+          110 -375 rmoveto
+          -54 -71 -50 -98 vhcurveto
+          hintmask 0100000010000010
+          -101 -69 51 53 46 38 37 44 3 hvcurveto
+          59 hlineto
+          86 112 0 -86 hvcurveto
+          endchar
+        </CharString>
+        <CharString name="cid00004" fdSelectIndex="0">
+          778 54 40 312 40 0 40 hstemhm
+          153 40 0 40 311 40 0 40 hintmask 10110010
+          624 15 rmoveto
+          14 14 -13 13 -10 10 -74 75 rcurveline
+          27 33 16 43 47 vvcurveto
+          47 -16 43 -28 34 vhcurveto
+          74 74 10 10 14 13 -14 14 rlinecurve
+          -15 14 -13 -13 -10 -10 -74 -74 rcurveline
+          27 -34 -42 17 -47 hhcurveto
+          -47 -43 -17 -27 -33 hvcurveto
+          -75 75 -10 10 -13 13 -15 -14 rlinecurve
+          -14 -14 14 -14 10 -10 74 -74 rcurveline
+          -27 -34 -17 -43 -47 vvcurveto
+          -47 17 -43 27 -33 vhcurveto
+          -74 -75 -10 -10 -14 -13 14 -14 rlinecurve
+          15 -14 13 13 10 10 74 74 rcurveline
+          -27 34 43 -17 47 hhcurveto
+          47 43 17 27 33 hvcurveto
+          75 -74 10 -10 13 -13 14 14 rlinecurve
+          -80 235 rmoveto
+          -86 -69 -70 -86 vhcurveto
+          hintmask 01001100
+          -86 -70 70 86 86 70 70 86 86 69 -70 -86 hvcurveto
+          endchar
+        </CharString>
+      </CharStrings>
+    </CFFFont>
+
+    <GlobalSubrs>
+      <!-- The 'index' attribute is only for humans; it is ignored when parsed. -->
+    </GlobalSubrs>
+  </CFF>
+
+  <hmtx>
+    <mtx name=".notdef" width="280" lsb="0"/>
+    <mtx name="cid00001" width="785" lsb="56"/>
+    <mtx name="cid00002" width="785" lsb="56"/>
+    <mtx name="cid00003" width="500" lsb="28"/>
+    <mtx name="cid00004" width="778" lsb="147"/>
+  </hmtx>
+
+</ttFont>

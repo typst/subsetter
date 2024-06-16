@@ -1,0 +1,1052 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00" ttLibVersion="4.50">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name="E"/>
+    <GlyphID id="2" name="H"/>
+    <GlyphID id="3" name="J"/>
+    <GlyphID id="4" name="Edieresis"/>
+    <GlyphID id="5" name="edieresis"/>
+    <GlyphID id="6" name="Emacron"/>
+    <GlyphID id="7" name="emacron"/>
+    <GlyphID id="8" name="Ebreve"/>
+    <GlyphID id="9" name="breve"/>
+    <GlyphID id="10" name="macron"/>
+    <GlyphID id="11" name="e"/>
+    <GlyphID id="12" name="dieresis"/>
+  </GlyphOrder>
+
+  <head>
+    <!-- Most of this table will be recalculated by the compiler -->
+    <tableVersion value="1.0"/>
+    <fontRevision value="1.0"/>
+    <checkSumAdjustment value="0x9b010a31"/>
+    <magicNumber value="0x5f0f3cf5"/>
+    <flags value="00000000 00001011"/>
+    <unitsPerEm value="2048"/>
+    <created value="Thu Nov  8 10:05:00 2012"/>
+    <modified value="Sun Nov 11 10:20:05 2012"/>
+    <xMin value="-291"/>
+    <yMin value="-807"/>
+    <xMax value="2527"/>
+    <yMax value="1898"/>
+    <macStyle value="00000000 00000000"/>
+    <lowestRecPPEM value="9"/>
+    <fontDirectionHint value="2"/>
+    <indexToLocFormat value="0"/>
+    <glyphDataFormat value="0"/>
+  </head>
+
+  <hhea>
+    <tableVersion value="0x00010000"/>
+    <ascent value="1898"/>
+    <descent value="-807"/>
+    <lineGap value="0"/>
+    <advanceWidthMax value="2533"/>
+    <minLeftSideBearing value="-291"/>
+    <minRightSideBearing value="-573"/>
+    <xMaxExtent value="2492"/>
+    <caretSlopeRise value="1"/>
+    <caretSlopeRun value="0"/>
+    <caretOffset value="0"/>
+    <reserved0 value="0"/>
+    <reserved1 value="0"/>
+    <reserved2 value="0"/>
+    <reserved3 value="0"/>
+    <metricDataFormat value="0"/>
+    <numberOfHMetrics value="13"/>
+  </hhea>
+
+  <maxp>
+    <!-- Most of this table will be recalculated by the compiler -->
+    <tableVersion value="0x10000"/>
+    <numGlyphs value="13"/>
+    <maxPoints value="185"/>
+    <maxContours value="6"/>
+    <maxCompositePoints value="178"/>
+    <maxCompositeContours value="5"/>
+    <maxZones value="1"/>
+    <maxTwilightPoints value="0"/>
+    <maxStorage value="0"/>
+    <maxFunctionDefs value="10"/>
+    <maxInstructionDefs value="0"/>
+    <maxStackElements value="512"/>
+    <maxSizeOfInstructions value="371"/>
+    <maxComponentElements value="2"/>
+    <maxComponentDepth value="1"/>
+  </maxp>
+
+  <hmtx>
+    <mtx name=".notdef" width="512" lsb="0"/>
+    <mtx name="E" width="1300" lsb="82"/>
+    <mtx name="Ebreve" width="1300" lsb="82"/>
+    <mtx name="Edieresis" width="1300" lsb="82"/>
+    <mtx name="Emacron" width="1300" lsb="82"/>
+    <mtx name="H" width="1556" lsb="-225"/>
+    <mtx name="J" width="1090" lsb="0"/>
+    <mtx name="breve" width="614" lsb="162"/>
+    <mtx name="dieresis" width="614" lsb="162"/>
+    <mtx name="e" width="573" lsb="55"/>
+    <mtx name="edieresis" width="573" lsb="55"/>
+    <mtx name="emacron" width="573" lsb="55"/>
+    <mtx name="macron" width="614" lsb="172"/>
+  </hmtx>
+
+  <fpgm>
+    <assembly>
+      PUSHB[ ]	/* 1 value pushed */
+      0
+      FDEF[ ]	/* FunctionDefinition */
+        MPPEM[ ]	/* MeasurePixelPerEm */
+        PUSHB[ ]	/* 1 value pushed */
+        9
+        LT[ ]	/* LessThan */
+        IF[ ]	/* If */
+          PUSHB[ ]	/* 2 values pushed */
+          1 1
+          INSTCTRL[ ]	/* SetInstrExecControl */
+        EIF[ ]	/* EndIf */
+        PUSHW[ ]	/* 1 value pushed */
+        511
+        SCANCTRL[ ]	/* ScanConversionControl */
+        PUSHB[ ]	/* 1 value pushed */
+        68
+        SCVTCI[ ]	/* SetCVTCutIn */
+        PUSHB[ ]	/* 2 values pushed */
+        9 3
+        SDS[ ]	/* SetDeltaShiftInGState */
+        SDB[ ]	/* SetDeltaBaseInGState */
+      ENDF[ ]	/* EndFunctionDefinition */
+      PUSHB[ ]	/* 1 value pushed */
+      1
+      FDEF[ ]	/* FunctionDefinition */
+        DUP[ ]	/* DuplicateTopStack */
+        DUP[ ]	/* DuplicateTopStack */
+        RCVT[ ]	/* ReadCVT */
+        ROUND[01]	/* Round */
+        WCVTP[ ]	/* WriteCVTInPixels */
+        PUSHB[ ]	/* 1 value pushed */
+        1
+        ADD[ ]	/* Add */
+      ENDF[ ]	/* EndFunctionDefinition */
+      PUSHB[ ]	/* 1 value pushed */
+      2
+      FDEF[ ]	/* FunctionDefinition */
+        PUSHB[ ]	/* 1 value pushed */
+        1
+        LOOPCALL[ ]	/* LoopAndCallFunction */
+        POP[ ]	/* PopTopStack */
+      ENDF[ ]	/* EndFunctionDefinition */
+      PUSHB[ ]	/* 1 value pushed */
+      3
+      FDEF[ ]	/* FunctionDefinition */
+        DUP[ ]	/* DuplicateTopStack */
+        GC[0]	/* GetCoordOnPVector */
+        PUSHB[ ]	/* 1 value pushed */
+        3
+        CINDEX[ ]	/* CopyXToTopStack */
+        GC[0]	/* GetCoordOnPVector */
+        GT[ ]	/* GreaterThan */
+        IF[ ]	/* If */
+          SWAP[ ]	/* SwapTopStack */
+        EIF[ ]	/* EndIf */
+        DUP[ ]	/* DuplicateTopStack */
+        ROLL[ ]	/* RollTopThreeStack */
+        DUP[ ]	/* DuplicateTopStack */
+        ROLL[ ]	/* RollTopThreeStack */
+        MD[0]	/* MeasureDistance */
+        ABS[ ]	/* Absolute */
+        ROLL[ ]	/* RollTopThreeStack */
+        DUP[ ]	/* DuplicateTopStack */
+        GC[0]	/* GetCoordOnPVector */
+        DUP[ ]	/* DuplicateTopStack */
+        ROUND[00]	/* Round */
+        SUB[ ]	/* Subtract */
+        ABS[ ]	/* Absolute */
+        PUSHB[ ]	/* 1 value pushed */
+        4
+        CINDEX[ ]	/* CopyXToTopStack */
+        GC[0]	/* GetCoordOnPVector */
+        DUP[ ]	/* DuplicateTopStack */
+        ROUND[00]	/* Round */
+        SUB[ ]	/* Subtract */
+        ABS[ ]	/* Absolute */
+        GT[ ]	/* GreaterThan */
+        IF[ ]	/* If */
+          SWAP[ ]	/* SwapTopStack */
+          NEG[ ]	/* Negate */
+          ROLL[ ]	/* RollTopThreeStack */
+        EIF[ ]	/* EndIf */
+        MDAP[1]	/* MoveDirectAbsPt */
+        DUP[ ]	/* DuplicateTopStack */
+        PUSHB[ ]	/* 1 value pushed */
+        0
+        GTEQ[ ]	/* GreaterThanOrEqual */
+        IF[ ]	/* If */
+          ROUND[01]	/* Round */
+          DUP[ ]	/* DuplicateTopStack */
+          PUSHB[ ]	/* 1 value pushed */
+          0
+          EQ[ ]	/* Equal */
+          IF[ ]	/* If */
+            POP[ ]	/* PopTopStack */
+            PUSHB[ ]	/* 1 value pushed */
+            64
+          EIF[ ]	/* EndIf */
+        ELSE[ ]	/* Else */
+          ROUND[01]	/* Round */
+          DUP[ ]	/* DuplicateTopStack */
+          PUSHB[ ]	/* 1 value pushed */
+          0
+          EQ[ ]	/* Equal */
+          IF[ ]	/* If */
+            POP[ ]	/* PopTopStack */
+            PUSHB[ ]	/* 1 value pushed */
+            64
+            NEG[ ]	/* Negate */
+          EIF[ ]	/* EndIf */
+        EIF[ ]	/* EndIf */
+        MSIRP[0]	/* MoveStackIndirRelPt */
+      ENDF[ ]	/* EndFunctionDefinition */
+      PUSHB[ ]	/* 1 value pushed */
+      4
+      FDEF[ ]	/* FunctionDefinition */
+        DUP[ ]	/* DuplicateTopStack */
+        GC[0]	/* GetCoordOnPVector */
+        PUSHB[ ]	/* 1 value pushed */
+        4
+        CINDEX[ ]	/* CopyXToTopStack */
+        GC[0]	/* GetCoordOnPVector */
+        GT[ ]	/* GreaterThan */
+        IF[ ]	/* If */
+          SWAP[ ]	/* SwapTopStack */
+          ROLL[ ]	/* RollTopThreeStack */
+        EIF[ ]	/* EndIf */
+        DUP[ ]	/* DuplicateTopStack */
+        GC[0]	/* GetCoordOnPVector */
+        DUP[ ]	/* DuplicateTopStack */
+        ROUND[10]	/* Round */
+        SUB[ ]	/* Subtract */
+        ABS[ ]	/* Absolute */
+        PUSHB[ ]	/* 1 value pushed */
+        4
+        CINDEX[ ]	/* CopyXToTopStack */
+        GC[0]	/* GetCoordOnPVector */
+        DUP[ ]	/* DuplicateTopStack */
+        ROUND[10]	/* Round */
+        SUB[ ]	/* Subtract */
+        ABS[ ]	/* Absolute */
+        GT[ ]	/* GreaterThan */
+        IF[ ]	/* If */
+          SWAP[ ]	/* SwapTopStack */
+          ROLL[ ]	/* RollTopThreeStack */
+        EIF[ ]	/* EndIf */
+        MDAP[1]	/* MoveDirectAbsPt */
+        MIRP[11101]	/* MoveIndirectRelPt */
+      ENDF[ ]	/* EndFunctionDefinition */
+      PUSHB[ ]	/* 1 value pushed */
+      5
+      FDEF[ ]	/* FunctionDefinition */
+        MPPEM[ ]	/* MeasurePixelPerEm */
+        DUP[ ]	/* DuplicateTopStack */
+        PUSHB[ ]	/* 1 value pushed */
+        3
+        MINDEX[ ]	/* MoveXToTopStack */
+        LT[ ]	/* LessThan */
+        IF[ ]	/* If */
+          LTEQ[ ]	/* LessThenOrEqual */
+          IF[ ]	/* If */
+            PUSHB[ ]	/* 1 value pushed */
+            128
+            WCVTP[ ]	/* WriteCVTInPixels */
+          ELSE[ ]	/* Else */
+            PUSHB[ ]	/* 1 value pushed */
+            64
+            WCVTP[ ]	/* WriteCVTInPixels */
+          EIF[ ]	/* EndIf */
+        ELSE[ ]	/* Else */
+          POP[ ]	/* PopTopStack */
+          POP[ ]	/* PopTopStack */
+          DUP[ ]	/* DuplicateTopStack */
+          RCVT[ ]	/* ReadCVT */
+          PUSHB[ ]	/* 1 value pushed */
+          192
+          LT[ ]	/* LessThan */
+          IF[ ]	/* If */
+            PUSHB[ ]	/* 1 value pushed */
+            192
+            WCVTP[ ]	/* WriteCVTInPixels */
+          ELSE[ ]	/* Else */
+            POP[ ]	/* PopTopStack */
+          EIF[ ]	/* EndIf */
+        EIF[ ]	/* EndIf */
+      ENDF[ ]	/* EndFunctionDefinition */
+      PUSHB[ ]	/* 1 value pushed */
+      6
+      FDEF[ ]	/* FunctionDefinition */
+        DUP[ ]	/* DuplicateTopStack */
+        DUP[ ]	/* DuplicateTopStack */
+        RCVT[ ]	/* ReadCVT */
+        ROUND[01]	/* Round */
+        WCVTP[ ]	/* WriteCVTInPixels */
+        PUSHB[ ]	/* 1 value pushed */
+        1
+        ADD[ ]	/* Add */
+        DUP[ ]	/* DuplicateTopStack */
+        DUP[ ]	/* DuplicateTopStack */
+        RCVT[ ]	/* ReadCVT */
+        RDTG[ ]	/* RoundDownToGrid */
+        ROUND[01]	/* Round */
+        RTG[ ]	/* RoundToGrid */
+        WCVTP[ ]	/* WriteCVTInPixels */
+        PUSHB[ ]	/* 1 value pushed */
+        1
+        ADD[ ]	/* Add */
+      ENDF[ ]	/* EndFunctionDefinition */
+      PUSHB[ ]	/* 1 value pushed */
+      7
+      FDEF[ ]	/* FunctionDefinition */
+        PUSHB[ ]	/* 1 value pushed */
+        6
+        LOOPCALL[ ]	/* LoopAndCallFunction */
+      ENDF[ ]	/* EndFunctionDefinition */
+      PUSHB[ ]	/* 1 value pushed */
+      8
+      FDEF[ ]	/* FunctionDefinition */
+        MPPEM[ ]	/* MeasurePixelPerEm */
+        DUP[ ]	/* DuplicateTopStack */
+        PUSHB[ ]	/* 1 value pushed */
+        3
+        MINDEX[ ]	/* MoveXToTopStack */
+        GTEQ[ ]	/* GreaterThanOrEqual */
+        IF[ ]	/* If */
+          PUSHB[ ]	/* 1 value pushed */
+          64
+        ELSE[ ]	/* Else */
+          PUSHB[ ]	/* 1 value pushed */
+          0
+        EIF[ ]	/* EndIf */
+        ROLL[ ]	/* RollTopThreeStack */
+        ROLL[ ]	/* RollTopThreeStack */
+        DUP[ ]	/* DuplicateTopStack */
+        PUSHB[ ]	/* 1 value pushed */
+        3
+        MINDEX[ ]	/* MoveXToTopStack */
+        GTEQ[ ]	/* GreaterThanOrEqual */
+        IF[ ]	/* If */
+          SWAP[ ]	/* SwapTopStack */
+          POP[ ]	/* PopTopStack */
+          PUSHB[ ]	/* 1 value pushed */
+          128
+          ROLL[ ]	/* RollTopThreeStack */
+          ROLL[ ]	/* RollTopThreeStack */
+        ELSE[ ]	/* Else */
+          ROLL[ ]	/* RollTopThreeStack */
+          SWAP[ ]	/* SwapTopStack */
+        EIF[ ]	/* EndIf */
+        DUP[ ]	/* DuplicateTopStack */
+        PUSHB[ ]	/* 1 value pushed */
+        3
+        MINDEX[ ]	/* MoveXToTopStack */
+        GTEQ[ ]	/* GreaterThanOrEqual */
+        IF[ ]	/* If */
+          SWAP[ ]	/* SwapTopStack */
+          POP[ ]	/* PopTopStack */
+          PUSHB[ ]	/* 1 value pushed */
+          192
+          ROLL[ ]	/* RollTopThreeStack */
+          ROLL[ ]	/* RollTopThreeStack */
+        ELSE[ ]	/* Else */
+          ROLL[ ]	/* RollTopThreeStack */
+          SWAP[ ]	/* SwapTopStack */
+        EIF[ ]	/* EndIf */
+        DUP[ ]	/* DuplicateTopStack */
+        PUSHB[ ]	/* 1 value pushed */
+        3
+        MINDEX[ ]	/* MoveXToTopStack */
+        GTEQ[ ]	/* GreaterThanOrEqual */
+        IF[ ]	/* If */
+          SWAP[ ]	/* SwapTopStack */
+          POP[ ]	/* PopTopStack */
+          PUSHW[ ]	/* 1 value pushed */
+          256
+          ROLL[ ]	/* RollTopThreeStack */
+          ROLL[ ]	/* RollTopThreeStack */
+        ELSE[ ]	/* Else */
+          ROLL[ ]	/* RollTopThreeStack */
+          SWAP[ ]	/* SwapTopStack */
+        EIF[ ]	/* EndIf */
+        DUP[ ]	/* DuplicateTopStack */
+        PUSHB[ ]	/* 1 value pushed */
+        3
+        MINDEX[ ]	/* MoveXToTopStack */
+        GTEQ[ ]	/* GreaterThanOrEqual */
+        IF[ ]	/* If */
+          SWAP[ ]	/* SwapTopStack */
+          POP[ ]	/* PopTopStack */
+          PUSHW[ ]	/* 1 value pushed */
+          320
+          ROLL[ ]	/* RollTopThreeStack */
+          ROLL[ ]	/* RollTopThreeStack */
+        ELSE[ ]	/* Else */
+          ROLL[ ]	/* RollTopThreeStack */
+          SWAP[ ]	/* SwapTopStack */
+        EIF[ ]	/* EndIf */
+        DUP[ ]	/* DuplicateTopStack */
+        PUSHB[ ]	/* 1 value pushed */
+        3
+        MINDEX[ ]	/* MoveXToTopStack */
+        GTEQ[ ]	/* GreaterThanOrEqual */
+        IF[ ]	/* If */
+          PUSHB[ ]	/* 1 value pushed */
+          3
+          CINDEX[ ]	/* CopyXToTopStack */
+          RCVT[ ]	/* ReadCVT */
+          PUSHW[ ]	/* 1 value pushed */
+          384
+          LT[ ]	/* LessThan */
+          IF[ ]	/* If */
+            SWAP[ ]	/* SwapTopStack */
+            POP[ ]	/* PopTopStack */
+            PUSHW[ ]	/* 1 value pushed */
+            384
+            SWAP[ ]	/* SwapTopStack */
+            POP[ ]	/* PopTopStack */
+          ELSE[ ]	/* Else */
+            PUSHB[ ]	/* 1 value pushed */
+            3
+            CINDEX[ ]	/* CopyXToTopStack */
+            RCVT[ ]	/* ReadCVT */
+            SWAP[ ]	/* SwapTopStack */
+            POP[ ]	/* PopTopStack */
+            SWAP[ ]	/* SwapTopStack */
+            POP[ ]	/* PopTopStack */
+          EIF[ ]	/* EndIf */
+        ELSE[ ]	/* Else */
+          POP[ ]	/* PopTopStack */
+        EIF[ ]	/* EndIf */
+        WCVTP[ ]	/* WriteCVTInPixels */
+      ENDF[ ]	/* EndFunctionDefinition */
+      PUSHB[ ]	/* 1 value pushed */
+      9
+      FDEF[ ]	/* FunctionDefinition */
+        MPPEM[ ]	/* MeasurePixelPerEm */
+        GTEQ[ ]	/* GreaterThanOrEqual */
+        IF[ ]	/* If */
+          RCVT[ ]	/* ReadCVT */
+          WCVTP[ ]	/* WriteCVTInPixels */
+        ELSE[ ]	/* Else */
+          POP[ ]	/* PopTopStack */
+          POP[ ]	/* PopTopStack */
+        EIF[ ]	/* EndIf */
+      ENDF[ ]	/* EndFunctionDefinition */
+    </assembly>
+  </fpgm>
+
+  <prep>
+    <assembly>
+      PUSHW[ ]	/* 1 value pushed */
+      511
+      SCANCTRL[ ]	/* ScanConversionControl */
+      PUSHB[ ]	/* 1 value pushed */
+      4
+      SCANTYPE[ ]	/* ScanType */
+    </assembly>
+  </prep>
+
+  <cvt>
+    <cv index="0" value="42"/>
+  </cvt>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name="E" xMin="82" yMin="-156" xMax="1260" yMax="1446">
+      <contour>
+        <pt x="346" y="1049" on="1"/>
+        <pt x="346" y="1148" on="0"/>
+        <pt x="422" y="1297" on="0"/>
+        <pt x="546" y="1396" on="0"/>
+        <pt x="707" y="1446" on="0"/>
+        <pt x="793" y="1446" on="1"/>
+        <pt x="887" y="1446" on="0"/>
+        <pt x="1015" y="1387" on="0"/>
+        <pt x="1093" y="1296" on="0"/>
+        <pt x="1126" y="1186" on="0"/>
+        <pt x="1126" y="1135" on="1"/>
+        <pt x="1126" y="1107" on="0"/>
+        <pt x="1120" y="1073" on="0"/>
+        <pt x="1120" y="1071" on="1"/>
+        <pt x="1081" y="1075" on="1"/>
+        <pt x="1082" y="1083" on="0"/>
+        <pt x="1083" y="1093" on="1"/>
+        <pt x="1084" y="1101" on="0"/>
+        <pt x="1085" y="1123" on="0"/>
+        <pt x="1085" y="1137" on="1"/>
+        <pt x="1085" y="1182" on="0"/>
+        <pt x="1058" y="1278" on="0"/>
+        <pt x="992" y="1356" on="0"/>
+        <pt x="879" y="1407" on="0"/>
+        <pt x="793" y="1407" on="1"/>
+        <pt x="718" y="1407" on="0"/>
+        <pt x="590" y="1356" on="0"/>
+        <pt x="498" y="1267" on="0"/>
+        <pt x="446" y="1148" on="0"/>
+        <pt x="446" y="1079" on="1"/>
+        <pt x="446" y="1010" on="0"/>
+        <pt x="493" y="895" on="0"/>
+        <pt x="535" y="852" on="1"/>
+        <pt x="580" y="867" on="0"/>
+        <pt x="670" y="885" on="0"/>
+        <pt x="717" y="885" on="1"/>
+        <pt x="751" y="885" on="0"/>
+        <pt x="808" y="874" on="0"/>
+        <pt x="850" y="852" on="0"/>
+        <pt x="874" y="821" on="0"/>
+        <pt x="874" y="801" on="1"/>
+        <pt x="874" y="773" on="0"/>
+        <pt x="837" y="741" on="0"/>
+        <pt x="786" y="725" on="0"/>
+        <pt x="731" y="721" on="0"/>
+        <pt x="713" y="721" on="1"/>
+        <pt x="648" y="721" on="0"/>
+        <pt x="531" y="756" on="0"/>
+        <pt x="483" y="788" on="1"/>
+        <pt x="425" y="759" on="0"/>
+        <pt x="322" y="671" on="0"/>
+        <pt x="246" y="554" on="0"/>
+        <pt x="201" y="410" on="0"/>
+        <pt x="201" y="326" on="1"/>
+        <pt x="201" y="244" on="0"/>
+        <pt x="246" y="120" on="0"/>
+        <pt x="319" y="31" on="0"/>
+        <pt x="414" y="-29" on="0"/>
+        <pt x="514" y="-64" on="0"/>
+        <pt x="611" y="-78" on="0"/>
+        <pt x="651" y="-78" on="1"/>
+        <pt x="781" y="-78" on="0"/>
+        <pt x="987" y="5" on="0"/>
+        <pt x="1133" y="146" on="0"/>
+        <pt x="1215" y="334" on="0"/>
+        <pt x="1221" y="438" on="1"/>
+        <pt x="1260" y="436" on="1"/>
+        <pt x="1257" y="349" on="0"/>
+        <pt x="1200" y="194" on="0"/>
+        <pt x="1104" y="62" on="0"/>
+        <pt x="976" y="-43" on="0"/>
+        <pt x="826" y="-117" on="0"/>
+        <pt x="660" y="-156" on="0"/>
+        <pt x="575" y="-156" on="1"/>
+        <pt x="477" y="-156" on="0"/>
+        <pt x="298" y="-101" on="0"/>
+        <pt x="162" y="7" on="0"/>
+        <pt x="82" y="166" on="0"/>
+        <pt x="82" y="270" on="1"/>
+        <pt x="82" y="359" on="0"/>
+        <pt x="140" y="524" on="0"/>
+        <pt x="239" y="666" on="0"/>
+        <pt x="373" y="779" on="0"/>
+        <pt x="449" y="817" on="1"/>
+        <pt x="401" y="860" on="0"/>
+        <pt x="346" y="977" on="0"/>
+      </contour>
+      <contour>
+        <pt x="717" y="846" on="1"/>
+        <pt x="644" y="846" on="0"/>
+        <pt x="569" y="823" on="1"/>
+        <pt x="606" y="795" on="0"/>
+        <pt x="702" y="766" on="0"/>
+        <pt x="758" y="766" on="1"/>
+        <pt x="795" y="766" on="0"/>
+        <pt x="836" y="787" on="0"/>
+        <pt x="836" y="801" on="1"/>
+        <pt x="836" y="816" on="0"/>
+        <pt x="773" y="846" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="Ebreve" xMin="82" yMin="-156" xMax="1260" yMax="1700">
+      <component glyphName="E" x="0" y="0" flags="0x204"/>
+      <component glyphName="breve" x="459" y="690" flags="0x4"/>
+    </TTGlyph>
+
+    <TTGlyph name="Edieresis" xMin="82" yMin="-156" xMax="1260" yMax="1651">
+      <component glyphName="E" x="0" y="0" flags="0x204"/>
+      <component glyphName="dieresis" x="457" y="690" flags="0x4"/>
+    </TTGlyph>
+
+    <TTGlyph name="Emacron" xMin="82" yMin="-156" xMax="1260" yMax="1622">
+      <component glyphName="E" x="0" y="0" flags="0x204"/>
+      <component glyphName="macron" x="457" y="690" flags="0x4"/>
+    </TTGlyph>
+
+    <TTGlyph name="H" xMin="-225" yMin="-483" xMax="1516" yMax="1589">
+      <contour>
+        <pt x="289" y="481" on="1"/>
+        <pt x="290" y="482" on="0"/>
+        <pt x="318" y="496" on="0"/>
+        <pt x="368" y="517" on="0"/>
+        <pt x="440" y="541" on="0"/>
+        <pt x="487" y="553" on="1"/>
+        <pt x="482" y="628" on="0"/>
+        <pt x="479" y="779" on="0"/>
+        <pt x="479" y="848" on="1"/>
+        <pt x="479" y="991" on="0"/>
+        <pt x="518" y="1208" on="0"/>
+        <pt x="549" y="1288" on="1"/>
+        <pt x="545" y="1288" on="1"/>
+        <pt x="435" y="1273" on="0"/>
+        <pt x="261" y="1241" on="0"/>
+        <pt x="125" y="1190" on="0"/>
+        <pt x="24" y="1114" on="0"/>
+        <pt x="-12" y="1055" on="1"/>
+        <pt x="-49" y="1069" on="1"/>
+        <pt x="-5" y="1147" on="0"/>
+        <pt x="125" y="1236" on="0"/>
+        <pt x="281" y="1288" on="0"/>
+        <pt x="457" y="1314" on="0"/>
+        <pt x="547" y="1329" on="1"/>
+        <pt x="552" y="1329" on="0"/>
+        <pt x="562" y="1331" on="0"/>
+        <pt x="567" y="1333" on="1"/>
+        <pt x="603" y="1408" on="0"/>
+        <pt x="686" y="1507" on="0"/>
+        <pt x="765" y="1566" on="0"/>
+        <pt x="830" y="1589" on="0"/>
+        <pt x="848" y="1589" on="1"/>
+        <pt x="886" y="1589" on="0"/>
+        <pt x="926" y="1546" on="0"/>
+        <pt x="926" y="1522" on="1"/>
+        <pt x="926" y="1477" on="0"/>
+        <pt x="871" y="1407" on="0"/>
+        <pt x="787" y="1355" on="0"/>
+        <pt x="688" y="1318" on="0"/>
+        <pt x="643" y="1307" on="1"/>
+        <pt x="618" y="1239" on="0"/>
+        <pt x="590" y="1071" on="0"/>
+        <pt x="590" y="975" on="1"/>
+        <pt x="590" y="884" on="0"/>
+        <pt x="602" y="683" on="0"/>
+        <pt x="610" y="578" on="1"/>
+        <pt x="651" y="583" on="0"/>
+        <pt x="742" y="590" on="0"/>
+        <pt x="793" y="590" on="1"/>
+        <pt x="819" y="590" on="0"/>
+        <pt x="904" y="587" on="0"/>
+        <pt x="994" y="583" on="0"/>
+        <pt x="1074" y="580" on="0"/>
+        <pt x="1096" y="580" on="1"/>
+        <pt x="1133" y="580" on="0"/>
+        <pt x="1200" y="582" on="0"/>
+        <pt x="1229" y="584" on="1"/>
+        <pt x="1231" y="791" on="0"/>
+        <pt x="1337" y="1172" on="0"/>
+        <pt x="1430" y="1358" on="1"/>
+        <pt x="1462" y="1343" on="1"/>
+        <pt x="1461" y="1342" on="0"/>
+        <pt x="1443" y="1284" on="0"/>
+        <pt x="1416" y="1183" on="0"/>
+        <pt x="1384" y="1044" on="0"/>
+        <pt x="1357" y="880" on="0"/>
+        <pt x="1339" y="696" on="0"/>
+        <pt x="1339" y="600" on="1"/>
+        <pt x="1339" y="592" on="1"/>
+        <pt x="1383" y="597" on="0"/>
+        <pt x="1445" y="609" on="0"/>
+        <pt x="1484" y="620" on="0"/>
+        <pt x="1502" y="627" on="0"/>
+        <pt x="1503" y="627" on="1"/>
+        <pt x="1516" y="590" on="1"/>
+        <pt x="1511" y="587" on="0"/>
+        <pt x="1426" y="562" on="0"/>
+        <pt x="1339" y="551" on="1"/>
+        <pt x="1340" y="505" on="0"/>
+        <pt x="1346" y="393" on="0"/>
+        <pt x="1355" y="275" on="0"/>
+        <pt x="1369" y="156" on="0"/>
+        <pt x="1387" y="49" on="0"/>
+        <pt x="1411" y="-38" on="0"/>
+        <pt x="1425" y="-66" on="1"/>
+        <pt x="1395" y="-82" on="1"/>
+        <pt x="1395" y="-83" on="0"/>
+        <pt x="1372" y="-45" on="0"/>
+        <pt x="1336" y="29" on="0"/>
+        <pt x="1294" y="137" on="0"/>
+        <pt x="1257" y="276" on="0"/>
+        <pt x="1231" y="444" on="0"/>
+        <pt x="1229" y="541" on="1"/>
+        <pt x="1195" y="538" on="0"/>
+        <pt x="1122" y="537" on="0"/>
+        <pt x="1081" y="537" on="1"/>
+        <pt x="1057" y="537" on="0"/>
+        <pt x="993" y="540" on="0"/>
+        <pt x="924" y="544" on="0"/>
+        <pt x="855" y="547" on="0"/>
+        <pt x="827" y="547" on="1"/>
+        <pt x="767" y="547" on="0"/>
+        <pt x="661" y="539" on="0"/>
+        <pt x="614" y="532" on="1"/>
+        <pt x="621" y="446" on="0"/>
+        <pt x="629" y="279" on="0"/>
+        <pt x="629" y="199" on="1"/>
+        <pt x="629" y="104" on="0"/>
+        <pt x="611" y="-70" on="0"/>
+        <pt x="568" y="-222" on="0"/>
+        <pt x="496" y="-346" on="0"/>
+        <pt x="388" y="-435" on="0"/>
+        <pt x="240" y="-483" on="0"/>
+        <pt x="143" y="-483" on="1"/>
+        <pt x="37" y="-483" on="0"/>
+        <pt x="-156" y="-401" on="0"/>
+        <pt x="-225" y="-324" on="1"/>
+        <pt x="-197" y="-297" on="1"/>
+        <pt x="-132" y="-368" on="0"/>
+        <pt x="44" y="-444" on="0"/>
+        <pt x="141" y="-444" on="1"/>
+        <pt x="218" y="-444" on="0"/>
+        <pt x="334" y="-401" on="0"/>
+        <pt x="417" y="-326" on="0"/>
+        <pt x="471" y="-224" on="0"/>
+        <pt x="502" y="-103" on="0"/>
+        <pt x="514" y="30" on="0"/>
+        <pt x="514" y="98" on="1"/>
+        <pt x="514" y="120" on="0"/>
+        <pt x="509" y="202" on="0"/>
+        <pt x="502" y="310" on="0"/>
+        <pt x="493" y="439" on="0"/>
+        <pt x="489" y="508" on="1"/>
+        <pt x="443" y="497" on="0"/>
+        <pt x="373" y="474" on="0"/>
+        <pt x="350" y="464" on="1"/>
+        <pt x="323" y="453" on="0"/>
+        <pt x="303" y="442" on="1"/>
+      </contour>
+      <contour>
+        <pt x="854" y="1550" on="1"/>
+        <pt x="804" y="1550" on="0"/>
+        <pt x="702" y="1446" on="0"/>
+        <pt x="662" y="1352" on="1"/>
+        <pt x="705" y="1364" on="0"/>
+        <pt x="787" y="1396" on="0"/>
+        <pt x="849" y="1436" on="0"/>
+        <pt x="887" y="1486" on="0"/>
+        <pt x="887" y="1516" on="1"/>
+        <pt x="887" y="1528" on="0"/>
+        <pt x="869" y="1550" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="J" xMin="0" yMin="-807" xMax="1233" yMax="1604">
+      <contour>
+        <pt x="1180" y="1604" on="1"/>
+        <pt x="1208" y="1604" on="0"/>
+        <pt x="1233" y="1568" on="0"/>
+        <pt x="1233" y="1546" on="1"/>
+        <pt x="1233" y="1515" on="0"/>
+        <pt x="1188" y="1440" on="0"/>
+        <pt x="1112" y="1366" on="0"/>
+        <pt x="1010" y="1299" on="0"/>
+        <pt x="952" y="1276" on="1"/>
+        <pt x="918" y="1179" on="0"/>
+        <pt x="877" y="912" on="0"/>
+        <pt x="877" y="735" on="1"/>
+        <pt x="877" y="628" on="0"/>
+        <pt x="893" y="417" on="0"/>
+        <pt x="912" y="215" on="0"/>
+        <pt x="928" y="21" on="0"/>
+        <pt x="928" y="-70" on="1"/>
+        <pt x="928" y="-153" on="0"/>
+        <pt x="905" y="-327" on="0"/>
+        <pt x="855" y="-491" on="0"/>
+        <pt x="775" y="-636" on="0"/>
+        <pt x="661" y="-744" on="0"/>
+        <pt x="511" y="-807" on="0"/>
+        <pt x="416" y="-807" on="1"/>
+        <pt x="331" y="-807" on="0"/>
+        <pt x="185" y="-751" on="0"/>
+        <pt x="75" y="-653" on="0"/>
+        <pt x="7" y="-520" on="0"/>
+        <pt x="0" y="-444" on="1"/>
+        <pt x="66" y="-424" on="1"/>
+        <pt x="72" y="-492" on="0"/>
+        <pt x="125" y="-617" on="0"/>
+        <pt x="215" y="-712" on="0"/>
+        <pt x="339" y="-768" on="0"/>
+        <pt x="416" y="-768" on="1"/>
+        <pt x="491" y="-768" on="0"/>
+        <pt x="610" y="-727" on="0"/>
+        <pt x="702" y="-657" on="0"/>
+        <pt x="767" y="-562" on="0"/>
+        <pt x="809" y="-455" on="0"/>
+        <pt x="829" y="-340" on="0"/>
+        <pt x="829" y="-285" on="1"/>
+        <pt x="829" y="-163" on="0"/>
+        <pt x="803" y="75" on="0"/>
+        <pt x="771" y="309" on="0"/>
+        <pt x="745" y="540" on="0"/>
+        <pt x="745" y="657" on="1"/>
+        <pt x="745" y="832" on="0"/>
+        <pt x="819" y="1133" on="0"/>
+        <pt x="874" y="1251" on="1"/>
+        <pt x="721" y="1208" on="0"/>
+        <pt x="484" y="1120" on="0"/>
+        <pt x="322" y="996" on="0"/>
+        <pt x="238" y="822" on="0"/>
+        <pt x="238" y="694" on="1"/>
+        <pt x="238" y="616" on="0"/>
+        <pt x="274" y="498" on="0"/>
+        <pt x="333" y="411" on="0"/>
+        <pt x="408" y="352" on="0"/>
+        <pt x="484" y="314" on="0"/>
+        <pt x="556" y="294" on="0"/>
+        <pt x="582" y="289" on="1"/>
+        <pt x="575" y="264" on="1"/>
+        <pt x="491" y="268" on="0"/>
+        <pt x="325" y="329" on="0"/>
+        <pt x="194" y="441" on="0"/>
+        <pt x="113" y="604" on="0"/>
+        <pt x="113" y="711" on="1"/>
+        <pt x="113" y="828" on="0"/>
+        <pt x="206" y="1006" on="0"/>
+        <pt x="389" y="1142" on="0"/>
+        <pt x="661" y="1243" on="0"/>
+        <pt x="840" y="1284" on="1"/>
+        <pt x="855" y="1287" on="0"/>
+        <pt x="884" y="1295" on="0"/>
+        <pt x="899" y="1300" on="1"/>
+        <pt x="935" y="1371" on="0"/>
+        <pt x="1014" y="1484" on="0"/>
+        <pt x="1089" y="1562" on="0"/>
+        <pt x="1156" y="1604" on="0"/>
+      </contour>
+      <contour>
+        <pt x="1180" y="1565" on="1"/>
+        <pt x="1160" y="1565" on="0"/>
+        <pt x="1110" y="1538" on="0"/>
+        <pt x="1054" y="1481" on="0"/>
+        <pt x="998" y="1391" on="0"/>
+        <pt x="973" y="1329" on="1"/>
+        <pt x="1026" y="1354" on="0"/>
+        <pt x="1108" y="1413" on="0"/>
+        <pt x="1163" y="1472" on="0"/>
+        <pt x="1192" y="1526" on="0"/>
+        <pt x="1192" y="1546" on="1"/>
+        <pt x="1192" y="1552" on="0"/>
+        <pt x="1189" y="1565" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="breve" xMin="162" yMin="864" xMax="451" yMax="1010">
+      <contour>
+        <pt x="451" y="1010" on="1"/>
+        <pt x="451" y="987" on="0"/>
+        <pt x="437" y="936" on="0"/>
+        <pt x="404" y="893" on="0"/>
+        <pt x="347" y="864" on="0"/>
+        <pt x="305" y="864" on="1"/>
+        <pt x="261" y="864" on="0"/>
+        <pt x="205" y="896" on="0"/>
+        <pt x="174" y="942" on="0"/>
+        <pt x="162" y="992" on="0"/>
+        <pt x="162" y="1010" on="1"/>
+        <pt x="193" y="1010" on="1"/>
+        <pt x="195" y="999" on="0"/>
+        <pt x="205" y="967" on="0"/>
+        <pt x="229" y="937" on="0"/>
+        <pt x="270" y="915" on="0"/>
+        <pt x="305" y="915" on="1"/>
+        <pt x="341" y="915" on="0"/>
+        <pt x="385" y="937" on="0"/>
+        <pt x="409" y="967" on="0"/>
+        <pt x="418" y="999" on="0"/>
+        <pt x="420" y="1010" on="1"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="dieresis" xMin="162" yMin="868" xMax="453" yMax="961">
+      <contour>
+        <pt x="162" y="913" on="1"/>
+        <pt x="162" y="933" on="0"/>
+        <pt x="187" y="961" on="0"/>
+        <pt x="207" y="961" on="1"/>
+        <pt x="227" y="961" on="0"/>
+        <pt x="254" y="933" on="0"/>
+        <pt x="254" y="913" on="1"/>
+        <pt x="254" y="895" on="0"/>
+        <pt x="227" y="868" on="0"/>
+        <pt x="207" y="868" on="1"/>
+        <pt x="187" y="868" on="0"/>
+        <pt x="162" y="895" on="0"/>
+      </contour>
+      <contour>
+        <pt x="360" y="913" on="1"/>
+        <pt x="360" y="933" on="0"/>
+        <pt x="387" y="961" on="0"/>
+        <pt x="406" y="961" on="1"/>
+        <pt x="426" y="961" on="0"/>
+        <pt x="453" y="933" on="0"/>
+        <pt x="453" y="913" on="1"/>
+        <pt x="453" y="895" on="0"/>
+        <pt x="426" y="868" on="0"/>
+        <pt x="406" y="868" on="1"/>
+        <pt x="387" y="868" on="0"/>
+        <pt x="360" y="895" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="e" xMin="55" yMin="14" xMax="707" yMax="686">
+      <contour>
+        <pt x="313" y="14" on="1"/>
+        <pt x="262" y="14" on="0"/>
+        <pt x="168" y="50" on="0"/>
+        <pt x="97" y="123" on="0"/>
+        <pt x="55" y="233" on="0"/>
+        <pt x="55" y="307" on="1"/>
+        <pt x="55" y="397" on="0"/>
+        <pt x="107" y="538" on="0"/>
+        <pt x="188" y="635" on="0"/>
+        <pt x="288" y="686" on="0"/>
+        <pt x="336" y="686" on="1"/>
+        <pt x="398" y="686" on="0"/>
+        <pt x="471" y="604" on="0"/>
+        <pt x="471" y="539" on="1"/>
+        <pt x="471" y="483" on="0"/>
+        <pt x="429" y="392" on="0"/>
+        <pt x="360" y="327" on="0"/>
+        <pt x="271" y="291" on="0"/>
+        <pt x="223" y="291" on="1"/>
+        <pt x="200" y="291" on="0"/>
+        <pt x="159" y="296" on="0"/>
+        <pt x="143" y="299" on="1"/>
+        <pt x="149" y="237" on="0"/>
+        <pt x="185" y="147" on="0"/>
+        <pt x="239" y="89" on="0"/>
+        <pt x="306" y="61" on="0"/>
+        <pt x="342" y="61" on="1"/>
+        <pt x="387" y="61" on="0"/>
+        <pt x="463" y="105" on="0"/>
+        <pt x="527" y="176" on="0"/>
+        <pt x="580" y="268" on="0"/>
+        <pt x="622" y="363" on="0"/>
+        <pt x="655" y="454" on="0"/>
+        <pt x="668" y="489" on="1"/>
+        <pt x="707" y="479" on="1"/>
+        <pt x="694" y="446" on="0"/>
+        <pt x="659" y="352" on="0"/>
+        <pt x="613" y="249" on="0"/>
+        <pt x="551" y="146" on="0"/>
+        <pt x="473" y="65" on="0"/>
+        <pt x="374" y="14" on="0"/>
+      </contour>
+      <contour>
+        <pt x="338" y="647" on="1"/>
+        <pt x="301" y="647" on="0"/>
+        <pt x="230" y="600" on="0"/>
+        <pt x="174" y="518" on="0"/>
+        <pt x="139" y="406" on="0"/>
+        <pt x="139" y="342" on="1"/>
+        <pt x="152" y="337" on="0"/>
+        <pt x="199" y="330" on="0"/>
+        <pt x="233" y="330" on="1"/>
+        <pt x="269" y="330" on="0"/>
+        <pt x="340" y="361" on="0"/>
+        <pt x="397" y="416" on="0"/>
+        <pt x="432" y="492" on="0"/>
+        <pt x="432" y="537" on="1"/>
+        <pt x="432" y="559" on="0"/>
+        <pt x="420" y="599" on="0"/>
+        <pt x="396" y="629" on="0"/>
+        <pt x="361" y="647" on="0"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+    <TTGlyph name="edieresis" xMin="55" yMin="14" xMax="707" yMax="915">
+      <component glyphName="e" x="0" y="0" flags="0x204"/>
+      <component glyphName="dieresis" x="12" y="-46" flags="0x4"/>
+    </TTGlyph>
+
+    <TTGlyph name="emacron" xMin="55" yMin="14" xMax="707" yMax="886">
+      <component glyphName="e" x="0" y="0" flags="0x204"/>
+      <component glyphName="macron" x="12" y="-46" flags="0x4"/>
+    </TTGlyph>
+
+    <TTGlyph name="macron" xMin="172" yMin="889" xMax="442" yMax="932">
+      <contour>
+        <pt x="172" y="889" on="1"/>
+        <pt x="172" y="932" on="1"/>
+        <pt x="442" y="932" on="1"/>
+        <pt x="442" y="889" on="1"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+  </glyf>
+
+  <name>
+    <namerecord nameID="0" platformID="3" platEncID="1" langID="0x409">
+      Copyright (c) 2012 by Brian J. Bonislawsky and Jim Lyles for Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved&#13;Font Name "Clicker Script"
+    </namerecord>
+    <namerecord nameID="1" platformID="3" platEncID="1" langID="0x409">
+      Clicker Script
+    </namerecord>
+    <namerecord nameID="2" platformID="3" platEncID="1" langID="0x409">
+      Regular
+    </namerecord>
+    <namerecord nameID="3" platformID="3" platEncID="1" langID="0x409">
+      Astigmatic(AOETI): Risque: 2012
+    </namerecord>
+    <namerecord nameID="4" platformID="3" platEncID="1" langID="0x409">
+      Clicker Script
+    </namerecord>
+    <namerecord nameID="5" platformID="3" platEncID="1" langID="0x409">
+      Version 1.000
+    </namerecord>
+    <namerecord nameID="6" platformID="3" platEncID="1" langID="0x409">
+      ClickerScript-Regular
+    </namerecord>
+  </name>
+
+  <post>
+    <formatType value="2.0"/>
+    <italicAngle value="0.0"/>
+    <underlinePosition value="-252"/>
+    <underlineThickness value="41"/>
+    <isFixedPitch value="0"/>
+    <minMemType42 value="0"/>
+    <maxMemType42 value="0"/>
+    <minMemType1 value="0"/>
+    <maxMemType1 value="0"/>
+    <psNames>
+      <!-- This file uses unique glyph names based on the information
+           found in the 'post' table. Since these names might not be unique,
+           we have to invent artificial names in case of clashes. In order to
+           be able to retain the original information, we need a name to
+           ps name mapping for those cases where they differ. That's what
+           you see below.
+            -->
+    </psNames>
+    <extraNames>
+      <!-- following are the name that are not taken from the standard Mac glyph order -->
+      <psName name="Emacron"/>
+      <psName name="emacron"/>
+      <psName name="Ebreve"/>
+    </extraNames>
+  </post>
+
+</ttFont>

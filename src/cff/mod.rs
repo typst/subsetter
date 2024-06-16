@@ -1,531 +1,399 @@
+mod argstack;
+mod charset;
+mod charstring;
+mod cid_font;
 mod dict;
 mod index;
+mod number;
+mod operator;
+mod remapper;
+mod sid_font;
+mod subroutines;
 
-use std::collections::HashSet;
-use std::fmt::{self, Debug, Formatter};
-use std::ops::Range;
-
-use self::dict::*;
-use self::index::*;
 use super::*;
+use crate::cff::charset::rewrite_charset;
+use crate::cff::charstring::Decompiler;
+use crate::cff::cid_font::{rewrite_fd_index, CIDMetadata};
+use crate::cff::dict::font_dict::{generate_font_dict_index, rewrite_font_dict_index};
+use crate::cff::dict::private_dict::{rewrite_cid_private_dicts, rewrite_private_dict};
+use crate::cff::dict::top_dict::{
+    parse_top_dict_index, rewrite_top_dict_index, TopDictData,
+};
+use crate::cff::index::{create_index, parse_index, skip_index, Index, OwnedIndex};
+use crate::cff::remapper::{FontDictRemapper, SidRemapper};
+use crate::cff::sid_font::SIDMetadata;
+use crate::cff::subroutines::{SubroutineCollection, SubroutineContainer};
+use crate::Error::{OverflowError, SubsetError};
+use number::{IntegerNumber, StringId};
+use sid_font::generate_fd_index;
+use std::cmp::PartialEq;
+use std::collections::BTreeSet;
 
-/// A CFF table.
-struct Table<'a> {
-    name: Index<Opaque<'a>>,
-    top: Dict<'a>,
-    strings: Index<Opaque<'a>>,
-    global_subrs: Index<Opaque<'a>>,
-    encoding: Option<Opaque<'a>>,
-    charset: Option<Opaque<'a>>,
-    char_strings: Index<Opaque<'a>>,
-    private: Option<PrivateData<'a>>,
-    cid: Option<CidData<'a>>,
+#[derive(Clone, Debug)]
+pub(crate) enum FontKind<'a> {
+    Sid(SIDMetadata<'a>),
+    Cid(CIDMetadata<'a>),
 }
 
-/// Data specific to Private DICTs.
-struct PrivateData<'a> {
-    dict: Dict<'a>,
-    subrs: Option<Index<Opaque<'a>>>,
+#[derive(Clone)]
+pub struct Table<'a> {
+    names: &'a [u8],
+    top_dict_data: TopDictData,
+    strings: Index<'a>,
+    global_subrs: Index<'a>,
+    char_strings: Index<'a>,
+    font_kind: FontKind<'a>,
 }
 
-/// Data specific to CID-keyed fonts.
-struct CidData<'a> {
-    array: Index<Dict<'a>>,
-    select: FdSelect<'a>,
-    private: Vec<PrivateData<'a>>,
+/// An offset that needs to be written after the whole font
+/// has been written. location indicates where in the buffer the offset needs to be written to
+/// and value indicates the value of the offset.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+struct DeferredOffset {
+    location: usize,
+    value: IntegerNumber,
 }
 
-/// An FD Select dat structure.
-struct FdSelect<'a>(Cow<'a, [u8]>);
+const DUMMY_VALUE: IntegerNumber = IntegerNumber(0);
+/// This represents a not-existing offset.
+const DUMMY_OFFSET: DeferredOffset = DeferredOffset { location: 0, value: DUMMY_VALUE };
 
-/// Recorded offsets that will be written into DICTs.
-struct Offsets {
-    char_strings: usize,
-    encoding: Option<usize>,
-    charset: Option<usize>,
-    private: Option<PrivateOffsets>,
-    cid: Option<CidOffsets>,
-}
-
-/// Offsets specific to Private DICTs.
-struct PrivateOffsets {
-    dict: Range<usize>,
-    subrs: Option<usize>,
-}
-
-/// Offsets specific to CID-keyed fonts.
-struct CidOffsets {
-    array: usize,
-    select: usize,
-    private: Vec<PrivateOffsets>,
-}
-
-/// Find all glyphs referenced through components.
-/// CFF doesn't used component glyphs, so it's just the profile's set.
-///
-/// TODO: What about seac?
-pub(crate) fn discover(ctx: &mut Context) {
-    ctx.subset = ctx.profile.glyphs.iter().copied().collect();
-}
-
-/// Subset the CFF table by removing glyph data for unused glyphs.
-pub(crate) fn subset(ctx: &mut Context) -> Result<()> {
-    let cff = ctx.expect_table(Tag::CFF)?;
-
-    // Check version.
-    let mut r = Reader::new(cff);
-    let major = r.read::<u8>()?;
-    if major != 1 {
-        ctx.push(Tag::CFF, cff);
-        return Ok(());
+impl DeferredOffset {
+    fn update_value(&mut self, value: usize) -> Result<()> {
+        self.value = IntegerNumber(i32::try_from(value).map_err(|_| OverflowError)?);
+        Ok(())
     }
 
-    // Parse CFF table.
-    let mut table = read_cff_table(ctx, cff)?;
-
-    // Subset the char strings.
-    subset_char_strings(ctx, &mut table.char_strings)?;
-
-    // Subset Top and Private DICT.
-    table.top.retain(top::KEEP);
-    if let Some(private) = &mut table.private {
-        private.dict.retain(private::KEEP);
-    }
-
-    // Subset data specific to CID-keyed fonts.
-    if let Some(cid) = &mut table.cid {
-        subset_font_dicts(ctx, cid)?;
-
-        for dict in cid.array.iter_mut() {
-            dict.retain(top::KEEP);
-        }
-
-        for private in &mut cid.private {
-            private.dict.retain(private::KEEP);
+    /// Adjust the location of an offset, if it has been set (i.e. it's not a dummy offset).
+    fn adjust_location(&mut self, delta: usize) {
+        if *self != DUMMY_OFFSET {
+            self.location += delta;
         }
     }
 
-    // Construct a new CFF table.
-    let mut sub_cff = vec![];
-    let mut offsets = create_offsets(&table);
+    fn update_location(&mut self, location: usize) {
+        self.location = location;
+    }
 
-    // Write twice because we first need to find out the offsets of various data
-    // structures.
-    for _ in 0..2 {
+    /// Write the deferred offset into a buffer.
+    fn write_into(&self, buffer: &mut [u8]) -> Result<()> {
         let mut w = Writer::new();
-        insert_offsets(&mut table, &offsets);
-        write_cff_table(&mut w, &table, &mut offsets);
-        sub_cff = w.finish();
+        // Always write using 5 bytes, to prevent its size from changing.
+        self.value.write_as_5_bytes(&mut w);
+        let encoded = w.finish();
+        let pos = buffer.get_mut(self.location..self.location + 5).ok_or(SubsetError)?;
+
+        pos.copy_from_slice(&encoded);
+
+        Ok(())
+    }
+}
+
+/// Keeps track of the offsets that need to be written in the font.
+#[derive(Debug)]
+struct Offsets {
+    /// Offset of the charset data.
+    charset_offset: DeferredOffset,
+    /// Offset of the charstrings data.
+    char_strings_offset: DeferredOffset,
+    /// Lengths of the private dicts (not strictly an offset, but we still use it for simplicity).
+    private_dicts_lens: Vec<DeferredOffset>,
+    /// Offset of the private dicts.
+    private_dicts_offsets: Vec<DeferredOffset>,
+    /// Offset of the fd array.
+    fd_array_offset: DeferredOffset,
+    /// Offset of the fd select.
+    fd_select_offset: DeferredOffset,
+}
+
+impl Offsets {
+    pub fn new_cid(num_font_dicts: u8) -> Self {
+        Self {
+            char_strings_offset: DUMMY_OFFSET,
+            charset_offset: DUMMY_OFFSET,
+            private_dicts_lens: vec![DUMMY_OFFSET; num_font_dicts as usize],
+            private_dicts_offsets: vec![DUMMY_OFFSET; num_font_dicts as usize],
+            fd_select_offset: DUMMY_OFFSET,
+            fd_array_offset: DUMMY_OFFSET,
+        }
     }
 
-    ctx.push(Tag::CFF, sub_cff);
+    pub fn new_sid() -> Self {
+        Self::new_cid(1)
+    }
+}
+
+pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
+    let table = Table::parse(ctx).unwrap();
+
+    // Note: The charstrings are already in the new order that they need be written in.
+    let (char_strings, fd_remapper) = subset_charstrings(&table, &ctx.mapper)?;
+
+    let sid_remapper = get_sid_remapper(&table, &fd_remapper).ok_or(SubsetError)?;
+
+    let mut offsets = match &table.font_kind {
+        FontKind::Sid(_) => Offsets::new_sid(),
+        FontKind::Cid(_) => Offsets::new_cid(fd_remapper.len()),
+    };
+
+    let mut subsetted_font = {
+        let mut w = Writer::new();
+        // HEADER
+        // We always use OffSize 4 (but as far as I can tell this field is unused anyway).
+        w.write([1u8, 0, 4, 4]);
+        // Name INDEX
+        w.write(table.names);
+        // Top DICT INDEX
+        rewrite_top_dict_index(
+            &table.top_dict_data,
+            &mut offsets,
+            &sid_remapper,
+            &mut w,
+        )?;
+        // String INDEX
+        let index = create_index(
+            sid_remapper
+                .sorted_strings()
+                .map(|s| Vec::from(s.as_ref()))
+                .collect::<Vec<_>>(),
+        )?;
+        w.extend(&index.data);
+        // Global Subr INDEX
+        // We desubroutinized, so no global subroutines and thus empty index.
+        w.write(&OwnedIndex::default());
+
+        // Charsets
+        offsets.charset_offset.update_value(w.len())?;
+        rewrite_charset(&ctx.mapper, &mut w)?;
+
+        // Private dicts.
+        match &table.font_kind {
+            FontKind::Sid(sid) => {
+                // Since we convert SID-keyed to CID-keyed, we write one private dict with index 0.
+                rewrite_private_dict(&mut offsets, sid.private_dict_data, &mut w, 0)?;
+            }
+            FontKind::Cid(cid) => {
+                rewrite_cid_private_dicts(&fd_remapper, &mut offsets, cid, &mut w)?;
+            }
+        }
+
+        // FDSelect
+        offsets.fd_select_offset.update_value(w.len())?;
+        match &table.font_kind {
+            FontKind::Sid(_) => generate_fd_index(&ctx.mapper, &mut w)?,
+            FontKind::Cid(cid_metadata) => rewrite_fd_index(
+                &ctx.mapper,
+                cid_metadata.fd_select,
+                &fd_remapper,
+                &mut w,
+            )?,
+        };
+
+        // FDArray
+        offsets.fd_array_offset.update_value(w.len())?;
+        match &table.font_kind {
+            FontKind::Sid(_) => generate_font_dict_index(&mut offsets, &mut w)?,
+            FontKind::Cid(cid_metadata) => rewrite_font_dict_index(
+                &fd_remapper,
+                &sid_remapper,
+                &mut offsets,
+                cid_metadata,
+                &mut w,
+            )?,
+        }
+
+        // Charstrings INDEX
+        offsets.char_strings_offset.update_value(w.len())?;
+        w.extend(&create_index(char_strings)?.data);
+
+        w.finish()
+    };
+
+    // Rewrite the dummy offsets.
+    update_offsets(&offsets, subsetted_font.as_mut_slice())?;
+
+    ctx.push(Tag::CFF, subsetted_font);
 
     Ok(())
 }
 
-/// Subset the glyph descriptions.
-fn subset_char_strings(ctx: &Context, strings: &mut Index<Opaque>) -> Result<()> {
-    for glyph in 0..ctx.num_glyphs {
-        if !ctx.subset.contains(&glyph) {
-            // The byte sequence [14] is the minimal valid charstring consisting
-            // of just a single `endchar` operator.
-            *strings.get_mut(glyph as usize).ok_or(Error::InvalidOffset)? = Opaque(&[14]);
+fn update_offsets(offsets: &Offsets, buffer: &mut [u8]) -> Result<()> {
+    let mut write = |offset: DeferredOffset| {
+        if offset != DUMMY_OFFSET {
+            offset.write_into(buffer)?;
         }
-    }
+        Ok(())
+    };
+
+    // Private dicts offset have already been written correctly, so no need to write them
+    // here.
+
+    write(offsets.charset_offset)?;
+    write(offsets.char_strings_offset)?;
+    write(offsets.fd_select_offset)?;
+    write(offsets.fd_array_offset)?;
 
     Ok(())
 }
 
-/// Subset CID-related data.
-fn subset_font_dicts(ctx: &Context, cid: &mut CidData) -> Result<()> {
-    // Determine which subroutine indices to keep.
-    let mut kept_subrs = HashSet::new();
-    for &glyph in ctx.profile.glyphs {
-        kept_subrs
-            .insert(*cid.select.0.get(usize::from(glyph)).ok_or(Error::MissingData)?);
-    }
-
-    // Remove subroutines for unused Private DICTs.
-    for (i, dict) in cid.private.iter_mut().enumerate() {
-        if !kept_subrs.contains(&(i as u8)) {
-            dict.subrs = None;
-        }
-    }
-
-    Ok(())
-}
-
-/// Parse a CFF table.
-fn read_cff_table<'a>(ctx: &Context, cff: &'a [u8]) -> Result<Table<'a>> {
-    // Skip header.
-    let mut r = Reader::new(cff);
-    r.read::<u8>()?;
-    r.read::<u8>()?;
-    let header_size = r.read::<u8>()? as usize;
-    r = Reader::new(cff.get(header_size..).ok_or(Error::InvalidOffset)?);
-
-    // Read four indices at fixed positions.
-    let name = r.read::<Index<Opaque>>()?;
-    let tops = r.read::<Index<Dict>>()?;
-    let strings = r.read::<Index<Opaque>>()?;
-    let global_subrs = r.read::<Index<Opaque>>()?;
-
-    // Extract only Top DICT.
-    let top = tops.into_one().ok_or(Error::MissingData)?;
-
-    // Read encoding if it exists.
-    let mut encoding = None;
-    if let Some(offset) = top.get_offset(top::ENCODING) {
-        let data = cff.get(offset..).ok_or(Error::InvalidOffset)?;
-        encoding = Some(read_encoding(data)?);
-    }
-
-    // Read the glyph descriptions.
-    let char_strings = {
-        let offset = top.get_offset(top::CHAR_STRINGS).ok_or(Error::MissingData)?;
-        Index::read_at(cff, offset)?
+/// Create the list of bytes that constitute the programs of the charstrings, sorted in the new glyph order.
+fn subset_charstrings(
+    table: &Table,
+    remapper: &GlyphRemapper,
+) -> Result<(Vec<Vec<u8>>, FontDictRemapper)> {
+    let gsubrs = {
+        let subroutines = table.global_subrs.into_iter().collect::<Vec<_>>();
+        SubroutineContainer::new(subroutines)
     };
 
-    // Read the charset.
-    let mut charset = None;
-    if let Some(offset @ 1..) = top.get_offset(top::CHARSET) {
-        let sub = cff.get(offset..).ok_or(Error::InvalidOffset)?;
-        charset = Some(read_charset(sub, ctx.num_glyphs)?);
-    }
-
-    // Read Private DICT with local subroutines.
-    let mut private = None;
-    if let Some(range) = top.get_range(top::PRIVATE) {
-        private = Some(read_private_dict(cff, range)?);
-    }
-
-    // Read data specific to CID-keyed fonts.
-    let mut cid = None;
-    if top.get(top::ROS).is_some() {
-        cid = Some(read_cid_data(ctx, cff, &top)?);
-    }
-
-    Ok(Table {
-        name,
-        top,
-        strings,
-        global_subrs,
-        encoding,
-        charset,
-        char_strings,
-        private,
-        cid,
-    })
-}
-
-/// Write the a new CFF table.
-fn write_cff_table(w: &mut Writer, table: &Table, offsets: &mut Offsets) {
-    // Write header.
-    w.write::<u8>(1);
-    w.write::<u8>(0);
-    w.write::<u8>(4);
-    w.write::<u8>(4);
-    w.inspect("Header");
-
-    // Write the four fixed indices.
-    w.write_ref(&table.name);
-    w.inspect("Name INDEX");
-
-    w.write(Index::from_one(table.top.clone()));
-    w.inspect("Top DICT INDEX");
-
-    w.write_ref(&table.strings);
-    w.inspect("String INDEX");
-
-    w.write_ref(&table.global_subrs);
-    w.inspect("Global Subroutine INDEX");
-
-    // Write encoding.
-    if let Some(encoding) = &table.encoding {
-        offsets.encoding = Some(w.len());
-        write_encoding(w, encoding);
-        w.inspect("Encoding");
-    }
-
-    // Write charset.
-    if let Some(charset) = &table.charset {
-        offsets.charset = Some(w.len());
-        write_charset(w, charset);
-        w.inspect("Charset");
-    }
-
-    // Write char strings.
-    offsets.char_strings = w.len();
-    w.write_ref(&table.char_strings);
-    w.inspect("Charstring INDEX");
-
-    // Write private dict.
-    if let (Some(private), Some(offsets)) = (&table.private, &mut offsets.private) {
-        write_private_data(w, private, offsets);
-    }
-
-    // Write data specific to CID-keyed fonts.
-    if let (Some(cid), Some(offsets)) = (&table.cid, &mut offsets.cid) {
-        write_cid_data(w, cid, offsets);
-    }
-}
-
-/// Read data specific to CID-keyed fonts.
-fn read_cid_data<'a>(
-    ctx: &Context,
-    cff: &'a [u8],
-    top: &Dict<'a>,
-) -> Result<CidData<'a>> {
-    // Read FD Array.
-    let array = {
-        let offset = top.get_offset(top::FD_ARRAY).ok_or(Error::MissingData)?;
-        Index::<Dict<'a>>::read_at(cff, offset)?
+    let lsubrs = {
+        match &table.font_kind {
+            FontKind::Cid(cid) => {
+                let subroutines = cid
+                    .font_dicts
+                    .iter()
+                    .map(|font_dict| {
+                        font_dict.local_subrs.into_iter().collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>();
+                SubroutineCollection::new(subroutines)
+            }
+            FontKind::Sid(sid) => {
+                let subroutines = sid.local_subrs.into_iter().collect::<Vec<_>>();
+                SubroutineCollection::new(vec![subroutines])
+            }
+        }
     };
 
-    // Read FD Select data structure.
-    let select = {
-        let offset = top.get_offset(top::FD_SELECT).ok_or(Error::MissingData)?;
-        let sub = cff.get(offset..).ok_or(Error::InvalidOffset)?;
-        read_fd_select(sub, ctx.num_glyphs)?
+    let mut used_fds = BTreeSet::new();
+    let mut char_strings = vec![];
+
+    for old_gid in remapper.remapped_gids() {
+        let fd_index = match &table.font_kind {
+            FontKind::Cid(ref cid) => {
+                let fd_index =
+                    cid.fd_select.font_dict_index(old_gid).ok_or(MalformedFont)?;
+                used_fds.insert(fd_index);
+                fd_index
+            }
+            FontKind::Sid(_) => 0,
+        };
+
+        let decompiler = Decompiler::new(
+            gsubrs.get_handler(),
+            lsubrs.get_handler(fd_index).ok_or(MalformedFont)?,
+        );
+        let charstring = table.char_strings.get(old_gid as u32).ok_or(MalformedFont)?;
+        char_strings.push(decompiler.decompile(charstring)?);
+    }
+
+    let mut fd_remapper = FontDictRemapper::new();
+
+    for fd in used_fds {
+        fd_remapper.remap(fd);
+    }
+
+    Ok((char_strings.iter().map(|p| p.compile()).collect(), fd_remapper))
+}
+
+fn get_sid_remapper<'a>(
+    table: &Table<'a>,
+    fd_remapper: &FontDictRemapper,
+) -> Option<SidRemapper<'a>> {
+    let mut sid_remapper = SidRemapper::new();
+    sid_remapper.remap(&b"Adobe"[..]);
+    sid_remapper.remap(&b"Identity"[..]);
+
+    let mut remap_sid = |sid: StringId| {
+        if sid.is_standard_string() {
+            Some(())
+        } else {
+            let string =
+                table.strings.get((sid.0 - StringId::STANDARD_STRING_LEN) as u32)?;
+            sid_remapper.remap_with_old_sid(sid, Cow::Borrowed(string));
+
+            Some(())
+        }
     };
 
-    // Read Private DICTs.
-    let mut private = vec![];
-    for dict in array.iter() {
-        let range = dict.get_range(top::PRIVATE).ok_or(Error::MissingData)?;
-        private.push(read_private_dict(cff, range)?);
+    if let Some(copyright) = table.top_dict_data.copyright {
+        remap_sid(copyright)?;
     }
 
-    Ok(CidData { array, select, private })
-}
-
-/// Write data specific to CID-keyed fonts.
-fn write_cid_data(w: &mut Writer, cid: &CidData, offsets: &mut CidOffsets) {
-    // Write FD Array.
-    offsets.array = w.len();
-    w.write_ref(&cid.array);
-    w.inspect("FD Array");
-
-    // Write FD Select.
-    offsets.select = w.len();
-    write_fd_select(w, &cid.select);
-    w.inspect("FD Select");
-
-    // Write Private DICTs.
-    for (private, offsets) in cid.private.iter().zip(&mut offsets.private) {
-        write_private_data(w, private, offsets);
-    }
-}
-
-/// Read a Private DICT and optionally local subroutines.
-fn read_private_dict(cff: &[u8], range: Range<usize>) -> Result<PrivateData<'_>> {
-    let start = range.start;
-    let sub = cff.get(range).ok_or(Error::InvalidOffset)?;
-    let dict = Dict::read_at(sub, 0)?;
-
-    let mut subrs = None;
-    if let Some(offset) = dict.get_offset(private::SUBRS) {
-        subrs = Some(Index::read_at(cff, start + offset)?);
+    if let Some(font_name) = table.top_dict_data.font_name {
+        remap_sid(font_name)?;
     }
 
-    Ok(PrivateData { dict, subrs })
-}
-
-/// Write a Private DICT and optionally local subroutines.
-fn write_private_data(
-    w: &mut Writer,
-    private: &PrivateData,
-    offsets: &mut PrivateOffsets,
-) {
-    offsets.dict.start = w.len();
-    w.write_ref(&private.dict);
-    offsets.dict.end = w.len();
-    w.inspect("Private DICT");
-
-    // Write local subroutines.
-    if let Some(subrs) = &private.subrs {
-        offsets.subrs = Some(w.len() - offsets.dict.start);
-        w.write_ref(subrs);
-        w.inspect("Local Subroutine INDEX");
-    }
-}
-
-/// Read an encoding.
-fn read_encoding(data: &[u8]) -> Result<Opaque<'_>> {
-    let mut r = Reader::new(data);
-    let mut len = 1;
-
-    let format = r.read::<u8>()?;
-    match format {
-        0 => {
-            let n_codes = r.read::<u8>()? as usize;
-            len += 1 + n_codes;
-        }
-        1 => {
-            let n_ranges = r.read::<u8>()? as usize;
-            len += 1 + 2 * n_ranges;
-        }
-        _ => return Err(Error::InvalidData),
+    if let Some(notice) = table.top_dict_data.notice {
+        remap_sid(notice)?;
     }
 
-    Ok(Opaque(data.get(..len).ok_or(Error::InvalidOffset)?))
-}
+    if let FontKind::Cid(ref cid) = table.font_kind {
+        for font_dict in fd_remapper.sorted_iter() {
+            let font_dict = cid.font_dicts.get(font_dict as usize)?;
 
-/// Write an encoding.
-fn write_encoding(w: &mut Writer, encoding: &Opaque<'_>) {
-    w.write_ref(encoding);
-}
-
-/// Read a charset.
-fn read_charset(data: &[u8], num_glyphs: u16) -> Result<Opaque<'_>> {
-    let mut r = Reader::new(data);
-    let mut len = 1;
-
-    let format = r.read::<u8>()?;
-    match format {
-        0 => {
-            len += 2 * num_glyphs.saturating_sub(1) as usize;
-        }
-        1 => {
-            let mut seen = 1;
-            while seen < num_glyphs {
-                r.read::<u16>()?;
-                seen = seen.saturating_add(1);
-                seen = seen.saturating_add(r.read::<u8>()? as u16);
-                len += 3;
-            }
-        }
-        2 => {
-            let mut seen = 1;
-            while seen < num_glyphs {
-                r.read::<u16>()?;
-                seen = seen.saturating_add(1);
-                seen = seen.saturating_add(r.read::<u16>()?);
-                len += 4;
-            }
-        }
-        _ => return Err(Error::InvalidData),
-    }
-
-    Ok(Opaque(data.get(..len).ok_or(Error::InvalidOffset)?))
-}
-
-/// Write a charset.
-fn write_charset(w: &mut Writer, charset: &Opaque<'_>) {
-    w.write_ref(charset);
-}
-
-/// Read the FD Select data structure.
-fn read_fd_select(data: &[u8], num_glyphs: u16) -> Result<FdSelect<'_>> {
-    let mut r = Reader::new(data);
-    let format = r.read::<u8>()?;
-    Ok(FdSelect(match format {
-        0 => Cow::Borrowed(r.take(num_glyphs as usize)?),
-        3 => {
-            let count = r.read::<u16>()?;
-            let mut fds = vec![];
-            let mut first = r.read::<u16>()?;
-            for _ in 0..count {
-                let fd = r.read::<u8>()?;
-                let end = r.read::<u16>()?;
-                for _ in first..end {
-                    fds.push(fd);
-                }
-                first = end;
-            }
-            Cow::Owned(fds)
-        }
-        _ => return Err(Error::InvalidData),
-    }))
-}
-
-/// Write an FD Select data structure.
-fn write_fd_select(w: &mut Writer, select: &FdSelect) {
-    w.write::<u8>(0);
-    w.give(&select.0);
-}
-
-/// Create initial zero offsets for all data structures.
-fn create_offsets(table: &Table) -> Offsets {
-    Offsets {
-        char_strings: 0,
-        charset: table.charset.as_ref().map(|_| 0),
-        encoding: table.encoding.as_ref().map(|_| 0),
-        private: table.private.as_ref().map(create_private_offsets),
-        cid: table.cid.as_ref().map(create_cid_offsets),
-    }
-}
-
-/// Create initial zero offsets for all CID-related data structures.
-fn create_cid_offsets(cid: &CidData) -> CidOffsets {
-    CidOffsets {
-        array: 0,
-        select: 0,
-        private: cid.private.iter().map(create_private_offsets).collect(),
-    }
-}
-
-/// Create initial zero offsets for a Private DICT.
-fn create_private_offsets(private: &PrivateData) -> PrivateOffsets {
-    PrivateOffsets {
-        dict: 0..0,
-        subrs: private.subrs.as_ref().map(|_| 0),
-    }
-}
-
-/// Insert the offsets of various parts of the font into the relevant DICTs.
-fn insert_offsets(table: &mut Table, offsets: &Offsets) {
-    if let Some(offset) = offsets.encoding {
-        table.top.set_offset(top::ENCODING, offset);
-    }
-
-    if let Some(offset) = offsets.charset {
-        table.top.set_offset(top::CHARSET, offset);
-    }
-
-    table.top.set_offset(top::CHAR_STRINGS, offsets.char_strings);
-
-    if let (Some(private), Some(offsets)) = (&mut table.private, &offsets.private) {
-        table.top.set_range(top::PRIVATE, &offsets.dict);
-
-        if let Some(offset) = offsets.subrs {
-            private.dict.set_offset(private::SUBRS, offset);
-        }
-    }
-
-    if let (Some(cid), Some(offsets)) = (&mut table.cid, &offsets.cid) {
-        table.top.set_offset(top::FD_ARRAY, offsets.array);
-        table.top.set_offset(top::FD_SELECT, offsets.select);
-
-        for (dict, offsets) in cid.array.iter_mut().zip(&offsets.private) {
-            dict.set_range(top::PRIVATE, &offsets.dict);
-        }
-
-        for (private, offsets) in cid.private.iter_mut().zip(&offsets.private) {
-            if let Some(offset) = offsets.subrs {
-                private.dict.set_offset(private::SUBRS, offset);
+            if let Some(font_name) = font_dict.font_name {
+                remap_sid(font_name)?;
             }
         }
     }
+
+    Some(sid_remapper)
 }
 
-/// An opaque binary data structure.
-struct Opaque<'a>(&'a [u8]);
+// The parsing logic was taken from ttf-parser.
+impl<'a> Table<'a> {
+    pub fn parse(ctx: &mut Context<'a>) -> Result<Self> {
+        let cff = ctx.expect_table(Tag::CFF).ok_or(MalformedFont)?;
 
-impl<'a> Structure<'a> for Opaque<'a> {
-    fn read(r: &mut Reader<'a>) -> Result<Self> {
-        let data = r.data();
-        r.skip(data.len())?;
-        Ok(Self(data))
-    }
+        let mut r = Reader::new(cff);
 
-    fn write(&self, w: &mut Writer) {
-        w.give(self.0);
-    }
-}
+        let major = r.read::<u8>().ok_or(MalformedFont)?;
 
-impl Debug for Opaque<'_> {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.pad("Opaque { .. }")
+        if major != 1 {
+            return Err(Error::CFFError);
+        }
+
+        r.skip::<u8>(); // minor
+        let header_size = r.read::<u8>().ok_or(MalformedFont)?;
+
+        r.jump(header_size as usize);
+
+        let names_start = r.offset();
+        skip_index::<u16>(&mut r).ok_or(MalformedFont)?;
+        let names = cff.get(names_start..r.offset()).ok_or(MalformedFont)?;
+        let top_dict_data = parse_top_dict_index(&mut r).ok_or(MalformedFont)?;
+
+        let strings = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
+        let global_subrs = parse_index::<u16>(&mut r).ok_or(MalformedFont)?;
+
+        let char_strings_offset = top_dict_data.char_strings.ok_or(MalformedFont)?;
+        let char_strings = {
+            let mut r = Reader::new_at(cff, char_strings_offset);
+            parse_index::<u16>(&mut r).ok_or(MalformedFont)?
+        };
+
+        let number_of_glyphs = u16::try_from(char_strings.len())
+            .ok()
+            .filter(|n| *n > 0)
+            .ok_or(MalformedFont)?;
+
+        let font_kind = if top_dict_data.has_ros {
+            FontKind::Cid(
+                cid_font::parse_cid_metadata(cff, &top_dict_data, number_of_glyphs)
+                    .ok_or(MalformedFont)?,
+            )
+        } else {
+            FontKind::Sid(sid_font::parse_sid_metadata(cff, &top_dict_data))
+        };
+
+        Ok(Self {
+            names,
+            top_dict_data,
+            strings,
+            global_subrs,
+            char_strings,
+            font_kind,
+        })
     }
 }

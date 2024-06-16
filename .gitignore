@@ -7,4 +7,10 @@ desktop.ini
 # Rust
 /target
 bench/target
-Cargo.lock
+debug
+.idea
+
+# Tests
+tests/subsets
+tests/ttx/*.otf
+tests/ttx/*_ref.ttx
