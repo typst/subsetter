@@ -3,7 +3,7 @@ use std::ops::Add;
 
 /// A structure that allows to remap numeric types to new
 /// numbers so that they form a contiguous sequence of numbers.
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Remapper<C, T> {
     /// The counter that keeps track of the next number to be assigned.
     /// Should always start with 0.
@@ -98,7 +98,7 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
 /// This is necessary because a font needs to have a contiguous sequence of
 /// glyph IDs that start from 0, so we cannot just reuse the old ones, but we
 /// need to define a mapping.
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct GlyphRemapper(Remapper<u16, u16>);
 
 impl Default for GlyphRemapper {
