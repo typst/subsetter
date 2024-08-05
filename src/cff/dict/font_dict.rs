@@ -68,6 +68,7 @@ pub fn rewrite_font_dict_index(
     offsets: &mut Offsets,
     metadata: &CIDMetadata,
     w: &mut Writer,
+    top_dict_is_missing_font_matrix: bool,
 ) -> Result<()> {
     let mut dicts = vec![];
 
@@ -77,15 +78,34 @@ pub fn rewrite_font_dict_index(
         let dict = metadata.font_dicts.get(old_df as usize).ok_or(SubsetError)?;
         let mut w = Writer::new();
 
-        // See comment in `generate_font_dict_index`.
-        w.write(dict.font_matrix.as_ref().unwrap_or(&[
-            Number::one(),
-            Number::zero(),
-            Number::zero(),
-            Number::one(),
-            Number::zero(),
-            Number::zero(),
-        ]));
+        // See comment in `rewrite_top_dict_index`.
+        w.write(
+            dict.font_matrix
+                .map(|m| {
+                    if top_dict_is_missing_font_matrix {
+                        [
+                            // TODO: Is that the proper way to scale x1000? But all font matrices only seem to have
+                            // a scale, anyway
+                            Number::from_f32((m[0].as_f64() * 1000.0) as f32),
+                            Number::zero(),
+                            Number::zero(),
+                            Number::from_f32((m[3].as_f64() * 1000.0) as f32),
+                            Number::zero(),
+                            Number::zero(),
+                        ]
+                    } else {
+                        m
+                    }
+                })
+                .unwrap_or([
+                    Number::one(),
+                    Number::zero(),
+                    Number::zero(),
+                    Number::one(),
+                    Number::zero(),
+                    Number::zero(),
+                ]),
+        );
         w.write(FONT_MATRIX);
 
         // Write the length and offset of the private dict.
@@ -126,8 +146,7 @@ pub fn rewrite_font_dict_index(
 pub fn generate_font_dict_index(offsets: &mut Offsets, w: &mut Writer) -> Result<()> {
     let mut sub_w = Writer::new();
 
-    // Similarly to ghostscript, write a default font matrix. Fixes issues for some printers
-    // https://leahneukirchen.org/blog/archive/2022/10/50-blank-pages-or-black-box-debugging-of-pdf-rendering-in-printers.html
+    // See comment in `rewrite_top_dict_index`
     sub_w.write([
         Number::one(),
         Number::zero(),

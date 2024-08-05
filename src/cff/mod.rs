@@ -199,6 +199,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
                 &mut offsets,
                 cid_metadata,
                 &mut w,
+                table.top_dict_data.font_matrix.is_none(),
             )?,
         }
 
