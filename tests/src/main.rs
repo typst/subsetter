@@ -71,6 +71,7 @@ fn test_cff_dump(font_file: &str, gids: &str, num: u16) {
 
     if !dump_path.exists() || OVERWRITE_REFS {
         std::fs::write(dump_path, &output).unwrap();
+        panic!("reference file was created/overwritten.");
     } else {
         let reference = std::fs::read(dump_path).unwrap();
 
@@ -157,6 +158,7 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
             ])
             .output()
             .unwrap();
+        panic!("reference file was created/overwritten.");
     } else {
         let output = Command::new("fonttools")
             .args(["ttx", "-f", "-o", "-", otf_path.clone().to_str().unwrap()])
