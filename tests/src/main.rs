@@ -15,6 +15,7 @@ mod subsets;
 
 #[rustfmt::skip]
 mod font_tools;
+#[rustfmt::skip]
 mod cff;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;

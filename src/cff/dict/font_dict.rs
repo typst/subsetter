@@ -83,16 +83,15 @@ pub fn rewrite_font_dict_index(
             dict.font_matrix
                 .map(|m| {
                     if top_dict_is_missing_font_matrix {
-                        [
-                            // TODO: Is that the proper way to scale x1000? But all font matrices only seem to have
-                            // a scale, anyway
-                            Number::from_f32((m[0].as_f64() * 1000.0) as f32),
+                        let scale = [
+                            Number::from_f32(1000.0),
                             Number::zero(),
                             Number::zero(),
-                            Number::from_f32((m[3].as_f64() * 1000.0) as f32),
+                            Number::from_f32(1000.0),
                             Number::zero(),
                             Number::zero(),
-                        ]
+                        ];
+                        Number::combine(m, scale)
                     } else {
                         m
                     }
