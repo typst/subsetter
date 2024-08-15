@@ -7,6 +7,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Download the CFF dump utility
+        run: wget https://github.com/janpe2/CFFDump/releases/download/v1.3.0/CFFDump_bin_cli_1.3.0.jar -O CFFDump_bin_cli_1.3.0.jar
+      - name: Set CFF_DUMP_BIN environment variable
+        run: echo "CFF_DUMP_BIN=$PWD/CFFDump_bin_cli_1.3.0.jar" >> $GITHUB_ENV
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -14,9 +23,9 @@ jobs:
       - name: Install fonttools
         run: pip install fonttools==4.50
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build --release
+      - run: cargo build
         name: Build
-      - run: cargo test --release
+      - run: cargo test
         name: Run tests
 
   checks:

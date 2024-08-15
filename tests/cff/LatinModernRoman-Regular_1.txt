@@ -1,0 +1,209 @@
+% CFF Dump Output
+% File: LatinModernRoman-Regular_1.otf
+% Dumping an OpenType font file.
+% CFF data starts at 0x7C and its length is 674 bytes.
+% All dumped offsets are relative to 0x7C.
+
+
+--------------------------------------------------------------------------------
+
+Header (0x00000000):
+    major: 1
+    minor: 0
+    hdrSize: 4
+    offSize: 4
+
+--------------------------------------------------------------------------------
+
+Name INDEX (0x00000004):
+  count: 1, offSize: 1
+  Offsets of INDEX (relative to 8):
+    [0] = 1   
+    [1] = 18  
+  Data:
+    [0]: (LMRoman10-Regular)
+
+--------------------------------------------------------------------------------
+
+Top DICT INDEX (0x0000001a):
+  count: 1, offSize: 1
+  Offsets of INDEX (relative to 30):
+    [0] = 1   
+    [1] = 68  
+  Data:
+  [0] (0x0000001f):
+  <<
+    /ROS << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>
+    /Notice (Copyright 2003, 2009 B. Jackowski and J. M. Nowacki (on behalf of TeX users groups). This work is released under the GUST Font License --  see http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt for details.)  % SID 393
+    /FontMatrix [0.001 0 0 0.001 0 0]
+    /FontBBox [-430 -290 1417 1127]
+    /charset 327  % offset
+    /CharStrings 417  % offset
+    /CIDCount 65535
+    /FDArray 393  % offset
+    /FDSelect 385  % offset
+    % ----- Following entries are missing, so they get default values: -----
+    /isFixedPitch false  % default
+    /ItalicAngle 0  % default
+    /UnderlinePosition -100  % default
+    /UnderlineThickness 50  % default
+    /PaintType 0  % default
+    /CharstringType 2  % default
+    /StrokeWidth 0  % default
+    /CIDFontVersion 0  % default
+    /CIDFontRevision 0  % default
+    /CIDFontType 0  % default
+  >>
+
+--------------------------------------------------------------------------------
+
+String INDEX (0x00000062):
+  count: 3, offSize: 1
+  Offsets of INDEX (relative to 104):
+    [0] = 1   
+    [1] = 6   
+    [2] = 14  
+    [3] = 221 
+  Data:
+    [0](SID = 391): (Adobe)
+    [1](SID = 392): (Identity)
+    [2](SID = 393): (Copyright 2003, 2009 B. Jackowski and J. M. Nowacki (on behalf of TeX users groups). This work is released under the GUST Font License --  see http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt for details.)
+
+--------------------------------------------------------------------------------
+
+Global Subr INDEX (0x00000145):
+  count: 0
+  <No global subroutines>
+
+--------------------------------------------------------------------------------
+
+Charset (0x00000147):
+  (format 2; [GID] = <CID>):
+  ([0] = CID 0),
+  [1] = CID 1, 
+  [2] = CID 2, 
+
+--------------------------------------------------------------------------------
+
+FDSelect (0x00000181):
+  (format 3)
+  FD #0 for GIDs 0...2
+
+
+--------------------------------------------------------------------------------
+
+Font DICT INDEX (a.k.a. FDArray) (0x00000189):
+  count: 1, offSize: 1
+  Offsets of INDEX (relative to 397):
+    [0] = 1   
+    [1] = 20  
+  Data:
+  [0] (0x0000018e):
+  <<
+    /FontMatrix [1 0 0 1 0 0]
+    /Private [53 332]  % [size offset]
+    % ----- Following entries are missing, so they get default values: -----
+    /isFixedPitch false  % default
+    /ItalicAngle 0  % default
+    /UnderlinePosition -100  % default
+    /UnderlineThickness 50  % default
+    /PaintType 0  % default
+    /CharstringType 2  % default
+    /FontBBox [0 0 0 0]  % default
+    /StrokeWidth 0  % default
+  >>
+
+--------------------------------------------------------------------------------
+
+CharStrings INDEX (0x000001a1):
+  count: 3, offSize: 1
+  Offsets of INDEX (relative to 423):
+    [0] = 1   
+    [1] = 4   
+    [2] = 120 
+    [3] = 251 
+  Data:
+  ([GID] <CID> (offset): <charstring>)
+  [0] CID 0 (0x000001a8):
+    280 endchar  % glyph width = 280 + nominalWidthX = 280
+  [1] CID 1 (0x000001ab):
+    681 0 31 307 31 86 31 163 31 hstem  % glyph width = 681 + nominalWidthX = 681
+    33 25 3 25 151 25 198 89 vstem
+    652 hmoveto
+    31 -24 vlineto
+    -77 -2 11 36 hvcurveto
+    524 vlineto
+    36 2 11 77 vhcurveto
+    24 31 -563 hlineto
+    -28 -225 rlineto
+    25 hlineto
+    139 16 27 55 153 hhcurveto
+    129 hlineto
+    47 2 -7 -33 hvcurveto
+    -240 -90 vlineto
+    -97 -11 31 86 hvcurveto
+    -25 -265 25 hlineto
+    85 11 32 97 vhcurveto
+    90 -267 hlineto
+    -33 -2 -7 -47 vhcurveto
+    -133 hlineto
+    -172 -23 73 154 -25 hvcurveto
+    -25 hlineto
+    42 -258 rlineto
+    endchar
+  [2] CID 2 (0x0000021f):
+    676 -10 25 330 21 312 23 hstem  % glyph width = 676 + nominalWidthX = 676
+    28 103 421 95 vstem
+    647 121 rmoveto
+    6 -7 5 -4 -15 -14 -36 -15 -15 vhcurveto
+    -55 -57 -90 -11 -73 hhcurveto
+    -90 -73 58 77 -40 hvcurveto
+    -30 60 -8 69 66 vvcurveto
+    500 hlineto
+    14 2 7 12 92 -24 106 -69 65 hvcurveto
+    50 -53 -71 24 -72 hhcurveto
+    -188 -142 -164 -191 -171 118 -170 204 -15 hvcurveto
+    14 hlineto
+    97 125 17 96 53 hvcurveto
+    3 5 5 7 6 vvcurveto
+    -95 245 rmoveto
+    -421 hlineto
+    133 3 57 179 161 hhcurveto
+    72 58 -43 -69 33 hvcurveto
+    29 -62 8 -70 -68 vvcurveto
+    endchar
+
+--------------------------------------------------------------------------------
+
+CIDFont's Private DICTs:
+  Private DICT for Font DICT #0 (0x0000014c):
+  <<
+    /BlueValues [-22 0 431 448 666 677 683 705]  % Original delta values: [-22 22 431 17 218 11 6 22]
+    /BlueScale 0.04546
+    /BlueFuzz 0
+    /StdHW 31
+    /StdVW 69
+    /StemSnapH [22 23 25 26 28 30 31 38 40 42 45 106]  % Original delta values: [22 1 2 1 2 2 1 7 2 2 3 61]
+    /StemSnapV [25 66 69 75 77 83 86 89 92 97 103 107]  % Original delta values: [25 41 3 6 2 6 3 3 3 5 6 4]
+    % ----- Following entries are missing, so they get default values: -----
+    /BlueShift 7  % default
+    /ForceBold false  % default
+    /LanguageGroup 0  % default
+    /ExpansionFactor 0.06  % default
+    /initialRandomSeed 0  % default
+    /defaultWidthX 0  % default
+    /nominalWidthX 0  % default
+  >>
+
+--------------------------------------------------------------------------------
+
+Local Subr INDEX for Font DICT #0:
+  <No local subroutines>
+
+--------------------------------------------------------------------------------
+
+Info messages:
+Info: This is a CIDFont.
+
+% End of dump
+

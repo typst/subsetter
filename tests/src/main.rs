@@ -15,6 +15,7 @@ mod subsets;
 
 #[rustfmt::skip]
 mod font_tools;
+mod cff;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -28,10 +29,63 @@ struct TestContext {
     gids: Vec<u16>,
 }
 
+fn test_cff_dump(font_file: &str, gids: &str, num: u16) {
+    let mut cff_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    cff_path.push("tests/cff");
+    let _ = std::fs::create_dir_all(&cff_path);
+
+    let name = Path::new(font_file);
+    let stem = name.file_stem().unwrap().to_string_lossy().to_string();
+    let dump_name = format!("{}_{}.txt", stem, num);
+    let dump_path: PathBuf = [cff_path.to_string_lossy().to_string(), dump_name.clone()]
+        .iter()
+        .collect();
+    let otf_name = format!("{}_{}.otf", stem, num);
+    let otf_path: PathBuf = [cff_path.to_string_lossy().to_string(), otf_name.clone()]
+        .iter()
+        .collect();
+
+    let data = read_file(font_file);
+    let face = ttf_parser::Face::parse(&data, 0).unwrap();
+    let gids_vec: Vec<_> = parse_gids(gids, face.number_of_glyphs());
+    let remapper = GlyphRemapper::new_from_glyphs(gids_vec.as_slice());
+    let subset = subset(&data, 0, &remapper).unwrap();
+
+    std::fs::write(otf_path.clone(), subset).unwrap();
+
+    let cff_dump_util = env!("CFF_DUMP_BIN");
+
+    let output = Command::new("java")
+        .args([
+            "-jar",
+            cff_dump_util,
+            "-otf",
+            "-c",
+            "-long",
+            "-offsets",
+            otf_path.clone().to_str().unwrap(),
+        ])
+        .output()
+        .unwrap()
+        .stdout;
+
+    if !dump_path.exists() || OVERWRITE_REFS {
+        std::fs::write(dump_path, &output).unwrap();
+        panic!("reference file was created/overwritten.");
+    } else {
+        let reference = std::fs::read(dump_path).unwrap();
+
+        assert!(
+            reference.iter().zip(output.iter()).all(|(a, b)| a == b),
+            "CFF dump output didn't match."
+        );
+    }
+}
+
 fn test_font_tools(font_file: &str, gids: &str, num: u16) {
-    let mut font_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    font_path.push("tests/ttx");
-    let _ = std::fs::create_dir_all(&font_path);
+    let mut ttx_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    ttx_path.push("tests/ttx");
+    let _ = std::fs::create_dir_all(&ttx_path);
 
     let name = Path::new(font_file);
     let stem = name.file_stem().unwrap().to_string_lossy().to_string();
@@ -39,18 +93,18 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
     let ttx_ref_name = format!("{}_{}_ref.ttx", stem, num);
     let otf_name = format!("{}_{}.otf", stem, num);
     let otf_ref_name = format!("{}_{}_ref.otf", stem, num);
-    let otf_path: PathBuf = [font_path.to_string_lossy().to_string(), otf_name.clone()]
+    let otf_path: PathBuf = [ttx_path.to_string_lossy().to_string(), otf_name.clone()]
         .iter()
         .collect();
     let otf_ref_path: PathBuf =
-        [font_path.to_string_lossy().to_string(), otf_ref_name.clone()]
+        [ttx_path.to_string_lossy().to_string(), otf_ref_name.clone()]
             .iter()
             .collect();
-    let ttx_path: PathBuf = [font_path.to_string_lossy().to_string(), ttx_name.clone()]
+    let ttx_path: PathBuf = [ttx_path.to_string_lossy().to_string(), ttx_name.clone()]
         .iter()
         .collect();
     let ttx_ref_path: PathBuf =
-        [font_path.to_string_lossy().to_string(), ttx_ref_name.clone()]
+        [ttx_path.to_string_lossy().to_string(), ttx_ref_name.clone()]
             .iter()
             .collect();
 
@@ -62,6 +116,7 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
 
     std::fs::write(otf_path.clone(), subset).unwrap();
 
+    // Optionally create the subset via fonttools, so that we can compare it to our subset.
     if FONT_TOOLS_REF {
         let font_path = get_font_path(font_file);
         Command::new("fonttools")
@@ -103,6 +158,7 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
             ])
             .output()
             .unwrap();
+        panic!("reference file was created/overwritten.");
     } else {
         let output = Command::new("fonttools")
             .args(["ttx", "-f", "-o", "-", otf_path.clone().to_str().unwrap()])

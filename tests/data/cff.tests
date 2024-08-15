@@ -1,0 +1,7 @@
+// These tests act as regression tests to prevent regressions in CFF subsetting
+
+LatinModernRoman-Regular.otf;290,292
+LatinModernRoman-Regular.otf;580
+NewCMMath-Regular.otf;1034,4789
+NotoSansCJKsc-Regular.otf;230-232
+

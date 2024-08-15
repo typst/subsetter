@@ -1,0 +1,278 @@
+% CFF Dump Output
+% File: NotoSansCJKsc-Regular_1.otf
+% Dumping an OpenType font file.
+% CFF data starts at 0x7C and its length is 786 bytes.
+% All dumped offsets are relative to 0x7C.
+
+
+--------------------------------------------------------------------------------
+
+Header (0x00000000):
+    major: 1
+    minor: 0
+    hdrSize: 4
+    offSize: 4
+
+--------------------------------------------------------------------------------
+
+Name INDEX (0x00000004):
+  count: 1, offSize: 1
+  Offsets of INDEX (relative to 8):
+    [0] = 1   
+    [1] = 22  
+  Data:
+    [0]: (NotoSansCJKsc-Regular)
+
+--------------------------------------------------------------------------------
+
+Top DICT INDEX (0x0000001e):
+  count: 1, offSize: 1
+  Offsets of INDEX (relative to 34):
+    [0] = 1   
+    [1] = 69  
+  Data:
+  [0] (0x00000023):
+  <<
+    /ROS << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>
+    /Notice (Copyright 2014-2021 Adobe (http://www.adobe.com/). Noto is a trademark of Google Inc.)  % SID 393
+    /FontMatrix [0.001 0 0 0.001 0 0]
+    /FontBBox [-1002 -1048 2928 1808]
+    /charset 275  % offset
+    /CharStrings 398  % offset
+    /CIDCount 65535
+    /FDArray 346  % offset
+    /FDSelect 341  % offset
+    % ----- Following entries are missing, so they get default values: -----
+    /isFixedPitch false  % default
+    /ItalicAngle 0  % default
+    /UnderlinePosition -100  % default
+    /UnderlineThickness 50  % default
+    /PaintType 0  % default
+    /CharstringType 2  % default
+    /StrokeWidth 0  % default
+    /CIDFontVersion 0  % default
+    /CIDFontRevision 0  % default
+    /CIDFontType 0  % default
+  >>
+
+--------------------------------------------------------------------------------
+
+String INDEX (0x00000067):
+  count: 5, offSize: 1
+  Offsets of INDEX (relative to 111):
+    [0] = 1   
+    [1] = 6   
+    [2] = 14  
+    [3] = 99  
+    [4] = 128 
+    [5] = 162 
+  Data:
+    [0](SID = 391): (Adobe)
+    [1](SID = 392): (Identity)
+    [2](SID = 393): (Copyright 2014-2021 Adobe (http://www.adobe.com/). Noto is a trademark of Google Inc.)
+    [3](SID = 394): (NotoSansCJKsc-Regular-Generic)
+    [4](SID = 395): (NotoSansCJKsc-Regular-Proportional)
+
+--------------------------------------------------------------------------------
+
+Global Subr INDEX (0x00000111):
+  count: 0
+  <No global subroutines>
+
+--------------------------------------------------------------------------------
+
+Charset (0x00000113):
+  (format 2; [GID] = <CID>):
+  ([0] = CID 0),
+  [1] = CID 1, 
+  [2] = CID 2, 
+  [3] = CID 3, 
+
+--------------------------------------------------------------------------------
+
+FDSelect (0x00000155):
+  (format 0; [GID] = <FD#>):
+  [0] = 0, 
+  [1] = 1, 
+  [2] = 1, 
+  [3] = 1, 
+
+--------------------------------------------------------------------------------
+
+Font DICT INDEX (a.k.a. FDArray) (0x0000015a):
+  count: 2, offSize: 1
+  Offsets of INDEX (relative to 351):
+    [0] = 1   
+    [1] = 24  
+    [2] = 47  
+  Data:
+  [0] (0x00000160):
+  <<
+    /FontMatrix [1 0 0 1 0 0]
+    /Private [28 280]  % [size offset]
+    /FontName (NotoSansCJKsc-Regular-Generic)  % SID 394
+    % ----- Following entries are missing, so they get default values: -----
+    /isFixedPitch false  % default
+    /ItalicAngle 0  % default
+    /UnderlinePosition -100  % default
+    /UnderlineThickness 50  % default
+    /PaintType 0  % default
+    /CharstringType 2  % default
+    /FontBBox [0 0 0 0]  % default
+    /StrokeWidth 0  % default
+  >>
+  [1] (0x00000177):
+  <<
+    /FontMatrix [1 0 0 1 0 0]
+    /Private [33 308]  % [size offset]
+    /FontName (NotoSansCJKsc-Regular-Proportional)  % SID 395
+    % ----- Following entries are missing, so they get default values: -----
+    /isFixedPitch false  % default
+    /ItalicAngle 0  % default
+    /UnderlinePosition -100  % default
+    /UnderlineThickness 50  % default
+    /PaintType 0  % default
+    /CharstringType 2  % default
+    /FontBBox [0 0 0 0]  % default
+    /StrokeWidth 0  % default
+  >>
+
+--------------------------------------------------------------------------------
+
+CharStrings INDEX (0x0000018e):
+  count: 4, offSize: 2
+  Offsets of INDEX (relative to 410):
+    [0] = 1     
+    [1] = 84    
+    [2] = 182   
+    [3] = 265   
+    [4] = 376   
+  Data:
+  ([GID] <CID> (offset): <charstring>)
+  [0] CID 0 (0x0000019b):
+    -120 50 859 91 -50 50 hstemhm  % glyph width = defaultWidthX = 1000
+    100 50 700 50 hintmask 0xB8 
+    100 -120 rmoveto
+    800 1000 -800 hlineto
+    400 -459 rmoveto
+    -318 409 rlineto
+    636 hlineto
+    -286 -450 rmoveto
+    hintmask 0xD8 
+    318 409 rlineto
+    -818 vlineto
+    -668 -41 rmoveto
+    318 409 318 -409 rlineto
+    -668 859 rmoveto
+    318 -409 -318 -409 rlineto
+    endchar
+  [1] CID 1 (0x000001ee):
+    -11 -13 76 417 77 85 65 hstem  % glyph width = -11 + nominalWidthX = 606
+    52 94 315 93 vstem
+    303 -13 rmoveto
+    133 118 104 180 181 -118 105 -133 -133 -118 -105 -181 -180 118 -104 133 hvcurveto
+    76 vmoveto
+    -94 -63 83 125 125 63 84 94 94 64 -84 -125 -125 -64 -83 -94 hvcurveto
+    -46 579 rmoveto
+    92 hlineto
+    127 155 -39 36 -132 -126 rlineto
+    -5 hlineto
+    -131 126 -39 -36 rlineto
+    endchar
+  [2] CID 2 (0x00000250):
+    104 -13 81 665 -20 76 52 hstem  % glyph width = 104 + nominalWidthX = 721
+    98 92 345 89 vstem
+    361 -13 rmoveto
+    149 114 80 235 hvcurveto
+    431 -89 -433 vlineto
+    -176 -77 -56 -97 -96 -75 56 176 vhcurveto
+    433 -92 -431 vlineto
+    -235 113 -80 150 vhcurveto
+    -50 802 rmoveto
+    97 hlineto
+    117 126 -41 29 -121 -103 rlineto
+    -5 hlineto
+    -123 103 -40 -29 rlineto
+    endchar
+  [3] CID 3 (0x000002a3):
+    -10 -13 79 -45 -21 543 -20 119 65 hstemhm  % glyph width = -10 + nominalWidthX = 607
+    84 92 249 91 -79.5 79.5 hintmask 0xBC 
+    251 -13 rmoveto
+    hintmask 0xBA 
+    74 54 39 59 51 hvcurveto
+    3 hlineto
+    hintmask 0x7A 
+    7 -85 rlineto
+    hintmask 0x7C 
+    76 543 -91 hlineto
+    hintmask 0xBC 
+    -385 vlineto
+    -64 -52 -39 -28 -56 hhcurveto
+    -72 -30 43 101 hvcurveto
+    333 -92 -344 vlineto
+    -139 52 -73 115 vhcurveto
+    6 655 rmoveto
+    91 hlineto
+    128 155 -40 36 -131 -126 rlineto
+    -4 hlineto
+    -132 126 -39 -36 rlineto
+    endchar
+
+--------------------------------------------------------------------------------
+
+CIDFont's Private DICTs:
+  Private DICT for Font DICT #0 (0x00000118):
+  <<
+    /BlueValues [-250 -250 1100 1100]  % Original delta values: [-250 0 1350 0]
+    /StdHW 40
+    /StdVW 40
+    /StemSnapH [40 120]  % Original delta values: [40 80]
+    /StemSnapV [40 120]  % Original delta values: [40 80]
+    /LanguageGroup 1
+    /defaultWidthX 1000
+    /nominalWidthX 107
+    % ----- Following entries are missing, so they get default values: -----
+    /BlueScale 0.039625  % default
+    /BlueShift 7  % default
+    /BlueFuzz 1  % default
+    /ForceBold false  % default
+    /ExpansionFactor 0.06  % default
+    /initialRandomSeed 0  % default
+  >>
+  Private DICT for Font DICT #1 (0x00000134):
+  <<
+    /BlueValues [-13 0 543 557 733 747]  % Original delta values: [-13 13 543 14 176 14]
+    /OtherBlues [-250 -229]  % Original delta values: [-250 21]
+    /StdHW 69
+    /StdVW 85
+    /StemSnapH [69 79 88]  % Original delta values: [69 10 9]
+    /StemSnapV [85 95 111]  % Original delta values: [85 10 16]
+    /defaultWidthX 742
+    /nominalWidthX 617
+    % ----- Following entries are missing, so they get default values: -----
+    /BlueScale 0.039625  % default
+    /BlueShift 7  % default
+    /BlueFuzz 1  % default
+    /ForceBold false  % default
+    /LanguageGroup 0  % default
+    /ExpansionFactor 0.06  % default
+    /initialRandomSeed 0  % default
+  >>
+
+--------------------------------------------------------------------------------
+
+Local Subr INDEX for Font DICT #0:
+  <No local subroutines>
+
+--------------------------------------------------------------------------------
+
+Local Subr INDEX for Font DICT #1:
+  <No local subroutines>
+
+--------------------------------------------------------------------------------
+
+Info messages:
+Info: This is a CIDFont.
+
+% End of dump
+
