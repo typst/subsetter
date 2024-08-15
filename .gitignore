@@ -13,4 +13,5 @@ debug
 # Tests
 tests/subsets
 tests/ttx/*.otf
+tests/cff/*.otf
 tests/ttx/*_ref.ttx
