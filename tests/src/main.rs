@@ -116,7 +116,7 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
 
     std::fs::write(otf_path.clone(), subset).unwrap();
 
-    // Optionally create the susbet via fonttools, so that we can compare it to our subset.
+    // Optionally create the subset via fonttools, so that we can compare it to our subset.
     if FONT_TOOLS_REF {
         let font_path = get_font_path(font_file);
         Command::new("fonttools")
