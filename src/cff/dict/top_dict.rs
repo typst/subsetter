@@ -106,7 +106,12 @@ pub fn rewrite_top_dict_index(
         sub_w.write(FONT_NAME);
     }
 
-    // Write a default font matrix, if it does not exist.
+    // See https://bugs.ghostscript.com/show_bug.cgi?id=690724#c12 and https://leahneukirchen.org/blog/archive/2022/10/50-blank-pages-or-black-box-debugging-of-pdf-rendering-in-printers.html
+    // We assume that if at least one font dict has a matrix, all of them do.
+    // Case 1: Top DICT MATRIX is some, FONT DICT MATRIX is some -> supplied, supplied
+    // Case 2: Top DICT MATRIX is none, FONT DICT MATRIX is some -> (0.001, 0, 0, 0.001, 0, 0), supplied * 1000
+    // Case 3: Top DICT MATRIX is some, FONT DICT MATRIX is none -> supplied, (1, 0, 0, 1, 0, 0)
+    // Case 4: Top DICT MATRIX is none, FONT DICT MATRIX is none -> (0.001, 0, 0, 0.001, 0 0), (1, 0, 0, 1, 0, 0)
     sub_w.write(top_dict_data.font_matrix.as_ref().unwrap_or(&[
         Number::from_f32(0.001),
         Number::zero(),

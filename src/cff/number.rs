@@ -287,6 +287,38 @@ impl Number {
     pub fn as_u32(&self) -> Option<u32> {
         u32::try_from(self.as_i32()?).ok()
     }
+
+    // Adapted from ttf_parser's Transform::combine
+    pub fn combine(t1: [Self; 6], t2: [Self; 6]) -> [Self; 6] {
+        [
+            Number::from_f32(
+                (t1[0].as_f64() * t2[0].as_f64() + t1[2].as_f64() * t2[1].as_f64())
+                    as f32,
+            ),
+            Number::from_f32(
+                (t1[1].as_f64() * t2[0].as_f64() + t1[3].as_f64() * t2[1].as_f64())
+                    as f32,
+            ),
+            Number::from_f32(
+                (t1[0].as_f64() * t2[2].as_f64() + t1[2].as_f64() * t2[3].as_f64())
+                    as f32,
+            ),
+            Number::from_f32(
+                (t1[1].as_f64() * t2[2].as_f64() + t1[3].as_f64() * t2[3].as_f64())
+                    as f32,
+            ),
+            Number::from_f32(
+                (t1[0].as_f64() * t2[4].as_f64()
+                    + t1[2].as_f64() * t2[5].as_f64()
+                    + t1[4].as_f64()) as f32,
+            ),
+            Number::from_f32(
+                (t1[1].as_f64() * t2[4].as_f64()
+                    + t1[3].as_f64() * t2[5].as_f64()
+                    + t1[5].as_f64()) as f32,
+            ),
+        ]
+    }
 }
 
 fn parse_float_nibble(nibble: u8, mut idx: usize, data: &mut [u8]) -> Option<usize> {
