@@ -23,9 +23,9 @@ jobs:
       - name: Install fonttools
         run: pip install fonttools==4.50
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build --release
+      - run: cargo build
         name: Build
-      - run: cargo test --release
+      - run: cargo test
         name: Run tests
 
   checks:
