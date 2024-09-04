@@ -15,7 +15,7 @@ name = "subsetter"
 description = "Reduces the size and coverage of OpenType fonts."
 categories = ["compression", "encoding"]
 keywords = ["subsetting", "OpenType", "PDF"]
-exclude = ["fonts/*"]
+exclude = ["fonts/*", "tests/*"]
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
