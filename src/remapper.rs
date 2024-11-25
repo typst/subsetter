@@ -144,11 +144,13 @@ impl GlyphRemapper {
 
     /// Remap a glyph ID, or return the existing mapping if the
     /// glyph ID has already been remapped before.
+    #[inline]
     pub fn remap(&mut self, old: u16) -> u16 {
         self.0.remap(old)
     }
 
     /// Get the mapping of a glyph ID, if it has been remapped before.
+    #[inline]
     pub fn get(&self, old: u16) -> Option<u16> {
         self.0.get(old)
     }
