@@ -22,7 +22,7 @@ use ttf_parser::GlyphId;
 const NUM_ITERATIONS: usize = 200;
 
 fn main() {
-    let exclude_fonts = vec![
+    let exclude_fonts = [
         // Seems to be an invalid font for some reason, fonttools can't read it either.
         // Glyph 822 doesn't seem to draw properly with ttf-parser... But most likely a ttf-parser
         // bug because it does work with skrifa and freetype. fonttools ttx subset matches
@@ -54,7 +54,7 @@ fn main() {
             let is_font_file = extension == Some("ttf") || extension == Some("otf");
 
             if is_font_file {
-                match run_test(&path, &mut rng, &ft_library) {
+                match run_test(path, &mut rng, &ft_library) {
                     Ok(_) => {}
                     Err(msg) => {
                         println!("Error while fuzzing {:?}: {:}", path.clone(), msg)
@@ -251,7 +251,7 @@ fn glyph_outlines_skrifa(
             let glyph2 = new_face
                 .outline_glyphs()
                 .get(skrifa::GlyphId::new(new_glyph))
-                .expect(&format!("failed to find glyph {} in new face", glyph));
+                .unwrap_or_else(|| panic!("failed to find glyph {} in new face", glyph));
             glyph2
                 .draw(settings, &mut sink2)
                 .map_err(|e| format!("failed to draw new glyph {}: {}", glyph, e))?;
@@ -303,7 +303,7 @@ fn glyph_outlines_freetype(
         }
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn glyph_outlines_ttf_parser(
@@ -317,19 +317,15 @@ fn glyph_outlines_ttf_parser(
         let mut sink1 = Sink::default();
         let mut sink2 = Sink::default();
 
-        if let Some(_) = old_face.outline_glyph(GlyphId(*glyph), &mut sink1) {
+        if old_face.outline_glyph(GlyphId(*glyph), &mut sink1).is_some() {
             new_face.outline_glyph(GlyphId(new_glyph), &mut sink2);
             if sink1 != sink2 {
                 return Err(*glyph);
-            } else {
-                return Ok(());
             }
-        } else {
-            return Ok(());
         }
     }
 
-    return Ok(());
+    Ok(())
 }
 
 #[derive(Debug, Default, PartialEq)]
