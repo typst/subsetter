@@ -1,21 +1,8 @@
-use fxhash::FxHashMap;
 use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
 use std::ops::Add;
 
-impl<C, T: Hash> Hash for Remapper<C, T> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.backward.hash(state);
-    }
-}
-
-impl<C, T: PartialEq + Hash> PartialEq for Remapper<C, T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.backward == other.backward
-    }
-}
-
-impl<C, T: PartialEq + Hash> Eq for Remapper<C, T> {}
+use fxhash::FxHashMap;
 
 /// A structure that allows to remap numeric types to new
 /// numbers so that they form a contiguous sequence of numbers.
@@ -30,6 +17,20 @@ pub struct Remapper<C, T> {
     /// it allows to map back to the old one.
     backward: Vec<T>,
 }
+
+impl<C, T: Hash> Hash for Remapper<C, T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.backward.hash(state);
+    }
+}
+
+impl<C, T: PartialEq + Hash> PartialEq for Remapper<C, T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.backward == other.backward
+    }
+}
+
+impl<C, T: PartialEq + Hash> Eq for Remapper<C, T> {}
 
 /// A wrapper trait around `checked_add` so we can require it for the remapper.
 pub trait CheckedAdd: Sized + Add<Self, Output = Self> {
@@ -54,8 +55,10 @@ impl CheckedAdd for u32 {
     }
 }
 
-impl<C: CheckedAdd + Copy + From<u8>, T: Copy + From<u8> + From<C> + Hash + Eq>
-    Remapper<C, T>
+impl<C, T> Remapper<C, T>
+where
+    C: CheckedAdd + Copy + From<u8>,
+    T: From<C> + Copy + From<u8> + Eq + Hash,
 {
     /// Create a new instance of a remapper.
     pub fn new() -> Self
@@ -116,7 +119,7 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Copy + From<u8> + From<C> + Hash + Eq>
 /// This is necessary because a font needs to have a contiguous sequence of
 /// glyph IDs that start from 0, so we cannot just reuse the old ones, but we
 /// need to define a mapping.
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct GlyphRemapper(Remapper<u16, u16>);
 
 impl Default for GlyphRemapper {
