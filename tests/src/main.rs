@@ -1,4 +1,3 @@
-use crate::Inst::{CurveTo, LineTo, QuadTo};
 use skrifa::outline::{DrawSettings, OutlinePen};
 use skrifa::prelude::{LocationRef, Size};
 use skrifa::raw::TableProvider;
@@ -292,7 +291,7 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
             let glyph2 = new_face
                 .outline_glyphs()
                 .get(skrifa::GlyphId::new(new_glyph as u32))
-                .expect(&format!("failed to find glyph {} in new face", glyph));
+                .unwrap_or_else(|| panic!("failed to find glyph {} in new face", glyph));
             glyph2.draw(settings, &mut sink2).unwrap();
             assert_eq!(sink1, sink2, "glyph {} drawn with skrifa didn't match.", glyph);
         }
@@ -309,7 +308,7 @@ fn glyph_outlines_ttf_parser(font_file: &str, gids: &str) {
         let mut sink1 = Sink::default();
         let mut sink2 = Sink::default();
 
-        if let Some(_) = old_face.outline_glyph(GlyphId(glyph), &mut sink1) {
+        if old_face.outline_glyph(GlyphId(glyph), &mut sink1).is_some() {
             new_face.outline_glyph(GlyphId(new_glyph), &mut sink2);
             assert_eq!(
                 sink1, sink2,
