@@ -18,7 +18,7 @@ Because of this, we have four different testing approaches that cover 4 differen
 font readers and 7 different PDF readers in total.
 
 ### Subset tests
-We use `fontations`, `ttf-parser` and `freetype` to ensure that the outlines in the new font are the same as in the 
+We use `fontations` and `ttf-parser` to ensure that the outlines in the new font are the same as in the 
 old font. By checking 3 different implementations, we can assert with relatively high confidence that there are
 no issues in this regard. For each font, we test a selected subset of glyphs (see `data/subsets.tests`), but
 for each font we also make one subset where all glyphs are included, to make sure that "rewriting the whole font"

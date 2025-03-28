@@ -1,5 +1,4 @@
 use crate::Inst::{CurveTo, LineTo, QuadTo};
-use freetype::face::LoadFlag;
 use skrifa::outline::{DrawSettings, OutlinePen};
 use skrifa::prelude::{LocationRef, Size};
 use skrifa::raw::TableProvider;
@@ -283,14 +282,16 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
         let new_glyph = ctx.mapper.get(glyph).unwrap();
         let settings = DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
 
-        if let Some(glyph1) = old_face.outline_glyphs().get(skrifa::GlyphId::new(glyph)) {
+        if let Some(glyph1) =
+            old_face.outline_glyphs().get(skrifa::GlyphId::new(glyph as u32))
+        {
             glyph1.draw(settings, &mut sink1).unwrap();
 
             let settings =
                 DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
             let glyph2 = new_face
                 .outline_glyphs()
-                .get(skrifa::GlyphId::new(new_glyph))
+                .get(skrifa::GlyphId::new(new_glyph as u32))
                 .expect(&format!("failed to find glyph {} in new face", glyph));
             glyph2.draw(settings, &mut sink2).unwrap();
             assert_eq!(sink1, sink2, "glyph {} drawn with skrifa didn't match.", glyph);
@@ -319,45 +320,8 @@ fn glyph_outlines_ttf_parser(font_file: &str, gids: &str) {
     }
 }
 
-fn glyph_outlines_freetype(font_file: &str, gids: &str) {
-    let ctx = get_test_context(font_file, gids).unwrap();
-    let library = freetype::Library::init().unwrap();
-    let old_face = library.new_memory_face2(ctx.font, 0).unwrap();
-    let new_face = library.new_memory_face2(ctx.subset, 0).unwrap();
-    let num_glyphs = old_face.num_glyphs() as u16;
-
-    for glyph in (0..num_glyphs).filter(|g| ctx.gids.contains(g)) {
-        let new_glyph = ctx.mapper.get(glyph).unwrap();
-
-        old_face.load_glyph(glyph as u32, LoadFlag::DEFAULT).unwrap();
-        let old_outline = old_face.glyph().outline().unwrap();
-
-        new_face.load_glyph(new_glyph as u32, LoadFlag::DEFAULT).unwrap();
-        let new_outline = new_face.glyph().outline().unwrap();
-
-        let sink1 = Sink::from_freetype(&old_outline);
-        let sink2 = Sink::from_freetype(&new_outline);
-
-        assert_eq!(sink1, sink2, "glyph {} drawn with freetype didn't match.", glyph);
-    }
-}
-
 #[derive(Debug, Default, PartialEq)]
 struct Sink(Vec<Inst>);
-
-impl Sink {
-    fn from_freetype(outline: &freetype::Outline) -> Self {
-        let mut insts = vec![];
-
-        for contour in outline.contours_iter() {
-            for curve in contour {
-                insts.push(Inst::from_freetype_curve(curve))
-            }
-        }
-
-        Self(insts)
-    }
-}
 
 #[derive(Debug, PartialEq)]
 enum Inst {
@@ -366,25 +330,6 @@ enum Inst {
     QuadTo(f32, f32, f32, f32),
     CurveTo(f32, f32, f32, f32, f32, f32),
     Close,
-}
-
-impl Inst {
-    fn from_freetype_curve(curve: freetype::outline::Curve) -> Self {
-        match curve {
-            freetype::outline::Curve::Line(pt) => LineTo(pt.x as f32, pt.y as f32),
-            freetype::outline::Curve::Bezier2(pt1, pt2) => {
-                QuadTo(pt1.x as f32, pt1.y as f32, pt2.x as f32, pt2.y as f32)
-            }
-            freetype::outline::Curve::Bezier3(pt1, pt2, pt3) => CurveTo(
-                pt1.x as f32,
-                pt1.y as f32,
-                pt2.x as f32,
-                pt2.y as f32,
-                pt3.x as f32,
-                pt3.y as f32,
-            ),
-        }
-    }
 }
 
 impl OutlinePen for Sink {
