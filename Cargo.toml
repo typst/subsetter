@@ -24,6 +24,5 @@ readme = { workspace = true }
 license = { workspace = true }
 
 [dev-dependencies]
-freetype-rs = { git = "https://github.com/LaurenzV/freetype-rs", rev = "d27ea29" }
-skrifa = "0.19.1"
-ttf-parser = { git = "https://github.com/RazrFalcon/ttf-parser", rev = "9bbd432" }
+skrifa = "0.29.0"
+ttf-parser = "0.25.1"

@@ -1,18 +1,15 @@
-use freetype::face::LoadFlag;
-use freetype::Library;
-use rand_distr::Distribution;
-use std::ffi::OsStr;
-use std::fs;
-use std::path::Path;
-
-use rand::distributions::WeightedIndex;
+use rand::distr::weighted::WeightedIndex;
 use rand::prelude::{IteratorRandom, ThreadRng};
-use rand::thread_rng;
+use rand::rng;
+use rand_distr::Distribution;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
 use skrifa::instance::{LocationRef, Size};
 use skrifa::outline::{DrawSettings, OutlinePen};
 use skrifa::MetadataProvider;
+use std::ffi::OsStr;
+use std::fs;
+use std::path::Path;
 use subsetter::{subset, GlyphRemapper};
 use ttf_parser::GlyphId;
 
@@ -48,13 +45,12 @@ fn main() {
         println!("Starting an iteration...");
 
         paths.par_iter().for_each(|path| {
-            let ft_library = freetype::Library::init().unwrap();
-            let mut rng = thread_rng();
+            let mut rng = rng();
             let extension = path.extension().and_then(OsStr::to_str);
             let is_font_file = extension == Some("ttf") || extension == Some("otf");
 
             if is_font_file {
-                match run_test(&path, &mut rng, &ft_library) {
+                match run_test(&path, &mut rng) {
                     Ok(_) => {}
                     Err(msg) => {
                         println!("Error while fuzzing {:?}: {:}", path.clone(), msg)
@@ -65,11 +61,7 @@ fn main() {
     }
 }
 
-fn run_test(
-    path: &Path,
-    rng: &mut ThreadRng,
-    ft_library: &Library,
-) -> Result<(), String> {
+fn run_test(path: &Path, rng: &mut ThreadRng) -> Result<(), String> {
     let data = fs::read(path).map_err(|_| "failed to read file".to_string())?;
     let old_ttf_face = ttf_parser::Face::parse(&data, 0)
         .map_err(|_| "failed to parse old face".to_string())?;
@@ -79,7 +71,6 @@ fn run_test(
     let dist = get_distribution(num_glyphs);
 
     let old_skrifa_face = skrifa::FontRef::new(&data).unwrap();
-    let old_freetype_face = ft_library.new_memory_face2(data.as_slice(), 0).unwrap();
 
     for _ in 0..NUM_ITERATIONS {
         let num = dist.sample(rng);
@@ -102,14 +93,6 @@ fn run_test(
             )
         })?;
 
-        let new_freetype_face =
-            ft_library.new_memory_face2(subset.as_slice(), 0).map_err(|_| {
-                format!(
-                    "failed to parse new freetype face with gids {:?}",
-                    sample_strings.join(",")
-                )
-            })?;
-
         glyph_outlines_ttf_parser(&old_ttf_face, &new_ttf_face, &remapper, &sample)
             .map_err(|g| {
                 format!(
@@ -127,20 +110,6 @@ fn run_test(
                     sample_strings.join(",")
                 )
             })?;
-
-        glyph_outlines_freetype(
-            &old_freetype_face,
-            &new_freetype_face,
-            &remapper,
-            &sample,
-        )
-        .map_err(|g| {
-            format!(
-                "outlines didn't match for gid {:?} with freetype, with sample {:?}",
-                g,
-                sample_strings.join(",")
-            )
-        })?;
 
         ttf_parser_glyph_metrics(&old_ttf_face, &new_ttf_face, &remapper, &sample)
             .map_err(|e| {
@@ -241,7 +210,9 @@ fn glyph_outlines_skrifa(
         // cases. So it's not a subsetting issue.
         let settings = DrawSettings::unhinted(Size::new(150.0), LocationRef::default());
 
-        if let Some(glyph1) = old_face.outline_glyphs().get(skrifa::GlyphId::new(glyph)) {
+        if let Some(glyph1) =
+            old_face.outline_glyphs().get(skrifa::GlyphId::new(glyph as u32))
+        {
             glyph1
                 .draw(settings, &mut sink1)
                 .map_err(|e| format!("failed to draw old glyph {}: {}", glyph, e))?;
@@ -250,7 +221,7 @@ fn glyph_outlines_skrifa(
                 DrawSettings::unhinted(Size::new(150.0), LocationRef::default());
             let glyph2 = new_face
                 .outline_glyphs()
-                .get(skrifa::GlyphId::new(new_glyph))
+                .get(skrifa::GlyphId::new(new_glyph as u32))
                 .expect(&format!("failed to find glyph {} in new face", glyph));
             glyph2
                 .draw(settings, &mut sink2)
@@ -265,45 +236,6 @@ fn glyph_outlines_skrifa(
     }
 
     Ok(())
-}
-
-fn glyph_outlines_freetype(
-    old_face: &freetype::Face<&[u8]>,
-    new_face: &freetype::Face<&[u8]>,
-    mapper: &GlyphRemapper,
-    gids: &[u16],
-) -> Result<(), String> {
-    for glyph in gids {
-        let new_glyph = mapper.get(*glyph).unwrap();
-
-        if old_face.load_glyph(*glyph as u32, LoadFlag::DEFAULT).is_ok() {
-            let old_outline = old_face
-                .glyph()
-                .outline()
-                .ok_or(format!("failed to load outline for old glyph {}", glyph))?;
-
-            new_face
-                .load_glyph(new_glyph as u32, LoadFlag::DEFAULT)
-                .map_err(|_| {
-                    format!("failed to load glyph for new glyph {}", new_glyph)
-                })?;
-            let new_outline = new_face
-                .glyph()
-                .outline()
-                .ok_or(format!("failed to load outline for new glyph {}", new_glyph))?;
-
-            let sink1 = Sink::from_freetype(&old_outline);
-            let sink2 = Sink::from_freetype(&new_outline);
-
-            if sink1 != sink2 {
-                return Err(format!("{}", glyph));
-            } else {
-                return Ok(());
-            }
-        }
-    }
-
-    return Ok(());
 }
 
 fn glyph_outlines_ttf_parser(
@@ -335,20 +267,6 @@ fn glyph_outlines_ttf_parser(
 #[derive(Debug, Default, PartialEq)]
 struct Sink(Vec<Inst>);
 
-impl Sink {
-    fn from_freetype(outline: &freetype::Outline) -> Self {
-        let mut insts = vec![];
-
-        for contour in outline.contours_iter() {
-            for curve in contour {
-                insts.push(Inst::from_freetype_curve(curve))
-            }
-        }
-
-        Self(insts)
-    }
-}
-
 #[derive(Debug, PartialEq)]
 enum Inst {
     MoveTo(f32, f32),
@@ -356,25 +274,6 @@ enum Inst {
     QuadTo(f32, f32, f32, f32),
     CurveTo(f32, f32, f32, f32, f32, f32),
     Close,
-}
-
-impl Inst {
-    fn from_freetype_curve(curve: freetype::outline::Curve) -> Self {
-        match curve {
-            freetype::outline::Curve::Line(pt) => Inst::LineTo(pt.x as f32, pt.y as f32),
-            freetype::outline::Curve::Bezier2(pt1, pt2) => {
-                Inst::QuadTo(pt1.x as f32, pt1.y as f32, pt2.x as f32, pt2.y as f32)
-            }
-            freetype::outline::Curve::Bezier3(pt1, pt2, pt3) => Inst::CurveTo(
-                pt1.x as f32,
-                pt1.y as f32,
-                pt2.x as f32,
-                pt2.y as f32,
-                pt3.x as f32,
-                pt3.y as f32,
-            ),
-        }
-    }
 }
 
 impl OutlinePen for Sink {
