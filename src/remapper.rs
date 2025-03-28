@@ -1,15 +1,30 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeSet, HashMap};
+use std::hash::{Hash, Hasher};
 use std::ops::Add;
+
+impl<C, T: Hash> Hash for Remapper<C, T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.backward.hash(state);
+    }
+}
+
+impl<C, T: PartialEq + Hash> PartialEq for Remapper<C, T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.backward == other.backward
+    }
+}
+
+impl<C, T: PartialEq + Hash> Eq for Remapper<C, T> {}
 
 /// A structure that allows to remap numeric types to new
 /// numbers so that they form a contiguous sequence of numbers.
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Remapper<C, T> {
     /// The counter that keeps track of the next number to be assigned.
     /// Should always start with 0.
     counter: C,
     /// The map that maps numbers from their old value to their new value.
-    forward: BTreeMap<T, T>,
+    forward: HashMap<T, T>,
     /// The vector that stores the "reverse" mapping, i.e. given a new number,
     /// it allows to map back to the old one.
     backward: Vec<T>,
@@ -38,7 +53,7 @@ impl CheckedAdd for u32 {
     }
 }
 
-impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapper<C, T> {
+impl<C: CheckedAdd + Copy + From<u8>, T: Copy + From<u8> + From<C> + Hash + Eq> Remapper<C, T> {
     /// Create a new instance of a remapper.
     pub fn new() -> Self
     where
@@ -46,7 +61,7 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
     {
         Self {
             counter: C::default(),
-            forward: BTreeMap::new(),
+            forward: HashMap::new(),
             backward: Vec::new(),
         }
     }
