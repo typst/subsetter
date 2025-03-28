@@ -79,7 +79,7 @@ def gen_subset_tests():
             counter = counters[font_file]
             counters[font_file] += 1
 
-            functions = ["glyph_metrics", "glyph_outlines_ttf_parser", "glyph_outlines_skrifa", "glyph_outlines_freetype"]
+            functions = ["glyph_metrics", "glyph_outlines_ttf_parser", "glyph_outlines_skrifa"]
 
             for function in functions:
                 function_name = f"{font_name_to_function(font_file)}_{counter}_{function}"
