@@ -18,14 +18,14 @@ of a general-purpose subsetter in the Rust ecosystem.
 A couple of important notes if you want to use this crate in combination with your own pdf writer:
 
 - You must write your fonts as a CID font. This is because we remove the `cmap` table from the font,
-so you must provide your own cmap table in the PDF.
+  so you must provide your own cmap table in the PDF.
 - Copyright information in the font will be retained.
 - When writing a CID font in PDF, CIDs must be used to address glyphs. This can be pretty tricky,
-because the meaning of CID depends on the type of font you are embedding (see the PDF specification
-for more information). The subsetter will convert SID-keyed fonts to CID-keyed ones and an identity
-mapping from GID to CID for all fonts, regardless of the previous mapping. Because of this, you can
-always use the remapped GID as the CID for a glyph, and do not need to worry about the type of font
-you are embedding.
+  because the meaning of CID depends on the type of font you are embedding (see the PDF specification
+  for more information). The subsetter will convert SID-keyed fonts to CID-keyed ones and an identity
+  mapping from GID to CID for all fonts, regardless of the previous mapping. Because of this, you can
+  always use the remapped GID as the CID for a glyph, and do not need to worry about the type of font
+  you are embedding.
 
 # Example
 In the example below, we remove all glyphs except the ones with IDs 68, 69, 70 from Noto Sans.

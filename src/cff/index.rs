@@ -28,7 +28,7 @@ pub fn parse_index<'a, T: IndexSize>(r: &mut Reader<'a>) -> Option<Index<'a>> {
 }
 
 fn parse_index_impl<'a>(count: u32, r: &mut Reader<'a>) -> Option<Index<'a>> {
-    if count == 0 || count == core::u32::MAX {
+    if count == 0 || count == u32::MAX {
         return Some(Index::default());
     }
 
@@ -54,7 +54,7 @@ pub fn skip_index<T: IndexSize>(r: &mut Reader) -> Option<()> {
 }
 
 fn skip_index_impl(count: u32, r: &mut Reader) -> Option<()> {
-    if count == 0 || count == core::u32::MAX {
+    if count == 0 || count == u32::MAX {
         return Some(());
     }
 

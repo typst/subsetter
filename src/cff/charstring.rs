@@ -126,7 +126,7 @@ impl<'a> Decompiler<'a> {
                     if self.hint_mask_bytes == 0 {
                         // Hintmask can contain implicit stems.
                         self.count_hints();
-                        self.hint_mask_bytes = (self.hint_count + 7) / 8;
+                        self.hint_mask_bytes = self.hint_count.div_ceil(8);
                     }
 
                     let hint_bytes =

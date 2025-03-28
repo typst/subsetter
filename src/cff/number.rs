@@ -433,7 +433,7 @@ mod tests {
             let mut r = Reader::new(&first);
             let rewritten = r.read::<U24>().unwrap();
             let mut w = Writer::new();
-            w.write(&rewritten);
+            w.write(rewritten);
             let second = w.finish();
 
             assert_eq!(first, second);
@@ -453,7 +453,7 @@ mod tests {
 
             let reparsed = IntegerNumber::parse(&mut reader).unwrap();
             let mut w = Writer::new();
-            w.write(&reparsed);
+            w.write(reparsed);
             let bytes = w.finish();
             assert_eq!(bytes.len(), 1);
             assert_eq!(reparsed.0, num);
@@ -473,7 +473,7 @@ mod tests {
 
             let reparsed = IntegerNumber::parse(&mut reader).unwrap();
             let mut w = Writer::new();
-            w.write(&reparsed);
+            w.write(reparsed);
             let bytes = w.finish();
             assert_eq!(bytes.len(), 2);
             assert_eq!(reparsed.0, num);
@@ -493,7 +493,7 @@ mod tests {
 
             let reparsed = IntegerNumber::parse(&mut reader).unwrap();
             let mut w = Writer::new();
-            w.write(&reparsed);
+            w.write(reparsed);
             let bytes = w.finish();
             assert_eq!(bytes.len(), 3);
             assert_eq!(reparsed.0, num);
@@ -513,7 +513,7 @@ mod tests {
 
             let reparsed = IntegerNumber::parse(&mut reader).unwrap();
             let mut w = Writer::new();
-            w.write(&reparsed);
+            w.write(reparsed);
             let bytes = w.finish();
             assert_eq!(bytes.len(), 5);
             assert_eq!(reparsed.0, num);

@@ -160,7 +160,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
         w.extend(&index.data);
         // Global Subr INDEX
         // We desubroutinized, so no global subroutines and thus empty index.
-        w.write(&OwnedIndex::default());
+        w.write(OwnedIndex::default());
 
         // Charsets
         offsets.charset_offset.update_value(w.len())?;
