@@ -1,3 +1,4 @@
+use fxhash::FxHashMap;
 use std::collections::{BTreeSet, HashMap};
 use std::hash::{Hash, Hasher};
 use std::ops::Add;
@@ -24,7 +25,7 @@ pub struct Remapper<C, T> {
     /// Should always start with 0.
     counter: C,
     /// The map that maps numbers from their old value to their new value.
-    forward: HashMap<T, T>,
+    forward: FxHashMap<T, T>,
     /// The vector that stores the "reverse" mapping, i.e. given a new number,
     /// it allows to map back to the old one.
     backward: Vec<T>,
@@ -63,7 +64,7 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Copy + From<u8> + From<C> + Hash + Eq>
     {
         Self {
             counter: C::default(),
-            forward: HashMap::new(),
+            forward: FxHashMap::default(),
             backward: Vec::new(),
         }
     }

@@ -23,6 +23,9 @@ repository = { workspace = true }
 readme = { workspace = true }
 license = { workspace = true }
 
+[dependencies]
+fxhash = "0.2.1"
+
 [dev-dependencies]
 freetype-rs = { git = "https://github.com/LaurenzV/freetype-rs", rev = "d27ea29" }
 skrifa = "0.19.1"
