@@ -53,7 +53,9 @@ impl CheckedAdd for u32 {
     }
 }
 
-impl<C: CheckedAdd + Copy + From<u8>, T: Copy + From<u8> + From<C> + Hash + Eq> Remapper<C, T> {
+impl<C: CheckedAdd + Copy + From<u8>, T: Copy + From<u8> + From<C> + Hash + Eq>
+    Remapper<C, T>
+{
     /// Create a new instance of a remapper.
     pub fn new() -> Self
     where
