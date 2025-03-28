@@ -23,6 +23,9 @@ repository = { workspace = true }
 readme = { workspace = true }
 license = { workspace = true }
 
+[dependencies]
+fxhash = "0.2.1"
+
 [dev-dependencies]
 skrifa = "0.29.0"
 ttf-parser = "0.25.1"

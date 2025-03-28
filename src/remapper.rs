@@ -1,19 +1,36 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
+use std::hash::{Hash, Hasher};
 use std::ops::Add;
+
+use fxhash::FxHashMap;
 
 /// A structure that allows to remap numeric types to new
 /// numbers so that they form a contiguous sequence of numbers.
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Remapper<C, T> {
     /// The counter that keeps track of the next number to be assigned.
     /// Should always start with 0.
     counter: C,
     /// The map that maps numbers from their old value to their new value.
-    forward: BTreeMap<T, T>,
+    forward: FxHashMap<T, T>,
     /// The vector that stores the "reverse" mapping, i.e. given a new number,
     /// it allows to map back to the old one.
     backward: Vec<T>,
 }
+
+impl<C, T: Hash> Hash for Remapper<C, T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.backward.hash(state);
+    }
+}
+
+impl<C, T: PartialEq + Hash> PartialEq for Remapper<C, T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.backward == other.backward
+    }
+}
+
+impl<C, T: PartialEq + Hash> Eq for Remapper<C, T> {}
 
 /// A wrapper trait around `checked_add` so we can require it for the remapper.
 pub trait CheckedAdd: Sized + Add<Self, Output = Self> {
@@ -38,7 +55,11 @@ impl CheckedAdd for u32 {
     }
 }
 
-impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapper<C, T> {
+impl<C, T> Remapper<C, T>
+where
+    C: CheckedAdd + Copy + From<u8>,
+    T: From<C> + Copy + From<u8> + Eq + Hash,
+{
     /// Create a new instance of a remapper.
     pub fn new() -> Self
     where
@@ -46,7 +67,7 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
     {
         Self {
             counter: C::default(),
-            forward: BTreeMap::new(),
+            forward: FxHashMap::default(),
             backward: Vec::new(),
         }
     }
@@ -98,7 +119,7 @@ impl<C: CheckedAdd + Copy + From<u8>, T: Ord + Copy + From<u8> + From<C>> Remapp
 /// This is necessary because a font needs to have a contiguous sequence of
 /// glyph IDs that start from 0, so we cannot just reuse the old ones, but we
 /// need to define a mapping.
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct GlyphRemapper(Remapper<u16, u16>);
 
 impl Default for GlyphRemapper {
