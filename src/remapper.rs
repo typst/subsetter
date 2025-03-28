@@ -1,5 +1,5 @@
 use fxhash::FxHashMap;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
 use std::ops::Add;
 
