@@ -78,7 +78,7 @@ pub struct VarOffsets<'a> {
     pub offset_size: OffsetSize,
 }
 
-impl<'a> VarOffsets<'a> {
+impl VarOffsets<'_> {
     pub fn get(&self, index: u32) -> Option<u32> {
         if index >= self.len() {
             return None;
@@ -124,7 +124,7 @@ pub struct Index<'a> {
     pub offsets: VarOffsets<'a>,
 }
 
-impl<'a> Default for Index<'a> {
+impl Default for Index<'_> {
     #[inline]
     fn default() -> Self {
         Index {

@@ -19,7 +19,7 @@ use ttf_parser::GlyphId;
 const NUM_ITERATIONS: usize = 200;
 
 fn main() {
-    let exclude_fonts = vec![
+    let exclude_fonts = [
         // Seems to be an invalid font for some reason, fonttools can't read it either.
         // Glyph 822 doesn't seem to draw properly with ttf-parser... But most likely a ttf-parser
         // bug because it does work with skrifa and freetype. fonttools ttx subset matches
@@ -50,7 +50,7 @@ fn main() {
             let is_font_file = extension == Some("ttf") || extension == Some("otf");
 
             if is_font_file {
-                match run_test(&path, &mut rng) {
+                match run_test(path, &mut rng) {
                     Ok(_) => {}
                     Err(msg) => {
                         println!("Error while fuzzing {:?}: {:}", path.clone(), msg)
@@ -222,7 +222,7 @@ fn glyph_outlines_skrifa(
             let glyph2 = new_face
                 .outline_glyphs()
                 .get(skrifa::GlyphId::new(new_glyph as u32))
-                .expect(&format!("failed to find glyph {} in new face", glyph));
+                .unwrap_or_else(|| panic!("failed to find glyph {} in new face", glyph));
             glyph2
                 .draw(settings, &mut sink2)
                 .map_err(|e| format!("failed to draw new glyph {}: {}", glyph, e))?;
