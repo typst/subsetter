@@ -229,8 +229,6 @@ fn glyph_outlines_skrifa(
 
             if sink1 != sink2 {
                 return Err(format!("{}", glyph));
-            } else {
-                return Ok(());
             }
         }
     }
@@ -249,19 +247,15 @@ fn glyph_outlines_ttf_parser(
         let mut sink1 = Sink::default();
         let mut sink2 = Sink::default();
 
-        if let Some(_) = old_face.outline_glyph(GlyphId(*glyph), &mut sink1) {
+        if old_face.outline_glyph(GlyphId(*glyph), &mut sink1).is_some() {
             new_face.outline_glyph(GlyphId(new_glyph), &mut sink2);
             if sink1 != sink2 {
                 return Err(*glyph);
-            } else {
-                return Ok(());
             }
-        } else {
-            return Ok(());
         }
     }
 
-    return Ok(());
+    Ok(())
 }
 
 #[derive(Debug, Default, PartialEq)]
