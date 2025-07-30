@@ -3,7 +3,7 @@ members = ["tests/cli", "tests/fuzz"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Laurenz Mädje <laurmaedje@gmail.com>", "Laurenz Stampfl <laurenz.stampfl@gmail.com>"]
 edition = "2021"
 repository = "https://github.com/typst/subsetter"
