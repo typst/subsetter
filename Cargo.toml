@@ -24,7 +24,7 @@ readme = { workspace = true }
 license = { workspace = true }
 
 [dependencies]
-fxhash = "0.2.1"
+rustc-hash = "2.1"
 
 [dev-dependencies]
 skrifa = "0.29.0"

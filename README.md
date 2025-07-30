@@ -28,7 +28,8 @@ the subset for. However, apart from that there are no plans to increase the scop
 fixing bugs and adding new APIs to the existing interface.
 
 ## Safety and Dependencies
-This crate forbids unsafe code and has only a dependency on the `fxhash` crate.
+This crate forbids unsafe code and has only one dependency, on the `rustc-hash`
+crate.
 
 ## License
 This crate is dual-licensed under the MIT and Apache 2.0 licenses.
