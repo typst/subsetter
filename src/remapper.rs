@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
 use std::ops::Add;
 
-use fxhash::FxHashMap;
+use rustc_hash::FxHashMap;
 
 /// A structure that allows to remap numeric types to new
 /// numbers so that they form a contiguous sequence of numbers.
