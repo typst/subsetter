@@ -53,12 +53,12 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
 
                 if has_advance_width {
                     let adv = r.read::<u16>().ok_or(MalformedFont)?;
-                    let lsb = r.read::<u16>().ok_or(MalformedFont)?;
+                    let lsb = r.read::<i16>().ok_or(MalformedFont)?;
                     new_metrics.push((adv, lsb));
                 } else {
                     new_metrics.push((
                         last_advance_width,
-                        r.read::<u16>().ok_or(MalformedFont)?,
+                        r.read::<i16>().ok_or(MalformedFont)?,
                     ));
                 }
             }
@@ -88,7 +88,7 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
             sub_hmtx.write::<u16>(metric.0);
         }
 
-        sub_hmtx.write::<u16>(metric.1);
+        sub_hmtx.write::<i16>(metric.1);
     }
 
     ctx.push(Tag::HMTX, sub_hmtx.finish());

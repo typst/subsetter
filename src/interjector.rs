@@ -1,4 +1,4 @@
-type HmtxInterjector<'a> = Option<Box<dyn FnMut(u16) -> Option<(u16, u16)> + 'a>>;
+type HmtxInterjector<'a> = Option<Box<dyn FnMut(u16) -> Option<(u16, i16)> + 'a>>;
 type GlyfInterjector<'a> = Option<Box<dyn FnMut(u16) -> Option<Vec<u8>> + 'a>>;
 
 pub(crate) trait Interjector {
@@ -19,7 +19,7 @@ impl Interjector for DummyInterjector {
 }
 
 #[cfg(feature = "variable_fonts")]
-mod skrifa {
+pub(crate) mod skrifa {
     use crate::interjector::{GlyfInterjector, HmtxInterjector, Interjector};
     use kurbo::BezPath;
     use skrifa::instance::{Location, LocationRef};
@@ -58,7 +58,7 @@ mod skrifa {
                 let adv = metrics.advance_width(GlyphId::new(glyph as u32))?;
                 let lsb = metrics.left_side_bearing(GlyphId::new(glyph as u32))?;
 
-                Some((adv as u16, lsb as u16))
+                Some((adv.round() as u16, lsb.round() as i16))
             }))
         }
 
