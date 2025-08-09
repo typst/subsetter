@@ -120,7 +120,7 @@ fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> 
 
     for old_gid in ctx.mapper.remapped_gids() {
         let glyph_data = match ctx.interjector.glyph_data() {
-            Some(mut c) => c(old_gid).ok_or(MalformedFont)?,
+            Some(mut c) => Cow::Owned(c(old_gid).ok_or(MalformedFont)?),
             None => Cow::Borrowed(table.glyph_data(old_gid).ok_or(MalformedFont)?),
         };
 

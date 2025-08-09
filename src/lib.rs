@@ -76,15 +76,15 @@ mod cff;
 mod glyf;
 mod head;
 mod hmtx;
+mod interjector;
 mod maxp;
 mod name;
 mod post;
-mod provider;
 mod read;
 mod remapper;
 mod write;
 
-use crate::provider::{DummyInterjector, Interjector};
+use crate::interjector::{DummyInterjector, Interjector};
 use crate::read::{Readable, Reader};
 pub use crate::remapper::GlyphRemapper;
 use crate::write::{Writeable, Writer};
@@ -289,7 +289,7 @@ struct Context<'a> {
     kind: FontKind,
     /// Subsetted tables.
     tables: Vec<(Tag, Cow<'a, [u8]>)>,
-    pub(crate) interjector: Box<dyn Interjector<'a>>,
+    pub(crate) interjector: Box<dyn Interjector>,
     /// Whether the long loca format was chosen.
     long_loca: bool,
 }
