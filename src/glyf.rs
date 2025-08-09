@@ -119,22 +119,25 @@ fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> 
     let mut glyf_entries = vec![];
 
     for old_gid in ctx.mapper.remapped_gids() {
-        let glyph_data = table.glyph_data(old_gid).ok_or(MalformedFont)?;
+        let glyph_data = match ctx.interjector.glyph_data() {
+            Some(mut c) => c(old_gid).ok_or(MalformedFont)?,
+            None => Cow::Borrowed(table.glyph_data(old_gid).ok_or(MalformedFont)?),
+        };
 
         // Empty glyph.
         if glyph_data.is_empty() {
-            glyf_entries.push(Cow::Borrowed(glyph_data));
+            glyf_entries.push(glyph_data);
             continue;
         }
 
-        let mut r = Reader::new(glyph_data);
+        let mut r = Reader::new(&glyph_data);
         let num_contours = r.read::<i16>().ok_or(MalformedFont)?;
 
         let glyph_data = if num_contours < 0 {
-            Cow::Owned(remap_component_glyph(&ctx.mapper, glyph_data)?)
+            Cow::Owned(remap_component_glyph(&ctx.mapper, &glyph_data)?)
         } else {
             // Simple glyphs don't need any subsetting.
-            Cow::Borrowed(glyph_data)
+            glyph_data
         };
 
         let mut len = glyph_data.len();

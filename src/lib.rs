@@ -79,10 +79,12 @@ mod hmtx;
 mod maxp;
 mod name;
 mod post;
+mod provider;
 mod read;
 mod remapper;
 mod write;
 
+use crate::provider::{DummyInterjector, Interjector};
 use crate::read::{Readable, Reader};
 pub use crate::remapper::GlyphRemapper;
 use crate::write::{Writeable, Writer};
@@ -117,9 +119,12 @@ fn prepare_context(
         glyf::closure(&face, &mut gid_remapper)?;
     }
 
+    let interjector = Box::new(DummyInterjector);
+
     Ok(Context {
         face,
         mapper: gid_remapper,
+        interjector,
         kind,
         tables: vec![],
         long_loca: false,
@@ -284,6 +289,7 @@ struct Context<'a> {
     kind: FontKind,
     /// Subsetted tables.
     tables: Vec<(Tag, Cow<'a, [u8]>)>,
+    pub(crate) interjector: Box<dyn Interjector<'a>>,
     /// Whether the long loca format was chosen.
     long_loca: bool,
 }
