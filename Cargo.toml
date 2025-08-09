@@ -34,4 +34,5 @@ kurbo = { optional = true, version = "0.11.3" }
 write-fonts = { optional = true, version = "0.39.1"}
 
 [dev-dependencies]
+skrifa = "0.33.2"
 ttf-parser = "0.25.1"

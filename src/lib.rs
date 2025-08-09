@@ -50,7 +50,7 @@ for glyph in glyphs {
 }
 
 // Create the subset.
-let sub = subset(&data, 0, &remapper)?;
+let sub = subset(&data, 0, &[], &remapper)?;
 
 // This is how you can access the new glyph ID of a glyph in the old font.
 for glyph in glyphs {
@@ -97,17 +97,24 @@ use std::fmt::{self, Debug, Display, Formatter};
 /// - The `data` must be in the OpenType font format.
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
-pub fn subset(data: &[u8], index: u32, mapper: &GlyphRemapper) -> Result<Vec<u8>> {
+pub fn subset(
+    data: &[u8],
+    index: u32,
+    variation_coordinates: &[(&str, f32)],
+    mapper: &GlyphRemapper,
+) -> Result<Vec<u8>> {
     let mapper = mapper.clone();
-    let context = prepare_context(data, index, mapper)?;
+    let context = prepare_context(data, index, variation_coordinates, mapper)?;
     _subset(context)
 }
 
-fn prepare_context(
-    data: &[u8],
+fn prepare_context<'a>(
+    data: &'a [u8],
     index: u32,
+    #[cfg_attr(not(feature = "variable_fonts"), allow(unused))]
+    variation_coordinates: &[(&str, f32)],
     mut gid_remapper: GlyphRemapper,
-) -> Result<Context> {
+) -> Result<Context<'a>> {
     let face = parse(data, index)?;
     let kind = match (face.table(Tag::GLYF), face.table(Tag::CFF)) {
         (Some(_), _) => FontKind::TrueType,
@@ -119,7 +126,21 @@ fn prepare_context(
         glyf::closure(&face, &mut gid_remapper)?;
     }
 
+    let _ = variation_coordinates;
+
+    #[cfg(not(feature = "variable_fonts"))]
     let interjector = Box::new(DummyInterjector);
+    #[cfg(feature = "variable_fonts")]
+    let interjector: Box<dyn Interjector> = if variation_coordinates.is_empty() {
+        Box::new(DummyInterjector)
+    } else {
+        use crate::interjector::skrifa::SkrifaInterjector;
+
+        Box::new(
+            SkrifaInterjector::new(data, index, variation_coordinates)
+                .ok_or(MalformedFont)?,
+        )
+    };
 
     Ok(Context {
         face,
@@ -289,7 +310,7 @@ struct Context<'a> {
     kind: FontKind,
     /// Subsetted tables.
     tables: Vec<(Tag, Cow<'a, [u8]>)>,
-    pub(crate) interjector: Box<dyn Interjector>,
+    pub(crate) interjector: Box<dyn Interjector + 'a>,
     /// Whether the long loca format was chosen.
     long_loca: bool,
 }

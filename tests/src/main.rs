@@ -48,7 +48,7 @@ fn test_cff_dump(font_file: &str, gids: &str, num: u16) {
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
     let gids_vec: Vec<_> = parse_gids(gids, face.number_of_glyphs());
     let remapper = GlyphRemapper::new_from_glyphs(gids_vec.as_slice());
-    let subset = subset(&data, 0, &remapper).unwrap();
+    let subset = subset(&data, 0, &[], &remapper).unwrap();
 
     std::fs::write(otf_path.clone(), subset).unwrap();
 
@@ -111,7 +111,7 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
     let gids_vec: Vec<_> = parse_gids(gids, face.number_of_glyphs());
     let remapper = GlyphRemapper::new_from_glyphs(gids_vec.as_slice());
-    let subset = subset(&data, 0, &remapper).unwrap();
+    let subset = subset(&data, 0, &[], &remapper).unwrap();
 
     std::fs::write(otf_path.clone(), subset).unwrap();
 
@@ -195,7 +195,7 @@ fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
     let gids: Vec<_> = parse_gids(gids, face.number_of_glyphs());
     let glyph_remapepr = GlyphRemapper::new_from_glyphs(gids.as_slice());
-    let subset = subset(&data, 0, &glyph_remapepr)?;
+    let subset = subset(&data, 0, &[], &glyph_remapepr)?;
 
     Ok(TestContext { font: data, subset, mapper: glyph_remapepr, gids })
 }

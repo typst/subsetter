@@ -22,10 +22,10 @@ impl Interjector for DummyInterjector {
 pub(crate) mod skrifa {
     use crate::interjector::{GlyfInterjector, HmtxInterjector, Interjector};
     use kurbo::BezPath;
-    use skrifa::instance::{Location, LocationRef};
+    use skrifa::instance::Location;
     use skrifa::outline::{DrawSettings, OutlinePen};
     use skrifa::prelude::Size;
-    use skrifa::{FontRef, GlyphId, MetadataProvider, OutlineGlyphCollection};
+    use skrifa::{FontRef, GlyphId, MetadataProvider};
     use write_fonts::tables::glyf::SimpleGlyph;
     use write_fonts::{dump_table, FontWrite, TableWriter};
 
