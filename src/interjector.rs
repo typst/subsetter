@@ -38,10 +38,10 @@ pub(crate) mod skrifa {
         pub(crate) fn new(
             data: &'a [u8],
             index: u32,
-            location: &[(&str, f32)],
+            location: &[(String, f32)],
         ) -> Option<Self> {
             let font_ref = FontRef::from_index(data, index).ok()?;
-            let location = font_ref.axes().location(location);
+            let location = font_ref.axes().location(location.iter().map(|i| (i.0.as_str(), i.1)));
 
             Some(Self { font_ref, location })
         }

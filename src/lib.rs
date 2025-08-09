@@ -100,7 +100,7 @@ use std::fmt::{self, Debug, Display, Formatter};
 pub fn subset(
     data: &[u8],
     index: u32,
-    variation_coordinates: &[(&str, f32)],
+    variation_coordinates: &[(String, f32)],
     mapper: &GlyphRemapper,
 ) -> Result<Vec<u8>> {
     let mapper = mapper.clone();
@@ -112,7 +112,7 @@ fn prepare_context<'a>(
     data: &'a [u8],
     index: u32,
     #[cfg_attr(not(feature = "variable_fonts"), allow(unused))]
-    variation_coordinates: &[(&str, f32)],
+    variation_coordinates: &[(String, f32)],
     mut gid_remapper: GlyphRemapper,
 ) -> Result<Context<'a>> {
     let face = parse(data, index)?;
