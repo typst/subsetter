@@ -48,14 +48,21 @@ pub fn closure(face: &Face, glyph_remapper: &mut GlyphRemapper) -> Result<()> {
 pub fn subset(ctx: &mut Context) -> Result<()> {
     let table = Table::new(&ctx.face).ok_or(MalformedFont)?;
 
-    let subsetted_entries = subset_glyf_entries(ctx, |old_gid, ctx| {
+    subset_with(ctx, |old_gid, ctx| {
         let data = match ctx.interjector.glyph_data() {
             Some(mut c) => Cow::Owned(c(old_gid).ok_or(MalformedFont)?),
             None => Cow::Borrowed(table.glyph_data(old_gid).ok_or(MalformedFont)?),
         };
 
         Ok(data)
-    })?;
+    })
+}
+
+pub(crate) fn subset_with<'a>(
+    ctx: &mut Context<'a>,
+    glyph_data_fn: impl FnMut(u16, &Context<'a>) -> Result<Cow<'a, [u8]>>,
+) -> Result<()> {
+    let subsetted_entries = subset_glyf_entries(ctx, glyph_data_fn)?;
 
     let mut sub_glyf = Writer::new();
     let mut sub_loca = Writer::new();
@@ -123,7 +130,7 @@ impl<'a> Table<'a> {
 
 fn subset_glyf_entries<'a>(
     ctx: &mut Context<'a>,
-    mut glyph_data_fn: impl FnMut(u16, &Context) -> Result<Cow<'a, [u8]>>,
+    mut glyph_data_fn: impl FnMut(u16, &Context<'a>) -> Result<Cow<'a, [u8]>>,
 ) -> Result<Vec<Cow<'a, [u8]>>> {
     let mut size = 0;
     let mut glyf_entries = vec![];
