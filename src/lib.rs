@@ -83,12 +83,13 @@ mod post;
 mod read;
 mod remapper;
 mod write;
+mod cff2;
 
 use crate::interjector::{DummyInterjector, Interjector};
 use crate::read::{Readable, Reader};
 pub use crate::remapper::GlyphRemapper;
 use crate::write::{Writeable, Writer};
-use crate::Error::{MalformedFont, UnknownKind};
+use crate::Error::{MalformedFont, Unimplemented, UnknownKind};
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display, Formatter};
 
@@ -120,20 +121,32 @@ fn prepare_context<'a>(
         FontFlavor::TrueType
     } else if face.table(Tag::CFF).is_some() {
         FontFlavor::Cff
-    } else {
+    } else if face.table(Tag::CFF2).is_some() {
+        // We need skrifa so we can convert CFF2 into TrueType.
+        #[cfg(not(feature = "variable_fonts"))]
+        return Err(Unimplemented);
+        #[cfg(feature = "variable_fonts")]
+        FontFlavor::Cff2
+    }   else {
         return Err(UnknownKind);
     };
 
     if flavor == FontFlavor::TrueType {
         glyf::closure(&face, &mut gid_remapper)?;
-    }
+    } 
 
     let _ = variation_coordinates;
 
     #[cfg(not(feature = "variable_fonts"))]
     let interjector = Box::new(DummyInterjector);
+    // For CFF, we _always_ want to do normal subsetting, since CFF cannot have variations.
+    // For TrueType, we prefer normal subsetting in case no variation was requested. If we do have
+    // variations, we use `skrifa` to instance.
+    // For CFF2, we _always_ use `skrifa` to instance.
     #[cfg(feature = "variable_fonts")]
-    let interjector: Box<dyn Interjector> = if variation_coordinates.is_empty() {
+    let interjector: Box<dyn Interjector> = if (variation_coordinates.is_empty() && flavor == FontFlavor::TrueType) || flavor == FontFlavor::Cff {
+        // For TrueType and CFF, we are still best of using the normal subsetting logic in case no variation coordinates
+        // have been passed.
         Box::new(DummyInterjector)
     } else {
         use crate::interjector::skrifa::SkrifaInterjector;
@@ -174,6 +187,8 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
         ctx.process(Tag::PREP)?; // won't be subsetted.
     } else if ctx.flavor == FontFlavor::Cff {
         ctx.process(Tag::CFF)?;
+    }   else if ctx.flavor == FontFlavor::Cff2 {
+        ctx.process(Tag::CFF2)?;
     }
 
     // Required tables.
@@ -332,6 +347,7 @@ impl<'a> Context<'a> {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
             Tag::CFF => cff::subset(self)?,
+            Tag::CFF2 => cff2::subset(self)?,
             Tag::HEAD => head::subset(self)?,
             Tag::HHEA => panic!("handled by hmtx"),
             Tag::HMTX => hmtx::subset(self)?,
@@ -408,8 +424,11 @@ enum FontFlavor {
 impl Writeable for FontFlavor {
     fn write(&self, w: &mut Writer) {
         w.write::<u32>(match self {
-            FontFlavor::TrueType => 0x00010000,
-            FontFlavor::Cff | FontFlavor::Cff2 => 0x4F54544F,
+            // Important note: This is the magic for TrueType and not CFF2.
+            // However, CFF2 fonts will be converted to TrueType as part of the subsetting
+            // process, hence we write the same magic.
+            FontFlavor::TrueType | FontFlavor::Cff2 => 0x00010000,
+            FontFlavor::Cff => 0x4F54544F,
         })
     }
 }
