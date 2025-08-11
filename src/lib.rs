@@ -116,13 +116,15 @@ fn prepare_context<'a>(
     mut gid_remapper: GlyphRemapper,
 ) -> Result<Context<'a>> {
     let face = parse(data, index)?;
-    let kind = match (face.table(Tag::GLYF), face.table(Tag::CFF)) {
-        (Some(_), _) => FontKind::TrueType,
-        (_, Some(_)) => FontKind::Cff,
-        _ => return Err(UnknownKind),
+    let flavor = if face.table(Tag::GLYF).is_some() {
+        FontFlavor::TrueType
+    }   else if face.table(Tag::CFF).is_some() {
+        FontFlavor::Cff
+    }   else {
+        return Err(UnknownKind);
     };
 
-    if kind == FontKind::TrueType {
+    if flavor == FontFlavor::TrueType {
         glyf::closure(&face, &mut gid_remapper)?;
     }
 
@@ -146,7 +148,7 @@ fn prepare_context<'a>(
         face,
         mapper: gid_remapper,
         interjector,
-        kind,
+        flavor,
         tables: vec![],
         long_loca: false,
     })
@@ -164,15 +166,13 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
     // - GASP: Not mandated by PDF specification, and ghostscript also seems to exclude them.
     // - OS2: Not mandated by PDF specification, and ghostscript also seems to exclude them.
 
-    if ctx.kind == FontKind::TrueType {
+    if ctx.flavor == FontFlavor::TrueType {
         // LOCA will be handled by GLYF
         ctx.process(Tag::GLYF)?;
         ctx.process(Tag::CVT)?; // won't be subsetted.
         ctx.process(Tag::FPGM)?; // won't be subsetted.
         ctx.process(Tag::PREP)?; // won't be subsetted.
-    }
-
-    if ctx.kind == FontKind::Cff {
+    }   else if ctx.flavor == FontFlavor::Cff {
         ctx.process(Tag::CFF)?;
     }
 
@@ -228,7 +228,7 @@ fn construct(mut ctx: Context) -> Vec<u8> {
     ctx.tables.sort_by_key(|&(tag, _)| tag);
 
     let mut w = Writer::new();
-    w.write::<FontKind>(ctx.kind);
+    w.write(ctx.flavor);
 
     // Write table directory.
     let count = ctx.tables.len() as u16;
@@ -306,8 +306,8 @@ struct Context<'a> {
     face: Face<'a>,
     /// A map from old gids to new gids, and the reverse
     mapper: GlyphRemapper,
-    /// The kind of face.
-    kind: FontKind,
+    /// The font flavor.
+    flavor: FontFlavor,
     /// Subsetted tables.
     tables: Vec<(Tag, Cow<'a, [u8]>)>,
     pub(crate) interjector: Box<dyn Interjector + 'a>,
@@ -370,15 +370,13 @@ impl<'a> Face<'a> {
     }
 }
 
-/// What kind of contents the font has.
+/// Whether the font is a font collection or a single font.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum FontKind {
-    /// TrueType outlines.
-    TrueType,
-    /// CFF outlines
-    Cff,
     /// A font collection.
     Collection,
+    /// A single font.
+    Single
 }
 
 impl Readable<'_> for FontKind {
@@ -386,20 +384,32 @@ impl Readable<'_> for FontKind {
 
     fn read(r: &mut Reader) -> Option<Self> {
         match r.read::<u32>()? {
-            0x00010000 | 0x74727565 => Some(FontKind::TrueType),
-            0x4F54544F => Some(FontKind::Cff),
+            // TrueType
+            0x00010000 | 0x74727565 => Some(FontKind::Single),
+            // CFF
+            0x4F54544F => Some(FontKind::Single),
             0x74746366 => Some(FontKind::Collection),
             _ => None,
         }
     }
 }
 
-impl Writeable for FontKind {
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+/// The flavor of outlines used by the font.
+enum FontFlavor {
+    /// TrueType fonts using the `glyf` table.
+    TrueType,
+    /// CFF fonts using the `CFF` table.
+    Cff,
+    /// CFF2 fonts using the `CFF2` table.
+    Cff2
+}
+
+impl Writeable for FontFlavor {
     fn write(&self, w: &mut Writer) {
         w.write::<u32>(match self {
-            FontKind::TrueType => 0x00010000,
-            FontKind::Cff => 0x4F54544F,
-            FontKind::Collection => 0x74746366,
+            FontFlavor::TrueType => 0x00010000,
+            FontFlavor::Cff | FontFlavor::Cff2 => 0x4F54544F,
         })
     }
 }
