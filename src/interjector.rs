@@ -21,7 +21,7 @@ impl Interjector for DummyInterjector {
 #[cfg(feature = "variable_fonts")]
 pub(crate) mod skrifa {
     use crate::interjector::{GlyfInterjector, HmtxInterjector, Interjector};
-    use kurbo::BezPath;
+    use kurbo::{BezPath, CubicBez};
     use skrifa::instance::Location;
     use skrifa::outline::{DrawSettings, OutlinePen};
     use skrifa::prelude::Size;
@@ -67,7 +67,7 @@ pub(crate) mod skrifa {
             let outlines = self.font_ref.outline_glyphs();
 
             Some(Box::new(move |glyph| {
-                let mut outline_builder = OutlinePath(BezPath::new());
+                let mut outline_builder = OutlinePath::new();
                 let glyph = GlyphId::new(glyph as u32);
 
                 if let Some(outline_glyph) = outlines.get(glyph) {
@@ -79,7 +79,7 @@ pub(crate) mod skrifa {
                         .ok()?;
                 }
 
-                let path = outline_builder.0;
+                let path = outline_builder.path;
 
                 if path.is_empty() {
                     return Some(vec![]);
@@ -94,33 +94,57 @@ pub(crate) mod skrifa {
         }
     }
 
-    pub(crate) struct OutlinePath(pub(crate) BezPath);
+    pub(crate) struct OutlinePath {
+        last_move_to: (f32, f32),
+        last_point: (f32, f32),
+        path: BezPath,
+    }
+    
+    impl OutlinePath {
+        fn new() -> Self {
+            Self {
+                last_move_to: (0.0, 0.0),
+                last_point: (0.0, 0.0),
+                path: BezPath::new(),
+            }
+        }
+    }
 
     impl OutlinePen for OutlinePath {
         #[inline]
         fn move_to(&mut self, x: f32, y: f32) {
-            self.0.move_to((x, y));
+            self.path.move_to((x, y));
+            self.last_move_to = (x, y);
+            self.last_point = (x, y);       
         }
 
         #[inline]
         fn line_to(&mut self, x: f32, y: f32) {
-            self.0.line_to((x, y));
+            self.path.line_to((x, y));
+            self.last_point = (x, y);       
         }
 
         #[inline]
         fn quad_to(&mut self, cx: f32, cy: f32, x: f32, y: f32) {
-            self.0.quad_to((cx, cy), (x, y));
+            // Only called by TrueType fonts.
+            self.path.quad_to((cx, cy), (x, y));
+            self.last_point = (x, y);      
         }
 
         #[inline]
-        fn curve_to(&mut self, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32) {
-            // TrueType glyphs cannot have cubic curves.
-            unreachable!()
+        fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
+            // Only called by CFF2 fonts.
+            let cubic = CubicBez::new((self.last_point.0 as f64, self.last_point.1 as f64), (cx0 as f64, cy0 as f64), (cx1 as f64, cy1 as f64), (x as f64, y as f64));
+            
+            for (_, _, quad) in cubic.to_quads(1e-4) {
+                self.quad_to(quad.p1.x as f32, quad.p1.y as f32, quad.p2.x as f32, quad.p2.y as f32);
+            }
         }
 
         #[inline]
         fn close(&mut self) {
-            self.0.close_path();
+            self.path.close_path();
+            self.last_point = self.last_move_to;
         }
     }
 }
