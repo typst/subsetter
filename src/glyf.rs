@@ -47,9 +47,10 @@ pub fn closure(face: &Face, glyph_remapper: &mut GlyphRemapper) -> Result<()> {
 
 pub fn subset(ctx: &mut Context) -> Result<()> {
     let table = Table::new(&ctx.face).ok_or(MalformedFont)?;
+    let mut _maxp = MaxpData::default();
 
     subset_with(ctx, |old_gid, ctx| {
-        let data = match ctx.interjector.glyph_data() {
+        let data = match ctx.interjector.glyph_data(&mut _maxp) {
             Some(mut c) => Cow::Owned(c(old_gid).ok_or(MalformedFont)?),
             None => Cow::Borrowed(table.glyph_data(old_gid).ok_or(MalformedFont)?),
         };

@@ -73,6 +73,7 @@ resulting font is 1 KB.
 #![deny(missing_docs)]
 
 mod cff;
+mod cff2;
 mod glyf;
 mod head;
 mod hmtx;
@@ -83,7 +84,6 @@ mod post;
 mod read;
 mod remapper;
 mod write;
-mod cff2;
 
 use crate::interjector::{DummyInterjector, Interjector};
 use crate::read::{Readable, Reader};
@@ -127,13 +127,13 @@ fn prepare_context<'a>(
         return Err(Unimplemented);
         #[cfg(feature = "variable_fonts")]
         FontFlavor::Cff2
-    }   else {
+    } else {
         return Err(UnknownKind);
     };
 
     if flavor == FontFlavor::TrueType {
         glyf::closure(&face, &mut gid_remapper)?;
-    } 
+    }
 
     let _ = variation_coordinates;
 
@@ -144,7 +144,10 @@ fn prepare_context<'a>(
     // variations, we use `skrifa` to instance.
     // For CFF2, we _always_ use `skrifa` to instance.
     #[cfg(feature = "variable_fonts")]
-    let interjector: Box<dyn Interjector> = if (variation_coordinates.is_empty() && flavor == FontFlavor::TrueType) || flavor == FontFlavor::Cff {
+    let interjector: Box<dyn Interjector> = if (variation_coordinates.is_empty()
+        && flavor == FontFlavor::TrueType)
+        || flavor == FontFlavor::Cff
+    {
         // For TrueType and CFF, we are still best of using the normal subsetting logic in case no variation coordinates
         // have been passed.
         Box::new(DummyInterjector)
@@ -161,6 +164,7 @@ fn prepare_context<'a>(
         face,
         mapper: gid_remapper,
         interjector,
+        custom_maxp_data: None,
         flavor,
         tables: vec![],
         long_loca: false,
@@ -187,7 +191,7 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
         ctx.process(Tag::PREP)?; // won't be subsetted.
     } else if ctx.flavor == FontFlavor::Cff {
         ctx.process(Tag::CFF)?;
-    }   else if ctx.flavor == FontFlavor::Cff2 {
+    } else if ctx.flavor == FontFlavor::Cff2 {
         ctx.process(Tag::CFF2)?;
     }
 
@@ -326,6 +330,9 @@ struct Context<'a> {
     /// Subsetted tables.
     tables: Vec<(Tag, Cow<'a, [u8]>)>,
     pub(crate) interjector: Box<dyn Interjector + 'a>,
+    // Custom data that should be used for writing the `maxp` table. Only needed for CFF2,
+    // where we need to synthesize a V1 table after converting.
+    pub(crate) custom_maxp_data: Option<MaxpData>,
     /// Whether the long loca format was chosen.
     long_loca: bool,
 }
@@ -585,3 +592,41 @@ impl Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+// When converting CFF2 to TTF, we need to write a version 1.0 MAXP table.
+pub(crate) struct MaxpData {
+    pub(crate) max_points: u16,
+    pub(crate) max_contours: u16,
+    pub(crate) max_composite_points: u16,
+    pub(crate) max_composite_contours: u16,
+    pub(crate) max_zones: u16,
+    pub(crate) max_twilight_points: u16,
+    pub(crate) max_storage: u16,
+    pub(crate) max_function_defs: u16,
+    pub(crate) max_instruction_defs: u16,
+    pub(crate) max_stack_elements: u16,
+    pub(crate) max_size_of_instructions: u16,
+    pub(crate) max_component_elements: u16,
+    pub(crate) max_component_depth: u16,
+}
+
+impl Default for MaxpData {
+    fn default() -> Self {
+        Self {
+            max_points: 0,
+            max_contours: 0,
+            max_composite_points: 0,
+            max_composite_contours: 0,
+            max_zones: 1,
+            max_twilight_points: 0,
+            max_storage: 0,
+            max_function_defs: 0,
+            max_instruction_defs: 0,
+            max_stack_elements: 0,
+            max_size_of_instructions: 0,
+            max_component_elements: 0,
+            // Could probably be 0 too since we only use simple glyphs when converting?
+            max_component_depth: 1,
+        }
+    }
+}

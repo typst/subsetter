@@ -1,9 +1,11 @@
+use crate::MaxpData;
+
 type HmtxInterjector<'a> = Option<Box<dyn FnMut(u16) -> Option<(u16, i16)> + 'a>>;
 type GlyfInterjector<'a> = Option<Box<dyn FnMut(u16) -> Option<Vec<u8>> + 'a>>;
 
 pub(crate) trait Interjector {
     fn horizontal_metrics(&self) -> HmtxInterjector;
-    fn glyph_data(&self) -> GlyfInterjector;
+    fn glyph_data<'b>(&'b self, maxp_data: &'b mut MaxpData) -> GlyfInterjector<'b>;
 }
 
 pub(crate) struct DummyInterjector;
@@ -13,7 +15,7 @@ impl Interjector for DummyInterjector {
         None
     }
 
-    fn glyph_data(&self) -> GlyfInterjector {
+    fn glyph_data<'b>(&'b self, _: &'b mut MaxpData) -> GlyfInterjector<'b> {
         None
     }
 }
@@ -21,6 +23,7 @@ impl Interjector for DummyInterjector {
 #[cfg(feature = "variable_fonts")]
 pub(crate) mod skrifa {
     use crate::interjector::{GlyfInterjector, HmtxInterjector, Interjector};
+    use crate::MaxpData;
     use kurbo::{BezPath, CubicBez};
     use skrifa::instance::Location;
     use skrifa::outline::{DrawSettings, OutlinePen};
@@ -63,7 +66,7 @@ pub(crate) mod skrifa {
             }))
         }
 
-        fn glyph_data(&self) -> GlyfInterjector {
+        fn glyph_data<'b>(&'b self, maxp_data: &'b mut MaxpData) -> GlyfInterjector<'b> {
             let outlines = self.font_ref.outline_glyphs();
 
             Some(Box::new(move |glyph| {
@@ -86,6 +89,13 @@ pub(crate) mod skrifa {
                 }
 
                 let simple_glyph = SimpleGlyph::from_bezpath(&path).ok()?;
+
+                maxp_data.max_points = maxp_data
+                    .max_points
+                    .max(simple_glyph.contours.iter().map(|c| c.len() as u16).sum());
+                maxp_data.max_contours =
+                    maxp_data.max_contours.max(simple_glyph.contours.len() as u16);
+
                 let mut writer = TableWriter::default();
                 simple_glyph.write_into(&mut writer);
 
