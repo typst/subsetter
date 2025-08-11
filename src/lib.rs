@@ -118,9 +118,9 @@ fn prepare_context<'a>(
     let face = parse(data, index)?;
     let flavor = if face.table(Tag::GLYF).is_some() {
         FontFlavor::TrueType
-    }   else if face.table(Tag::CFF).is_some() {
+    } else if face.table(Tag::CFF).is_some() {
         FontFlavor::Cff
-    }   else {
+    } else {
         return Err(UnknownKind);
     };
 
@@ -172,7 +172,7 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
         ctx.process(Tag::CVT)?; // won't be subsetted.
         ctx.process(Tag::FPGM)?; // won't be subsetted.
         ctx.process(Tag::PREP)?; // won't be subsetted.
-    }   else if ctx.flavor == FontFlavor::Cff {
+    } else if ctx.flavor == FontFlavor::Cff {
         ctx.process(Tag::CFF)?;
     }
 
@@ -376,7 +376,7 @@ enum FontKind {
     /// A font collection.
     Collection,
     /// A single font.
-    Single
+    Single,
 }
 
 impl Readable<'_> for FontKind {
@@ -402,7 +402,7 @@ enum FontFlavor {
     /// CFF fonts using the `CFF` table.
     Cff,
     /// CFF2 fonts using the `CFF2` table.
-    Cff2
+    Cff2,
 }
 
 impl Writeable for FontFlavor {

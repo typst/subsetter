@@ -99,7 +99,7 @@ pub(crate) mod skrifa {
         last_point: (f32, f32),
         path: BezPath,
     }
-    
+
     impl OutlinePath {
         fn new() -> Self {
             Self {
@@ -115,29 +115,39 @@ pub(crate) mod skrifa {
         fn move_to(&mut self, x: f32, y: f32) {
             self.path.move_to((x, y));
             self.last_move_to = (x, y);
-            self.last_point = (x, y);       
+            self.last_point = (x, y);
         }
 
         #[inline]
         fn line_to(&mut self, x: f32, y: f32) {
             self.path.line_to((x, y));
-            self.last_point = (x, y);       
+            self.last_point = (x, y);
         }
 
         #[inline]
         fn quad_to(&mut self, cx: f32, cy: f32, x: f32, y: f32) {
             // Only called by TrueType fonts.
             self.path.quad_to((cx, cy), (x, y));
-            self.last_point = (x, y);      
+            self.last_point = (x, y);
         }
 
         #[inline]
         fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
             // Only called by CFF2 fonts.
-            let cubic = CubicBez::new((self.last_point.0 as f64, self.last_point.1 as f64), (cx0 as f64, cy0 as f64), (cx1 as f64, cy1 as f64), (x as f64, y as f64));
-            
+            let cubic = CubicBez::new(
+                (self.last_point.0 as f64, self.last_point.1 as f64),
+                (cx0 as f64, cy0 as f64),
+                (cx1 as f64, cy1 as f64),
+                (x as f64, y as f64),
+            );
+
             for (_, _, quad) in cubic.to_quads(1e-4) {
-                self.quad_to(quad.p1.x as f32, quad.p1.y as f32, quad.p2.x as f32, quad.p2.y as f32);
+                self.quad_to(
+                    quad.p1.x as f32,
+                    quad.p1.y as f32,
+                    quad.p2.x as f32,
+                    quad.p2.y as f32,
+                );
             }
         }
 

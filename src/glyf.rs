@@ -46,7 +46,16 @@ pub fn closure(face: &Face, glyph_remapper: &mut GlyphRemapper) -> Result<()> {
 }
 
 pub fn subset(ctx: &mut Context) -> Result<()> {
-    let subsetted_entries = subset_glyf_entries(ctx)?;
+    let table = Table::new(&ctx.face).ok_or(MalformedFont)?;
+
+    let subsetted_entries = subset_glyf_entries(ctx, |old_gid, ctx| {
+        let data = match ctx.interjector.glyph_data() {
+            Some(mut c) => Cow::Owned(c(old_gid).ok_or(MalformedFont)?),
+            None => Cow::Borrowed(table.glyph_data(old_gid).ok_or(MalformedFont)?),
+        };
+
+        Ok(data)
+    })?;
 
     let mut sub_glyf = Writer::new();
     let mut sub_loca = Writer::new();
@@ -112,17 +121,15 @@ impl<'a> Table<'a> {
     }
 }
 
-fn subset_glyf_entries<'a>(ctx: &mut Context<'a>) -> Result<Vec<Cow<'a, [u8]>>> {
-    let table = Table::new(&ctx.face).ok_or(MalformedFont)?;
-
+fn subset_glyf_entries<'a>(
+    ctx: &mut Context<'a>,
+    mut glyph_data_fn: impl FnMut(u16, &Context) -> Result<Cow<'a, [u8]>>,
+) -> Result<Vec<Cow<'a, [u8]>>> {
     let mut size = 0;
     let mut glyf_entries = vec![];
 
     for old_gid in ctx.mapper.remapped_gids() {
-        let glyph_data = match ctx.interjector.glyph_data() {
-            Some(mut c) => Cow::Owned(c(old_gid).ok_or(MalformedFont)?),
-            None => Cow::Borrowed(table.glyph_data(old_gid).ok_or(MalformedFont)?),
-        };
+        let glyph_data = glyph_data_fn(old_gid, ctx)?;
 
         // Empty glyph.
         if glyph_data.is_empty() {
