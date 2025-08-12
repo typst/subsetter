@@ -89,7 +89,7 @@ use crate::interjector::{DummyInterjector, Interjector};
 use crate::read::{Readable, Reader};
 pub use crate::remapper::GlyphRemapper;
 use crate::write::{Writeable, Writer};
-use crate::Error::{MalformedFont, Unimplemented, UnknownKind};
+use crate::Error::{MalformedFont, UnknownKind};
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display, Formatter};
 

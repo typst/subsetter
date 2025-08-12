@@ -16,3 +16,5 @@ use crate::*;
 #[test] #[cfg(feature = "variable_fonts")] fn noto_sans_regular_var_1() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=400", 1)}
 #[test] #[cfg(feature = "variable_fonts")] fn noto_sans_regular_var_2() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=900", 2)}
 #[test] #[cfg(feature = "variable_fonts")] fn noto_sans_regular_var_3() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=800,wdth=70.0", 3)}
+#[test] #[cfg(feature = "variable_fonts")] fn cantarell_v_f_1() {test_font_tools("Cantarell-VF.otf", "1,15,30-35,40,103-105", "wght=400", 1)}
+#[test] #[cfg(feature = "variable_fonts")] fn cantarell_v_f_2() {test_font_tools("Cantarell-VF.otf", "1,15,30-35,40,103-105", "wght=800", 2)}

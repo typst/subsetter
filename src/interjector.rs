@@ -152,7 +152,7 @@ pub(crate) mod skrifa {
                 (x as f64, y as f64),
             );
 
-            for (_, _, quad) in cubic.to_quads(1e-4) {
+            for (_, _, quad) in cubic.to_quads(1e-2) {
                 self.quad_to(
                     quad.p1.x as f32,
                     quad.p1.y as f32,
