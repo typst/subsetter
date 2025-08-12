@@ -4,8 +4,8 @@
 
 use crate::*;
 
-#[test] fn latin_modern_roman_regular_1() {test_cff_dump("LatinModernRoman-Regular.otf", "290,292", 1)}
-#[test] fn latin_modern_roman_regular_2() {test_cff_dump("LatinModernRoman-Regular.otf", "580", 2)}
-#[test] fn new_c_m_math_regular_1() {test_cff_dump("NewCMMath-Regular.otf", "1034,4789", 1)}
-#[test] fn noto_sans_c_j_ksc_regular_1() {test_cff_dump("NotoSansCJKsc-Regular.otf", "230-232", 1)}
-#[test] fn noto_sans_c_j_ksc_regular_custom_font_matrix_1() {test_cff_dump("NotoSansCJKsc-Regular_custom_font_matrix.otf", "1-2", 1)}
+#[test] fn latin_modern_roman_regular_1() {test_cff_dump("LatinModernRoman-Regular.otf", "290,292", "", 1)}
+#[test] fn latin_modern_roman_regular_2() {test_cff_dump("LatinModernRoman-Regular.otf", "580", "", 2)}
+#[test] fn new_c_m_math_regular_1() {test_cff_dump("NewCMMath-Regular.otf", "1034,4789", "", 1)}
+#[test] fn noto_sans_c_j_ksc_regular_1() {test_cff_dump("NotoSansCJKsc-Regular.otf", "230-232", "", 1)}
+#[test] fn noto_sans_c_j_ksc_regular_custom_font_matrix_1() {test_cff_dump("NotoSansCJKsc-Regular_custom_font_matrix.otf", "1-2", "", 1)}

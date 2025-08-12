@@ -6,7 +6,7 @@ use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use subsetter::{subset, GlyphRemapper};
-use ttf_parser::GlyphId;
+use ttf_parser::{GlyphId, Tag};
 
 #[rustfmt::skip]
 mod subsets;
@@ -25,10 +25,11 @@ struct TestContext {
     font: Vec<u8>,
     subset: Vec<u8>,
     mapper: GlyphRemapper,
+    variations: Vec<(String, f32)>,
     gids: Vec<u16>,
 }
 
-fn test_cff_dump(font_file: &str, gids: &str, num: u16) {
+fn test_cff_dump(font_file: &str, gids: &str, _: &str, num: u16) {
     let mut cff_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     cff_path.push("tests/cff");
     let _ = std::fs::create_dir_all(&cff_path);
@@ -81,7 +82,7 @@ fn test_cff_dump(font_file: &str, gids: &str, num: u16) {
     }
 }
 
-fn test_font_tools(font_file: &str, gids: &str, num: u16) {
+fn test_font_tools(font_file: &str, gids: &str, variations: &str, num: u16) {
     let mut ttx_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     ttx_path.push("tests/ttx");
     let _ = std::fs::create_dir_all(&ttx_path);
@@ -111,7 +112,8 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
     let gids_vec: Vec<_> = parse_gids(gids, face.number_of_glyphs());
     let remapper = GlyphRemapper::new_from_glyphs(gids_vec.as_slice());
-    let subset = subset(&data, 0, &[], &remapper).unwrap();
+    let variations = parse_variations(variations);
+    let subset = subset(&data, 0, &variations, &remapper).unwrap();
 
     std::fs::write(otf_path.clone(), subset).unwrap();
 
@@ -190,14 +192,15 @@ fn read_file(font_file: &str) -> Vec<u8> {
     std::fs::read(font_path).unwrap()
 }
 
-fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
+fn get_test_context(font_file: &str, gids: &str, variations: &str) -> Result<TestContext> {
     let data = read_file(font_file);
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
     let gids: Vec<_> = parse_gids(gids, face.number_of_glyphs());
+    let variations = parse_variations(variations);
     let glyph_remapepr = GlyphRemapper::new_from_glyphs(gids.as_slice());
     let subset = subset(&data, 0, &[], &glyph_remapepr)?;
 
-    Ok(TestContext { font: data, subset, mapper: glyph_remapepr, gids })
+    Ok(TestContext { font: data, subset, variations, mapper: glyph_remapepr, gids })
 }
 
 fn parse_gids(gids: &str, max: u16) -> Vec<u16> {
@@ -223,8 +226,22 @@ fn parse_gids(gids: &str, max: u16) -> Vec<u16> {
     gids
 }
 
-fn glyph_metrics(font_file: &str, gids: &str) {
-    let ctx = get_test_context(font_file, gids).unwrap();
+fn parse_variations(input: &str) -> Vec<(String, f32)> {
+    input
+        .split(',')
+        .filter_map(|pair| {
+            let parts: Vec<&str> = pair.split('=').collect();
+            if parts.len() == 2 {
+                Some((parts[0].trim().to_string(), parts[1].trim().parse().ok()?))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+fn glyph_metrics(font_file: &str, gids: &str, variations: &str) {
+    let ctx = get_test_context(font_file, gids, variations).unwrap();
     let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
 
@@ -267,9 +284,10 @@ fn glyph_metrics(font_file: &str, gids: &str) {
     }
 }
 
-fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
-    let ctx = get_test_context(font_file, gids).unwrap();
+fn glyph_outlines_skrifa(font_file: &str, gids: &str, variations: &str) {
+    let ctx = get_test_context(font_file, gids, variations).unwrap();
     let old_face = skrifa::FontRef::from_index(&ctx.font, 0).unwrap();
+    let old_location = old_face.axes().location(ctx.variations.iter().map(|v| (v.0.as_str(), v.1)));
     let new_face = skrifa::FontRef::from_index(&ctx.subset, 0).unwrap();
 
     let num_glyphs = old_face.maxp().unwrap().num_glyphs();
@@ -279,7 +297,7 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
         let mut sink2 = Sink(vec![]);
 
         let new_glyph = ctx.mapper.get(glyph).unwrap();
-        let settings = DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
+        let settings = DrawSettings::unhinted(Size::unscaled(), &old_location);
 
         if let Some(glyph1) =
             old_face.outline_glyphs().get(skrifa::GlyphId::new(glyph as u32))
@@ -298,9 +316,13 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
     }
 }
 
-fn glyph_outlines_ttf_parser(font_file: &str, gids: &str) {
-    let ctx = get_test_context(font_file, gids).unwrap();
-    let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
+fn glyph_outlines_ttf_parser(font_file: &str, gids: &str, variations: &str) {
+    let ctx = get_test_context(font_file, gids, variations).unwrap();
+    let mut old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
+    for (tag, val) in &ctx.variations {
+        let bytes: &[u8; 4] = tag.as_bytes().try_into().unwrap();
+        old_face.set_variation(Tag::from_bytes(bytes), *val);
+    }
     let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
 
     for glyph in (0..old_face.number_of_glyphs()).filter(|g| ctx.gids.contains(g)) {

@@ -40,6 +40,7 @@ def cff_fonttools_impl(test_src, out_path, fn_name):
 
             font_file = parts[0]
             gids = parts[1]
+            variations = parts[2] if len(parts) > 2 else ""
 
             if font_file not in counters:
                 counters[font_file] = 1
@@ -50,7 +51,7 @@ def cff_fonttools_impl(test_src, out_path, fn_name):
             function_name = f"{font_name_to_function(font_file)}_{counter}"
 
             test_string += "#[test] "
-            test_string += f'fn {function_name}() {{{fn_name}("{font_file}", "{gids}", {counter})}}\n'
+            test_string += f'fn {function_name}() {{{fn_name}("{font_file}", "{gids}", "{variations}", {counter})}}\n'
 
     with open(out_path, "w+") as file:
         file.write(test_string)
@@ -72,6 +73,7 @@ def gen_subset_tests():
 
             font_file = parts[0]
             gids = parts[1]
+            variations = parts[2] if len(parts) > 2 else ""
 
             if font_file not in counters:
                 counters[font_file] = 1
@@ -79,13 +81,16 @@ def gen_subset_tests():
             counter = counters[font_file]
             counters[font_file] += 1
 
-            functions = ["glyph_metrics", "glyph_outlines_ttf_parser", "glyph_outlines_skrifa"]
+            # We don't check outlines with variations because with our current subsetting logic, it's very likely
+            # that the actual outline description will change (though visually, they will still be the same). We rely
+            # on manually checking the fonttools tests to ensure that the outlines look correct.
+            functions = ["glyph_metrics"] if variations else ["glyph_metrics", "glyph_outlines_ttf_parser", "glyph_outlines_skrifa"]
 
             for function in functions:
                 function_name = f"{font_name_to_function(font_file)}_{counter}_{function}"
 
                 test_string += "#[test] "
-                test_string += f'fn {function_name}() {{{function}("{font_file}", "{gids}")}}\n'
+                test_string += f'fn {function_name}() {{{function}("{font_file}", "{gids}", "{variations}")}}\n'
 
     with open(Path(SUBSETS_PATH), "w+") as file:
         file.write(test_string)
