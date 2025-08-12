@@ -18,7 +18,7 @@ mod cff;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-const FONT_TOOLS_REF: bool = false;
+const FONT_TOOLS_REF: bool = true;
 const OVERWRITE_REFS: bool = false;
 
 struct TestContext {
@@ -119,22 +119,40 @@ fn test_font_tools(font_file: &str, gids: &str, variations: &str, num: u16) {
     // Optionally create the subset via fonttools, so that we can compare it to our subset.
     if FONT_TOOLS_REF {
         let font_path = get_font_path(font_file);
+        let mut input_path = font_path.to_str().unwrap();
+        let output_path = otf_ref_path.to_str().unwrap();
+
+        if !variations.is_empty() {
+            let mut args = vec![
+                "varLib.instancer".to_string(),
+                input_path.to_string()];
+            
+            args.extend(variations.iter().map(|(name, value)| format!("{name}={value}")));
+            args.extend(["-o".to_string(), output_path.to_string()]);
+            
+           Command::new("fonttools")
+                .args(args)
+                .output().unwrap();
+            
+            input_path = output_path;
+        }
+        
         Command::new("fonttools")
             .args([
                 "subset",
-                font_path.to_str().unwrap(),
-                "--drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap,MATH",
+                input_path,
+                "--drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap,MATH,HVAR,MVAR,STAT,avar,fvar,gvar",
                 &format!("--gids={}", gids),
                 "--glyph-names",
                 "--desubroutinize",
                 "--notdef-outline",
                 "--no-prune-unicode-ranges",
                 "--no-prune-codepage-ranges",
-                &format!("--output-file={}", otf_ref_path.to_str().unwrap()),
+                &format!("--output-file={output_path}", ),
             ])
             .output()
             .unwrap();
-
+        
         Command::new("fonttools")
             .args([
                 "ttx",

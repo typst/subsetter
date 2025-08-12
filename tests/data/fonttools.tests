@@ -10,4 +10,7 @@ NotoSans-Regular.ttf;567-570,2345-2350
 Roboto-Regular.ttf;456,460-463
 NewCMMath-Regular.otf;803-806,950-952,5600-5602
 NotoSansCJKsc-Bold-subset1.otf;1
+NotoSans-Regular_var.ttf;10,40,58,201-205;wght=400
+NotoSans-Regular_var.ttf;10,40,58,201-205;wght=900
+NotoSans-Regular_var.ttf;10,40,58,201-205;wght=800,wdth=70.0
 
