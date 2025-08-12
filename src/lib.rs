@@ -98,6 +98,10 @@ use std::fmt::{self, Debug, Display, Formatter};
 /// - The `data` must be in the OpenType font format.
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
+/// 
+/// Important note: If the `variable_fonts` feature is disabled, CFF2 fonts are
+/// not supported at all and will result in an error. If the features is enabled,
+/// CFF2 fonts will be converted into a TrueType font.
 pub fn subset(
     data: &[u8],
     index: u32,
