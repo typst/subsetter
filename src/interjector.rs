@@ -56,10 +56,11 @@ pub(crate) mod skrifa {
             let metrics = self.font_ref.glyph_metrics(Size::unscaled(), &self.location);
 
             Some(Box::new(move |glyph| {
-                // TODO: Is this the right thing to do? This might lead to a mismatch in PDF,
-                // where advance widths are stored as integers.
-
                 let adv = metrics.advance_width(GlyphId::new(glyph as u32))?;
+                // Note that for variable fonts, our left side bearing points don't seem to
+                // match the ones from fonttools (they use some different technique for deriving
+                // it which isn't reflected in skrifa's API), but I _think_ that this shouldn't
+                // really be relevant in the context of PDF.
                 let lsb = metrics.left_side_bearing(GlyphId::new(glyph as u32))?;
 
                 Some((adv.round() as u16, lsb.round() as i16))
