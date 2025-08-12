@@ -24,7 +24,7 @@ readme = { workspace = true }
 license = { workspace = true }
 
 [features]
-default = []
+default = ["variable_fonts"]
 variable_fonts = ["dep:skrifa", "dep:write-fonts", "dep:kurbo"]
 
 [dependencies]

@@ -5,4 +5,4 @@ edition = { workspace = true }
 publish = false
 
 [dependencies]
-subsetter = { path = "../..", features = ["variable_fonts"] }
+subsetter = { path = "../.." }
