@@ -25,6 +25,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo build
         name: Build
+      - run: cargo build --features variable_fonts
+        name: Build with variable fonts support
       - run: cargo test
         name: Run tests
 

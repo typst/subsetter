@@ -1,28 +1,13 @@
-use crate::MaxpData;
+use crate::interjector::skrifa::SkrifaInterjector;
 
-type HmtxInterjector<'a> = Option<Box<dyn FnMut(u16) -> Option<(u16, i16)> + 'a>>;
-type GlyfInterjector<'a> = Option<Box<dyn FnMut(u16) -> Option<Vec<u8>> + 'a>>;
-
-pub(crate) trait Interjector {
-    fn horizontal_metrics(&self) -> HmtxInterjector;
-    fn glyph_data<'b>(&'b self, maxp_data: &'b mut MaxpData) -> GlyfInterjector<'b>;
-}
-
-pub(crate) struct DummyInterjector;
-
-impl Interjector for DummyInterjector {
-    fn horizontal_metrics(&self) -> HmtxInterjector {
-        None
-    }
-
-    fn glyph_data<'b>(&'b self, _: &'b mut MaxpData) -> GlyfInterjector<'b> {
-        None
-    }
+pub(crate) enum Interjector<'a> {
+    Dummy,
+    #[cfg(feature = "variable_fonts")]
+    Skrifa(SkrifaInterjector<'a>),
 }
 
 #[cfg(feature = "variable_fonts")]
 pub(crate) mod skrifa {
-    use crate::interjector::{GlyfInterjector, HmtxInterjector, Interjector};
     use crate::MaxpData;
     use kurbo::{BezPath, CubicBez};
     use skrifa::instance::Location;
@@ -51,57 +36,57 @@ pub(crate) mod skrifa {
         }
     }
 
-    impl<'a> Interjector for SkrifaInterjector<'a> {
-        fn horizontal_metrics(&self) -> HmtxInterjector {
+    impl<'a> SkrifaInterjector<'a> {
+        pub(crate) fn horizontal_metrics(&self, glyph: u16) -> Option<(u16, i16)> {
             let metrics = self.font_ref.glyph_metrics(Size::unscaled(), &self.location);
 
-            Some(Box::new(move |glyph| {
-                let adv = metrics.advance_width(GlyphId::new(glyph as u32))?;
-                // Note that for variable fonts, our left side bearing points don't seem to
-                // match the ones from fonttools (they use some different technique for deriving
-                // it which isn't reflected in skrifa's API), but I _think_ that this shouldn't
-                // really be relevant in the context of PDF.
-                let lsb = metrics.left_side_bearing(GlyphId::new(glyph as u32))?;
+            let adv = metrics.advance_width(GlyphId::new(glyph as u32))?;
+            // Note that for variable fonts, our left side bearing points don't seem to
+            // match the ones from fonttools (they use some different technique for deriving
+            // it which isn't reflected in skrifa's API), but I _think_ that this shouldn't
+            // really be relevant in the context of PDF.
+            let lsb = metrics.left_side_bearing(GlyphId::new(glyph as u32))?;
 
-                Some((adv.round() as u16, lsb.round() as i16))
-            }))
+            Some((adv.round() as u16, lsb.round() as i16))
         }
 
-        fn glyph_data<'b>(&'b self, maxp_data: &'b mut MaxpData) -> GlyfInterjector<'b> {
+        pub(crate) fn glyph_data<'b>(
+            &'b self,
+            maxp_data: &'b mut MaxpData,
+            glyph: u16,
+        ) -> Option<Vec<u8>> {
             let outlines = self.font_ref.outline_glyphs();
 
-            Some(Box::new(move |glyph| {
-                let mut outline_builder = OutlinePath::new();
-                let glyph = GlyphId::new(glyph as u32);
+            let mut outline_builder = OutlinePath::new();
+            let glyph = GlyphId::new(glyph as u32);
 
-                if let Some(outline_glyph) = outlines.get(glyph) {
-                    outline_glyph
-                        .draw(
-                            DrawSettings::unhinted(Size::unscaled(), &self.location),
-                            &mut outline_builder,
-                        )
-                        .ok()?;
-                }
+            if let Some(outline_glyph) = outlines.get(glyph) {
+                outline_glyph
+                    .draw(
+                        DrawSettings::unhinted(Size::unscaled(), &self.location),
+                        &mut outline_builder,
+                    )
+                    .ok()?;
+            }
 
-                let path = outline_builder.path;
+            let path = outline_builder.path;
 
-                if path.is_empty() {
-                    return Some(vec![]);
-                }
+            if path.is_empty() {
+                return Some(vec![]);
+            }
 
-                let simple_glyph = SimpleGlyph::from_bezpath(&path).ok()?;
+            let simple_glyph = SimpleGlyph::from_bezpath(&path).ok()?;
 
-                maxp_data.max_points = maxp_data
-                    .max_points
-                    .max(simple_glyph.contours.iter().map(|c| c.len() as u16).sum());
-                maxp_data.max_contours =
-                    maxp_data.max_contours.max(simple_glyph.contours.len() as u16);
+            maxp_data.max_points = maxp_data
+                .max_points
+                .max(simple_glyph.contours.iter().map(|c| c.len() as u16).sum());
+            maxp_data.max_contours =
+                maxp_data.max_contours.max(simple_glyph.contours.len() as u16);
 
-                let mut writer = TableWriter::default();
-                simple_glyph.write_into(&mut writer);
+            let mut writer = TableWriter::default();
+            simple_glyph.write_into(&mut writer);
 
-                dump_table(&simple_glyph).ok()
-            }))
+            dump_table(&simple_glyph).ok()
         }
     }
 

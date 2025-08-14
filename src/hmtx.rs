@@ -19,47 +19,51 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
     let new_metrics = {
         let mut new_metrics = vec![];
 
-        if let Some(mut hmtx_metrics) = ctx.interjector.horizontal_metrics() {
-            for old_gid in ctx.mapper.remapped_gids() {
-                new_metrics.push(hmtx_metrics(old_gid).ok_or(MalformedFont)?);
-            }
-        } else {
-            // Extract the number of horizontal metrics from the `hhea` table.
-            let num_h_metrics = {
-                let hhea = ctx.expect_table(Tag::HHEA).ok_or(MalformedFont)?;
-                let mut r = Reader::new(hhea);
-                r.skip_bytes(34);
-                r.read::<u16>().ok_or(MalformedFont)?
-            };
-
-            let last_advance_width = {
-                let index =
-                    4 * num_h_metrics.checked_sub(1).ok_or(OverflowError)? as usize;
-                let mut r = Reader::new(hmtx.get(index..).ok_or(MalformedFont)?);
-                r.read::<u16>().ok_or(MalformedFont)?
-            };
-
-            for old_gid in ctx.mapper.remapped_gids() {
-                let has_advance_width = old_gid < num_h_metrics;
-
-                let offset = if has_advance_width {
-                    old_gid as usize * 4
-                } else {
-                    let num_h_metrics = num_h_metrics as usize;
-                    num_h_metrics * 4 + (old_gid as usize - num_h_metrics) * 2
+        match &ctx.interjector {
+            Interjector::Dummy => {
+                // Extract the number of horizontal metrics from the `hhea` table.
+                let num_h_metrics = {
+                    let hhea = ctx.expect_table(Tag::HHEA).ok_or(MalformedFont)?;
+                    let mut r = Reader::new(hhea);
+                    r.skip_bytes(34);
+                    r.read::<u16>().ok_or(MalformedFont)?
                 };
 
-                let mut r = Reader::new(hmtx.get(offset..).ok_or(MalformedFont)?);
+                let last_advance_width = {
+                    let index =
+                        4 * num_h_metrics.checked_sub(1).ok_or(OverflowError)? as usize;
+                    let mut r = Reader::new(hmtx.get(index..).ok_or(MalformedFont)?);
+                    r.read::<u16>().ok_or(MalformedFont)?
+                };
 
-                if has_advance_width {
-                    let adv = r.read::<u16>().ok_or(MalformedFont)?;
-                    let lsb = r.read::<i16>().ok_or(MalformedFont)?;
-                    new_metrics.push((adv, lsb));
-                } else {
-                    new_metrics.push((
-                        last_advance_width,
-                        r.read::<i16>().ok_or(MalformedFont)?,
-                    ));
+                for old_gid in ctx.mapper.remapped_gids() {
+                    let has_advance_width = old_gid < num_h_metrics;
+
+                    let offset = if has_advance_width {
+                        old_gid as usize * 4
+                    } else {
+                        let num_h_metrics = num_h_metrics as usize;
+                        num_h_metrics * 4 + (old_gid as usize - num_h_metrics) * 2
+                    };
+
+                    let mut r = Reader::new(hmtx.get(offset..).ok_or(MalformedFont)?);
+
+                    if has_advance_width {
+                        let adv = r.read::<u16>().ok_or(MalformedFont)?;
+                        let lsb = r.read::<i16>().ok_or(MalformedFont)?;
+                        new_metrics.push((adv, lsb));
+                    } else {
+                        new_metrics.push((
+                            last_advance_width,
+                            r.read::<i16>().ok_or(MalformedFont)?,
+                        ));
+                    }
+                }
+            }
+            #[cfg(feature = "variable_fonts")]
+            Interjector::Skrifa(s) => {
+                for old_gid in ctx.mapper.remapped_gids() {
+                    new_metrics.push(s.horizontal_metrics(old_gid).ok_or(MalformedFont)?);
                 }
             }
         }

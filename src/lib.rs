@@ -85,7 +85,8 @@ mod read;
 mod remapper;
 mod write;
 
-use crate::interjector::{DummyInterjector, Interjector};
+use crate::interjector::skrifa::SkrifaInterjector;
+use crate::interjector::Interjector;
 use crate::read::{Readable, Reader};
 pub use crate::remapper::GlyphRemapper;
 use crate::write::{Writeable, Writer};
@@ -98,7 +99,7 @@ use std::fmt::{self, Debug, Display, Formatter};
 /// - The `data` must be in the OpenType font format.
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
-/// 
+///
 /// Important note: If the `variable_fonts` feature is disabled, CFF2 fonts are
 /// not supported at all and will result in an error. If the features is enabled,
 /// CFF2 fonts will be converted into a TrueType font.
@@ -148,17 +149,15 @@ fn prepare_context<'a>(
     // variations, we use `skrifa` to instance.
     // For CFF2, we _always_ use `skrifa` to instance.
     #[cfg(feature = "variable_fonts")]
-    let interjector: Box<dyn Interjector> = if (variation_coordinates.is_empty()
+    let interjector = if (variation_coordinates.is_empty()
         && flavor == FontFlavor::TrueType)
         || flavor == FontFlavor::Cff
     {
         // For TrueType and CFF, we are still best of using the normal subsetting logic in case no variation coordinates
         // have been passed.
-        Box::new(DummyInterjector)
+        Interjector::Dummy
     } else {
-        use crate::interjector::skrifa::SkrifaInterjector;
-
-        Box::new(
+        Interjector::Skrifa(
             SkrifaInterjector::new(data, index, variation_coordinates)
                 .ok_or(MalformedFont)?,
         )
@@ -333,7 +332,7 @@ struct Context<'a> {
     flavor: FontFlavor,
     /// Subsetted tables.
     tables: Vec<(Tag, Cow<'a, [u8]>)>,
-    pub(crate) interjector: Box<dyn Interjector + 'a>,
+    pub(crate) interjector: Interjector<'a>,
     // Custom data that should be used for writing the `maxp` table. Only needed for CFF2,
     // where we need to synthesize a V1 table after converting.
     pub(crate) custom_maxp_data: Option<MaxpData>,

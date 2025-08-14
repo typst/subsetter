@@ -6,7 +6,7 @@ use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use subsetter::{subset, GlyphRemapper};
-use ttf_parser::{GlyphId};
+use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
 mod subsets;
@@ -123,20 +123,16 @@ fn test_font_tools(font_file: &str, gids: &str, variations: &str, num: u16) {
         let output_path = otf_ref_path.to_str().unwrap();
 
         if !variations.is_empty() {
-            let mut args = vec![
-                "varLib.instancer".to_string(),
-                input_path.to_string()];
-            
+            let mut args = vec!["varLib.instancer".to_string(), input_path.to_string()];
+
             args.extend(variations.iter().map(|(name, value)| format!("{name}={value}")));
             args.extend(["-o".to_string(), output_path.to_string()]);
-            
-           Command::new("fonttools")
-                .args(args)
-                .output().unwrap();
-            
+
+            Command::new("fonttools").args(args).output().unwrap();
+
             input_path = output_path;
         }
-        
+
         Command::new("fonttools")
             .args([
                 "subset",
@@ -152,7 +148,7 @@ fn test_font_tools(font_file: &str, gids: &str, variations: &str, num: u16) {
             ])
             .output()
             .unwrap();
-        
+
         Command::new("fonttools")
             .args([
                 "ttx",
