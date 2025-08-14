@@ -1,5 +1,5 @@
 use crate::interjector::Interjector;
-use crate::Error::{MalformedFont, Unimplemented};
+use crate::Error::MalformedFont;
 use crate::{glyf, Context, MaxpData};
 use std::borrow::Cow;
 
