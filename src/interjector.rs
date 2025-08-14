@@ -136,6 +136,7 @@ pub(crate) mod skrifa {
             );
 
             for (_, _, quad) in cubic.to_quads(1e-2) {
+                // Note that `quad.p2` is the same as `quad.p0` of the next point in the iterator.
                 self.quad_to(
                     quad.p1.x as f32,
                     quad.p1.y as f32,

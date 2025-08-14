@@ -142,7 +142,7 @@ fn prepare_context<'a>(
     let _ = variation_coordinates;
 
     #[cfg(not(feature = "variable_fonts"))]
-    let interjector = Box::new(DummyInterjector);
+    let interjector = DummyInterjector;
     // For CFF, we _always_ want to do normal subsetting, since CFF cannot have variations.
     // For TrueType, we prefer normal subsetting in case no variation was requested. If we do have
     // variations, we use `skrifa` to instance.
