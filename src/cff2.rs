@@ -3,6 +3,7 @@ use crate::Error::{MalformedFont, Unimplemented};
 use crate::{glyf, Context, MaxpData};
 use std::borrow::Cow;
 
+/// CFF2 fonts will currently be converted into TTF fonts.
 pub fn subset(ctx: &mut Context) -> crate::Result<()> {
     let mut maxp_data = MaxpData::default();
 

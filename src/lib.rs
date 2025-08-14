@@ -85,7 +85,6 @@ mod read;
 mod remapper;
 mod write;
 
-use crate::interjector::skrifa::SkrifaInterjector;
 use crate::interjector::Interjector;
 use crate::read::{Readable, Reader};
 pub use crate::remapper::GlyphRemapper;
@@ -158,8 +157,12 @@ fn prepare_context<'a>(
         Interjector::Dummy
     } else {
         Interjector::Skrifa(
-            SkrifaInterjector::new(data, index, variation_coordinates)
-                .ok_or(MalformedFont)?,
+            interjector::skrifa::SkrifaInterjector::new(
+                data,
+                index,
+                variation_coordinates,
+            )
+            .ok_or(MalformedFont)?,
         )
     };
 

@@ -1,9 +1,7 @@
-use crate::interjector::skrifa::SkrifaInterjector;
-
 pub(crate) enum Interjector<'a> {
     Dummy,
     #[cfg(feature = "variable_fonts")]
-    Skrifa(SkrifaInterjector<'a>),
+    Skrifa(skrifa::SkrifaInterjector<'a>),
 }
 
 #[cfg(feature = "variable_fonts")]
