@@ -135,7 +135,11 @@ pub(crate) mod skrifa {
                 (x as f64, y as f64),
             );
 
-            for (_, _, quad) in cubic.to_quads(1e-2) {
+            // It is not entirely clear how small the `accuracy` parameter needs to be
+            // to produce sensible results. In `vello_cpu`, a value of around 0.025 is used
+            // (0.25 for the flattening accuracy and * 0.1 in the flattening code, so we choose
+            // the same value here.
+            for (_, _, quad) in cubic.to_quads(0.025) {
                 // Note that `quad.p2` is the same as `quad.p0` of the next point in the iterator.
                 self.quad_to(
                     quad.p1.x as f32,
