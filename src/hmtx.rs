@@ -20,7 +20,7 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
         let mut new_metrics = vec![];
 
         match &ctx.interjector {
-            Interjector::Dummy => extract_metrics(hmtx, &mut new_metrics, ctx)?,
+            Interjector::Dummy(_) => extract_metrics(hmtx, &mut new_metrics, ctx)?,
             #[cfg(feature = "variable-fonts")]
             Interjector::Skrifa(s) => {
                 for old_gid in ctx.mapper.remapped_gids() {
@@ -68,7 +68,11 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
     Ok(())
 }
 
-fn extract_metrics(hmtx: &[u8], new_metrics: &mut Vec<(u16, i16)>, ctx: &mut Context) -> Result<()> {
+fn extract_metrics(
+    hmtx: &[u8],
+    new_metrics: &mut Vec<(u16, i16)>,
+    ctx: &mut Context,
+) -> Result<()> {
     // Extract the number of horizontal metrics from the `hhea` table.
     let num_h_metrics = {
         let hhea = ctx.expect_table(Tag::HHEA).ok_or(MalformedFont)?;
@@ -78,8 +82,7 @@ fn extract_metrics(hmtx: &[u8], new_metrics: &mut Vec<(u16, i16)>, ctx: &mut Con
     };
 
     let last_advance_width = {
-        let index =
-            4 * num_h_metrics.checked_sub(1).ok_or(OverflowError)? as usize;
+        let index = 4 * num_h_metrics.checked_sub(1).ok_or(OverflowError)? as usize;
         let mut r = Reader::new(hmtx.get(index..).ok_or(MalformedFont)?);
         r.read::<u16>().ok_or(MalformedFont)?
     };
@@ -101,12 +104,9 @@ fn extract_metrics(hmtx: &[u8], new_metrics: &mut Vec<(u16, i16)>, ctx: &mut Con
             let lsb = r.read::<i16>().ok_or(MalformedFont)?;
             new_metrics.push((adv, lsb));
         } else {
-            new_metrics.push((
-                last_advance_width,
-                r.read::<i16>().ok_or(MalformedFont)?,
-            ));
+            new_metrics.push((last_advance_width, r.read::<i16>().ok_or(MalformedFont)?));
         }
     }
-    
+
     Ok(())
 }

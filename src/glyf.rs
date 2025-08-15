@@ -51,7 +51,7 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
 
     subset_with(ctx, |old_gid, ctx| {
         let data = match &ctx.interjector {
-            Interjector::Dummy => {
+            Interjector::Dummy(_) => {
                 Cow::Borrowed(table.glyph_data(old_gid).ok_or(MalformedFont)?)
             }
             #[cfg(feature = "variable-fonts")]

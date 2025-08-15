@@ -73,6 +73,7 @@ resulting font is 1 KB.
 #![deny(missing_docs)]
 
 mod cff;
+#[cfg(feature = "variable-fonts")]
 mod cff2;
 mod glyf;
 mod head;
@@ -93,6 +94,7 @@ use crate::write::{Writeable, Writer};
 use crate::Error::{MalformedFont, Unimplemented, UnknownKind};
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display, Formatter};
+use std::marker::PhantomData;
 
 /// Subset the font face to include only the necessary glyphs and tables.
 ///
@@ -167,7 +169,7 @@ fn prepare_context<'a>(
     let _ = variation_coordinates;
 
     #[cfg(not(feature = "variable-fonts"))]
-    let interjector = DummyInterjector;
+    let interjector = Interjector::Dummy(PhantomData::default());
     // For CFF, we _always_ want to do normal subsetting, since CFF cannot have variations.
     // For TrueType, we prefer normal subsetting in case no variation was requested. If we do have
     // variations, we use `skrifa` to instance.
@@ -179,7 +181,7 @@ fn prepare_context<'a>(
     {
         // For TrueType and CFF, we are still best off using the normal subsetting logic in case no variation coordinates
         // have been passed.
-        Interjector::Dummy
+        Interjector::Dummy(PhantomData::default())
     } else {
         Interjector::Skrifa(
             interjector::skrifa::SkrifaInterjector::new(
@@ -393,7 +395,10 @@ impl<'a> Context<'a> {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
             Tag::CFF => cff::subset(self)?,
+            #[cfg(feature = "variable-fonts")]
             Tag::CFF2 => cff2::subset(self)?,
+            #[cfg(not(feature = "variable-fonts"))]
+            Tag::CFF2 => return Err(Unimplemented),
             Tag::HEAD => head::subset(self)?,
             Tag::HHEA => panic!("handled by hmtx"),
             Tag::HMTX => hmtx::subset(self)?,

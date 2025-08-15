@@ -1,5 +1,7 @@
+use std::marker::PhantomData;
+
 pub(crate) enum Interjector<'a> {
-    Dummy,
+    Dummy(PhantomData<&'a ()>),
     #[cfg(feature = "variable-fonts")]
     Skrifa(skrifa::SkrifaInterjector<'a>),
 }
