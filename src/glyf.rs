@@ -54,6 +54,7 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
             Interjector::Dummy => {
                 Cow::Borrowed(table.glyph_data(old_gid).ok_or(MalformedFont)?)
             }
+            #[cfg(feature = "variable-fonts")]
             Interjector::Skrifa(s) => {
                 Cow::Owned(s.glyph_data(&mut _maxp, old_gid).ok_or(MalformedFont)?)
             }
