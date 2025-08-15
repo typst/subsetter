@@ -152,7 +152,7 @@ fn prepare_context<'a>(
         && flavor == FontFlavor::TrueType)
         || flavor == FontFlavor::Cff
     {
-        // For TrueType and CFF, we are still best of using the normal subsetting logic in case no variation coordinates
+        // For TrueType and CFF, we are still best off using the normal subsetting logic in case no variation coordinates
         // have been passed.
         Interjector::Dummy
     } else {
