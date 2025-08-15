@@ -49,3 +49,41 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
     ctx.push(Tag::MAXP, sub_maxp.finish());
     Ok(())
 }
+
+// When converting CFF2 to TTF, we need to write a version 1.0 MAXP table.
+pub(crate) struct MaxpData {
+    pub(crate) max_points: u16,
+    pub(crate) max_contours: u16,
+    pub(crate) max_composite_points: u16,
+    pub(crate) max_composite_contours: u16,
+    pub(crate) max_zones: u16,
+    pub(crate) max_twilight_points: u16,
+    pub(crate) max_storage: u16,
+    pub(crate) max_function_defs: u16,
+    pub(crate) max_instruction_defs: u16,
+    pub(crate) max_stack_elements: u16,
+    pub(crate) max_size_of_instructions: u16,
+    pub(crate) max_component_elements: u16,
+    pub(crate) max_component_depth: u16,
+}
+
+impl Default for MaxpData {
+    fn default() -> Self {
+        Self {
+            max_points: 0,
+            max_contours: 0,
+            max_composite_points: 0,
+            max_composite_contours: 0,
+            max_zones: 1,
+            max_twilight_points: 0,
+            max_storage: 0,
+            max_function_defs: 0,
+            max_instruction_defs: 0,
+            max_stack_elements: 0,
+            max_size_of_instructions: 0,
+            max_component_elements: 0,
+            // Could probably be 0 too since we only use simple glyphs when converting?
+            max_component_depth: 1,
+        }
+    }
+}
