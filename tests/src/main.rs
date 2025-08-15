@@ -5,7 +5,7 @@ use skrifa::MetadataProvider;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use subsetter::{subset, subset_with_variations, GlyphRemapper};
+use subsetter::{subset, subset_with_variations, GlyphRemapper, Tag};
 use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
@@ -238,13 +238,16 @@ fn parse_gids(gids: &str, max: u16) -> Vec<u16> {
     gids
 }
 
-fn parse_variations(input: &str) -> Vec<(String, f32)> {
+fn parse_variations(input: &str) -> Vec<(Tag, f32)> {
     input
         .split(',')
         .filter_map(|pair| {
             let parts: Vec<&str> = pair.split('=').collect();
             if parts.len() == 2 {
-                Some((parts[0].trim().to_string(), parts[1].trim().parse().ok()?))
+                Some((
+                    Tag::from_str(parts[0].trim()).unwrap(),
+                    parts[1].trim().parse().ok()?,
+                ))
             } else {
                 None
             }

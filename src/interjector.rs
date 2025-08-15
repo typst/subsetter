@@ -8,7 +8,7 @@ pub(crate) enum Interjector<'a> {
 
 #[cfg(feature = "variable-fonts")]
 pub(crate) mod skrifa {
-    use crate::MaxpData;
+    use crate::{MaxpData, Tag};
     use kurbo::{BezPath, CubicBez};
     use skrifa::instance::Location;
     use skrifa::outline::{DrawSettings, OutlinePen};
@@ -26,11 +26,12 @@ pub(crate) mod skrifa {
         pub(crate) fn new(
             data: &'a [u8],
             index: u32,
-            location: &[(String, f32)],
+            location: &[(Tag, f32)],
         ) -> Option<Self> {
             let font_ref = FontRef::from_index(data, index).ok()?;
-            let location =
-                font_ref.axes().location(location.iter().map(|i| (i.0.as_str(), i.1)));
+            let location = font_ref
+                .axes()
+                .location(location.iter().map(|i| (skrifa::Tag::new(i.0.get()), i.1)));
 
             Some(Self { font_ref, location })
         }

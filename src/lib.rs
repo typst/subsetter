@@ -118,7 +118,7 @@ pub fn subset(data: &[u8], index: u32, mapper: &GlyphRemapper) -> Result<Vec<u8>
 pub fn subset_with_variations(
     data: &[u8],
     index: u32,
-    variation_coordinates: &[(String, f32)],
+    variation_coordinates: &[(Tag, f32)],
     mapper: &GlyphRemapper,
 ) -> Result<Vec<u8>> {
     subset_inner(data, index, variation_coordinates, true, mapper)
@@ -127,7 +127,7 @@ pub fn subset_with_variations(
 fn subset_inner(
     data: &[u8],
     index: u32,
-    variation_coordinates: &[(String, f32)],
+    variation_coordinates: &[(Tag, f32)],
     allow_cff2: bool,
     mapper: &GlyphRemapper,
 ) -> Result<Vec<u8>> {
@@ -141,7 +141,7 @@ fn prepare_context<'a>(
     data: &'a [u8],
     index: u32,
     #[cfg_attr(not(feature = "variable-fonts"), allow(unused))]
-    variation_coordinates: &[(String, f32)],
+    variation_coordinates: &[(Tag, f32)],
     allow_cff2: bool,
     mut gid_remapper: GlyphRemapper,
 ) -> Result<Context<'a>> {
@@ -486,7 +486,28 @@ impl Writeable for FontFlavor {
 
 /// A 4-byte OpenType tag.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Tag(pub [u8; 4]);
+pub struct Tag([u8; 4]);
+
+impl Tag {
+    /// Create a new tag.
+    pub fn new(tag: &[u8; 4]) -> Self {
+        Self(*tag)
+    }
+
+    /// Try to create a new tag from a string.
+    ///
+    /// Return `None` if the string is not 4 bytes in size.
+    pub fn from_str(s: &str) -> Option<Self> {
+        let tag: [u8; 4] = s.as_bytes().try_into().ok()?;
+
+        Some(Self(tag))
+    }
+
+    /// Return the value of the tag.
+    pub fn get(&self) -> &[u8; 4] {
+        &self.0
+    }
+}
 
 #[allow(unused)]
 impl Tag {
