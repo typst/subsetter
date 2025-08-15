@@ -54,17 +54,17 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
 pub(crate) struct MaxpData {
     pub(crate) max_points: u16,
     pub(crate) max_contours: u16,
-    pub(crate) max_composite_points: u16,
-    pub(crate) max_composite_contours: u16,
-    pub(crate) max_zones: u16,
-    pub(crate) max_twilight_points: u16,
-    pub(crate) max_storage: u16,
-    pub(crate) max_function_defs: u16,
-    pub(crate) max_instruction_defs: u16,
-    pub(crate) max_stack_elements: u16,
-    pub(crate) max_size_of_instructions: u16,
-    pub(crate) max_component_elements: u16,
-    pub(crate) max_component_depth: u16,
+    max_composite_points: u16,
+    max_composite_contours: u16,
+    max_zones: u16,
+    max_twilight_points: u16,
+    max_storage: u16,
+    max_function_defs: u16,
+    max_instruction_defs: u16,
+    max_stack_elements: u16,
+    max_size_of_instructions: u16,
+    max_component_elements: u16,
+    max_component_depth: u16,
 }
 
 impl Default for MaxpData {
