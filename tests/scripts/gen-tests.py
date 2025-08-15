@@ -52,7 +52,7 @@ def cff_fonttools_impl(test_src, out_path, include_variations, fn_name):
 
             test_string += "#[test] "
             if include_variations and variations:
-                test_string += '#[cfg(feature = "variable_fonts")] '
+                test_string += '#[cfg(feature = "variable-fonts")] '
             test_string += f'fn {function_name}() {{{fn_name}("{font_file}", "{gids}", "{variations}", {counter})}}\n' if include_variations else f'fn {function_name}() {{{fn_name}("{font_file}", "{gids}", {counter})}}\n'
 
     with open(out_path, "w+") as file:

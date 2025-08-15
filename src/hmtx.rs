@@ -60,7 +60,7 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
                     }
                 }
             }
-            #[cfg(feature = "variable_fonts")]
+            #[cfg(feature = "variable-fonts")]
             Interjector::Skrifa(s) => {
                 for old_gid in ctx.mapper.remapped_gids() {
                     new_metrics.push(s.horizontal_metrics(old_gid).ok_or(MalformedFont)?);

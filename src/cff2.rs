@@ -9,9 +9,9 @@ pub fn subset(ctx: &mut Context) -> crate::Result<()> {
 
     let result = glyf::subset_with(ctx, |old_gid, ctx| {
         let data = match &ctx.interjector {
-            // We reject CFF2 fonts earlier if `variable_fonts` feature is not enabled.
+            // We reject CFF2 fonts earlier if `variable-fonts` feature is not enabled.
             Interjector::Dummy => unreachable!(),
-            #[cfg(feature = "variable_fonts")]
+            #[cfg(feature = "variable-fonts")]
             Interjector::Skrifa(s) => {
                 Cow::Owned(s.glyph_data(&mut maxp_data, old_gid).ok_or(MalformedFont)?)
             }

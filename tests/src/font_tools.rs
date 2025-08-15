@@ -13,8 +13,8 @@ use crate::*;
 #[test] fn roboto_regular_1() {test_font_tools("Roboto-Regular.ttf", "456,460-463", "", 1)}
 #[test] fn new_c_m_math_regular_1() {test_font_tools("NewCMMath-Regular.otf", "803-806,950-952,5600-5602", "", 1)}
 #[test] fn noto_sans_c_j_ksc_boldsubset1_1() {test_font_tools("NotoSansCJKsc-Bold-subset1.otf", "1", "", 1)}
-#[test] #[cfg(feature = "variable_fonts")] fn noto_sans_regular_var_1() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=400", 1)}
-#[test] #[cfg(feature = "variable_fonts")] fn noto_sans_regular_var_2() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=900", 2)}
-#[test] #[cfg(feature = "variable_fonts")] fn noto_sans_regular_var_3() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=800,wdth=70.0", 3)}
-#[test] #[cfg(feature = "variable_fonts")] fn cantarell_v_f_1() {test_font_tools("Cantarell-VF.otf", "1,15,30-35,40,103-105", "wght=400", 1)}
-#[test] #[cfg(feature = "variable_fonts")] fn cantarell_v_f_2() {test_font_tools("Cantarell-VF.otf", "1,15,30-35,40,103-105", "wght=800", 2)}
+#[test] #[cfg(feature = "variable-fonts")] fn noto_sans_regular_var_1() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=400", 1)}
+#[test] #[cfg(feature = "variable-fonts")] fn noto_sans_regular_var_2() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=900", 2)}
+#[test] #[cfg(feature = "variable-fonts")] fn noto_sans_regular_var_3() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=800,wdth=70.0", 3)}
+#[test] #[cfg(feature = "variable-fonts")] fn cantarell_v_f_1() {test_font_tools("Cantarell-VF.otf", "1,15,30-35,40,103-105", "wght=400", 1)}
+#[test] #[cfg(feature = "variable-fonts")] fn cantarell_v_f_2() {test_font_tools("Cantarell-VF.otf", "1,15,30-35,40,103-105", "wght=800", 2)}

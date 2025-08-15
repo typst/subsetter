@@ -1,10 +1,10 @@
 pub(crate) enum Interjector<'a> {
     Dummy,
-    #[cfg(feature = "variable_fonts")]
+    #[cfg(feature = "variable-fonts")]
     Skrifa(skrifa::SkrifaInterjector<'a>),
 }
 
-#[cfg(feature = "variable_fonts")]
+#[cfg(feature = "variable-fonts")]
 pub(crate) mod skrifa {
     use crate::MaxpData;
     use kurbo::{BezPath, CubicBez};

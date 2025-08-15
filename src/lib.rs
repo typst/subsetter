@@ -99,7 +99,7 @@ use std::fmt::{self, Debug, Display, Formatter};
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
 ///
-/// Important note: If the `variable_fonts` feature is disabled, CFF2 fonts are
+/// Important note: If the `variable-fonts` feature is disabled, CFF2 fonts are
 /// not supported at all and will result in an error. If the features is enabled,
 /// CFF2 fonts will be converted into a TrueType font.
 pub fn subset(
@@ -116,7 +116,7 @@ pub fn subset(
 fn prepare_context<'a>(
     data: &'a [u8],
     index: u32,
-    #[cfg_attr(not(feature = "variable_fonts"), allow(unused))]
+    #[cfg_attr(not(feature = "variable-fonts"), allow(unused))]
     variation_coordinates: &[(String, f32)],
     mut gid_remapper: GlyphRemapper,
 ) -> Result<Context<'a>> {
@@ -127,9 +127,9 @@ fn prepare_context<'a>(
         FontFlavor::Cff
     } else if face.table(Tag::CFF2).is_some() {
         // We need skrifa so we can convert CFF2 into TrueType.
-        #[cfg(not(feature = "variable_fonts"))]
+        #[cfg(not(feature = "variable-fonts"))]
         return Err(Unimplemented);
-        #[cfg(feature = "variable_fonts")]
+        #[cfg(feature = "variable-fonts")]
         FontFlavor::Cff2
     } else {
         return Err(UnknownKind);
@@ -141,13 +141,13 @@ fn prepare_context<'a>(
 
     let _ = variation_coordinates;
 
-    #[cfg(not(feature = "variable_fonts"))]
+    #[cfg(not(feature = "variable-fonts"))]
     let interjector = DummyInterjector;
     // For CFF, we _always_ want to do normal subsetting, since CFF cannot have variations.
     // For TrueType, we prefer normal subsetting in case no variation was requested. If we do have
     // variations, we use `skrifa` to instance.
     // For CFF2, we _always_ use `skrifa` to instance.
-    #[cfg(feature = "variable_fonts")]
+    #[cfg(feature = "variable-fonts")]
     let interjector = if (variation_coordinates.is_empty()
         && flavor == FontFlavor::TrueType)
         || flavor == FontFlavor::Cff

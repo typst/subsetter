@@ -24,8 +24,8 @@ readme = { workspace = true }
 license = { workspace = true }
 
 [features]
-default = ["variable_fonts"]
-variable_fonts = ["dep:skrifa", "dep:write-fonts", "dep:kurbo"]
+default = ["variable-fonts"]
+variable-fonts = ["dep:skrifa", "dep:write-fonts", "dep:kurbo"]
 
 [dependencies]
 rustc-hash = "2.1"
