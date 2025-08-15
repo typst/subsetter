@@ -31,7 +31,7 @@ fn main() {
     let gids = parse_gids(args.get(3).to_owned().unwrap_or(&"0-5".to_owned()));
     let remapper = GlyphRemapper::new_from_glyphs(gids.as_slice());
 
-    let sub = subset(&data, 0, &[], &remapper).unwrap();
+    let sub = subset(&data, 0, &remapper).unwrap();
 
     std::fs::write(args.get(2).unwrap_or(&"res.otf".to_owned()), sub).unwrap();
 }

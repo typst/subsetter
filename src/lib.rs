@@ -50,7 +50,7 @@ for glyph in glyphs {
 }
 
 // Create the subset.
-let sub = subset(&data, 0, &[], &remapper)?;
+let sub = subset(&data, 0, &remapper)?;
 
 // This is how you can access the new glyph ID of a glyph in the old font.
 for glyph in glyphs {
@@ -90,7 +90,7 @@ use crate::maxp::MaxpData;
 use crate::read::{Readable, Reader};
 pub use crate::remapper::GlyphRemapper;
 use crate::write::{Writeable, Writer};
-use crate::Error::{MalformedFont, UnknownKind};
+use crate::Error::{MalformedFont, Unimplemented, UnknownKind};
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display, Formatter};
 
@@ -100,17 +100,38 @@ use std::fmt::{self, Debug, Display, Formatter};
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
 ///
-/// Important note: If the `variable-fonts` feature is disabled, CFF2 fonts are
-/// not supported at all and will result in an error. If the features is enabled,
-/// CFF2 fonts will be converted into a TrueType font.
-pub fn subset(
+/// CFF2 fonts are not supported.
+pub fn subset(data: &[u8], index: u32, mapper: &GlyphRemapper) -> Result<Vec<u8>> {
+    subset_inner(data, index, &[], false, mapper)
+}
+
+/// Subset the font face to include only the necessary glyphs and tables, instantiated
+/// to the given variation coordinates.
+///
+/// This does the same as [`subset`], but allows you to specify variation coordinates.
+///
+/// It is important to note that if you pass a CFF2 font, it will be converted to a TrueType
+/// font.
+#[cfg(feature = "variable-fonts")]
+pub fn subset_with_variations(
     data: &[u8],
     index: u32,
     variation_coordinates: &[(String, f32)],
     mapper: &GlyphRemapper,
 ) -> Result<Vec<u8>> {
+    subset_inner(data, index, variation_coordinates, true, mapper)
+}
+
+fn subset_inner(
+    data: &[u8],
+    index: u32,
+    variation_coordinates: &[(String, f32)],
+    allow_cff2: bool,
+    mapper: &GlyphRemapper,
+) -> Result<Vec<u8>> {
     let mapper = mapper.clone();
-    let context = prepare_context(data, index, variation_coordinates, mapper)?;
+    let context =
+        prepare_context(data, index, variation_coordinates, allow_cff2, mapper)?;
     _subset(context)
 }
 
@@ -119,6 +140,7 @@ fn prepare_context<'a>(
     index: u32,
     #[cfg_attr(not(feature = "variable-fonts"), allow(unused))]
     variation_coordinates: &[(String, f32)],
+    allow_cff2: bool,
     mut gid_remapper: GlyphRemapper,
 ) -> Result<Context<'a>> {
     let face = parse(data, index)?;
@@ -127,11 +149,13 @@ fn prepare_context<'a>(
     } else if face.table(Tag::CFF).is_some() {
         FontFlavor::Cff
     } else if face.table(Tag::CFF2).is_some() {
-        // We need skrifa so we can convert CFF2 into TrueType.
-        #[cfg(not(feature = "variable-fonts"))]
-        return Err(Unimplemented);
-        #[cfg(feature = "variable-fonts")]
-        FontFlavor::Cff2
+        // Only works if `variable-fonts` feature is enabled, as we need skrifa
+        // so we can convert CFF2 into TrueType.
+        if allow_cff2 {
+            FontFlavor::Cff2
+        } else {
+            return Err(Unimplemented);
+        }
     } else {
         return Err(UnknownKind);
     };
