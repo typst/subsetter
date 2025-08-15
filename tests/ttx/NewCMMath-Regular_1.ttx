@@ -20,7 +20,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.0"/>
-    <checkSumAdjustment value="0x29342cfe"/>
+    <checkSumAdjustment value="0x6aa040c"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00001011"/>
     <unitsPerEm value="1000"/>
@@ -84,6 +84,9 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
     </namerecord>
     <namerecord nameID="6" platformID="3" platEncID="1" langID="0x409">
       NewCMMath-Regular
+    </namerecord>
+    <namerecord nameID="7" platformID="3" platEncID="1" langID="0x409">
+      Please refer to the Copyright section for the font trademark attribution notices.
     </namerecord>
   </name>
 
