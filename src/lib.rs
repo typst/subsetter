@@ -336,8 +336,8 @@ struct Context<'a> {
     /// Subsetted tables.
     tables: Vec<(Tag, Cow<'a, [u8]>)>,
     pub(crate) interjector: Interjector<'a>,
-    // Custom data that should be used for writing the `maxp` table. Only needed for CFF2,
-    // where we need to synthesize a V1 table after converting.
+    /// Custom data that should be used for writing the `maxp` table. Only needed for CFF2,
+    /// where we need to synthesize a V1 table after converting.
     pub(crate) custom_maxp_data: Option<MaxpData>,
     /// Whether the long loca format was chosen.
     long_loca: bool,
