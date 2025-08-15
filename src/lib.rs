@@ -73,9 +73,12 @@ resulting font is 1 KB.
 #![deny(missing_docs)]
 
 mod cff;
+#[cfg(feature = "variable-fonts")]
+mod cff2;
 mod glyf;
 mod head;
 mod hmtx;
+mod interjector;
 mod maxp;
 mod name;
 mod post;
@@ -83,44 +86,119 @@ mod read;
 mod remapper;
 mod write;
 
+use crate::interjector::Interjector;
+use crate::maxp::MaxpData;
 use crate::read::{Readable, Reader};
 pub use crate::remapper::GlyphRemapper;
 use crate::write::{Writeable, Writer};
-use crate::Error::{MalformedFont, UnknownKind};
+use crate::Error::{MalformedFont, Unimplemented, UnknownKind};
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display, Formatter};
+use std::marker::PhantomData;
 
 /// Subset the font face to include only the necessary glyphs and tables.
 ///
 /// - The `data` must be in the OpenType font format.
 /// - The `index` is only relevant if the data contains a font collection
 ///   (`.ttc` or `.otc` file). Otherwise, it should be 0.
+///
+/// CFF2 fonts are not supported.
 pub fn subset(data: &[u8], index: u32, mapper: &GlyphRemapper) -> Result<Vec<u8>> {
+    subset_inner(data, index, &[], false, mapper)
+}
+
+/// Subset the font face to include only the necessary glyphs and tables, instantiated
+/// to the given variation coordinates.
+///
+/// This does the same as [`subset`], but allows you to specify variation coordinates.
+///
+/// It is important to note that if you pass a CFF2 font, it will be converted to a TrueType
+/// font.
+#[cfg(feature = "variable-fonts")]
+pub fn subset_with_variations(
+    data: &[u8],
+    index: u32,
+    variation_coordinates: &[(Tag, f32)],
+    mapper: &GlyphRemapper,
+) -> Result<Vec<u8>> {
+    subset_inner(data, index, variation_coordinates, true, mapper)
+}
+
+fn subset_inner(
+    data: &[u8],
+    index: u32,
+    variation_coordinates: &[(Tag, f32)],
+    allow_cff2: bool,
+    mapper: &GlyphRemapper,
+) -> Result<Vec<u8>> {
     let mapper = mapper.clone();
-    let context = prepare_context(data, index, mapper)?;
+    let context =
+        prepare_context(data, index, variation_coordinates, allow_cff2, mapper)?;
     _subset(context)
 }
 
-fn prepare_context(
-    data: &[u8],
+fn prepare_context<'a>(
+    data: &'a [u8],
     index: u32,
+    #[cfg_attr(not(feature = "variable-fonts"), allow(unused))]
+    variation_coordinates: &[(Tag, f32)],
+    allow_cff2: bool,
     mut gid_remapper: GlyphRemapper,
-) -> Result<Context> {
+) -> Result<Context<'a>> {
     let face = parse(data, index)?;
-    let kind = match (face.table(Tag::GLYF), face.table(Tag::CFF)) {
-        (Some(_), _) => FontKind::TrueType,
-        (_, Some(_)) => FontKind::Cff,
-        _ => return Err(UnknownKind),
+    let flavor = if face.table(Tag::GLYF).is_some() {
+        FontFlavor::TrueType
+    } else if face.table(Tag::CFF).is_some() {
+        FontFlavor::Cff
+    } else if face.table(Tag::CFF2).is_some() {
+        // Only works if `variable-fonts` feature is enabled, as we need skrifa
+        // so we can convert CFF2 into TrueType.
+        if allow_cff2 {
+            FontFlavor::Cff2
+        } else {
+            return Err(Unimplemented);
+        }
+    } else {
+        return Err(UnknownKind);
     };
 
-    if kind == FontKind::TrueType {
+    if flavor == FontFlavor::TrueType {
         glyf::closure(&face, &mut gid_remapper)?;
     }
+
+    let _ = variation_coordinates;
+
+    #[cfg(not(feature = "variable-fonts"))]
+    let interjector = Interjector::Dummy(PhantomData::default());
+    // For CFF, we _always_ want to do normal subsetting, since CFF cannot have variations.
+    // For TrueType, we prefer normal subsetting in case no variation was requested. If we do have
+    // variations, we use `skrifa` to instance.
+    // For CFF2, we _always_ use `skrifa` to instance.
+    #[cfg(feature = "variable-fonts")]
+    let interjector = if (variation_coordinates.is_empty()
+        && flavor == FontFlavor::TrueType)
+        || flavor == FontFlavor::Cff
+    {
+        // For TrueType and CFF, we are still best off using the normal subsetting logic in case no variation coordinates
+        // have been passed.
+        Interjector::Dummy(PhantomData::default())
+    } else {
+        Interjector::Skrifa(
+            interjector::skrifa::SkrifaInterjector::new(
+                data,
+                index,
+                variation_coordinates,
+            )
+            .ok_or(MalformedFont)?,
+        )
+    };
 
     Ok(Context {
         face,
         mapper: gid_remapper,
-        kind,
+        interjector,
+        custom_maxp_data: None,
+        flavor,
         tables: vec![],
         long_loca: false,
     })
@@ -138,16 +216,16 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
     // - GASP: Not mandated by PDF specification, and ghostscript also seems to exclude them.
     // - OS2: Not mandated by PDF specification, and ghostscript also seems to exclude them.
 
-    if ctx.kind == FontKind::TrueType {
+    if ctx.flavor == FontFlavor::TrueType {
         // LOCA will be handled by GLYF
         ctx.process(Tag::GLYF)?;
         ctx.process(Tag::CVT)?; // won't be subsetted.
         ctx.process(Tag::FPGM)?; // won't be subsetted.
         ctx.process(Tag::PREP)?; // won't be subsetted.
-    }
-
-    if ctx.kind == FontKind::Cff {
+    } else if ctx.flavor == FontFlavor::Cff {
         ctx.process(Tag::CFF)?;
+    } else if ctx.flavor == FontFlavor::Cff2 {
+        ctx.process(Tag::CFF2)?;
     }
 
     // Required tables.
@@ -202,7 +280,7 @@ fn construct(mut ctx: Context) -> Vec<u8> {
     ctx.tables.sort_by_key(|&(tag, _)| tag);
 
     let mut w = Writer::new();
-    w.write::<FontKind>(ctx.kind);
+    w.write(ctx.flavor);
 
     // Write table directory.
     let count = ctx.tables.len() as u16;
@@ -280,10 +358,22 @@ struct Context<'a> {
     face: Face<'a>,
     /// A map from old gids to new gids, and the reverse
     mapper: GlyphRemapper,
-    /// The kind of face.
-    kind: FontKind,
+    /// The font flavor.
+    flavor: FontFlavor,
     /// Subsetted tables.
     tables: Vec<(Tag, Cow<'a, [u8]>)>,
+    /// An object that can _interject_ data during the subsetting process.
+    /// Normally, when subsetting CFF/TrueType fonts, we will simply read the corresponding
+    /// data from the old font and rewrite it to the new font, for example when writing the
+    /// `hmtx` table.
+    ///
+    /// However, in case we are subsetting with variation coordinates, we instead rely on skrifa
+    /// to apply the variation coordinates and interject that data during the subsetting process
+    /// instead of using the data from the old font.
+    interjector: Interjector<'a>,
+    /// Custom data that should be used for writing the `maxp` table. Only needed for CFF2,
+    /// where we need to synthesize a V1 table after converting.
+    pub(crate) custom_maxp_data: Option<MaxpData>,
     /// Whether the long loca format was chosen.
     long_loca: bool,
 }
@@ -305,6 +395,10 @@ impl<'a> Context<'a> {
             Tag::GLYF => glyf::subset(self)?,
             Tag::LOCA => panic!("handled by glyf"),
             Tag::CFF => cff::subset(self)?,
+            #[cfg(feature = "variable-fonts")]
+            Tag::CFF2 => cff2::subset(self)?,
+            #[cfg(not(feature = "variable-fonts"))]
+            Tag::CFF2 => return Err(Unimplemented),
             Tag::HEAD => head::subset(self)?,
             Tag::HHEA => panic!("handled by hmtx"),
             Tag::HMTX => hmtx::subset(self)?,
@@ -343,15 +437,13 @@ impl<'a> Face<'a> {
     }
 }
 
-/// What kind of contents the font has.
+/// Whether the font is a font collection or a single font.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum FontKind {
-    /// TrueType outlines.
-    TrueType,
-    /// CFF outlines
-    Cff,
     /// A font collection.
     Collection,
+    /// A single font.
+    Single,
 }
 
 impl Readable<'_> for FontKind {
@@ -359,27 +451,63 @@ impl Readable<'_> for FontKind {
 
     fn read(r: &mut Reader) -> Option<Self> {
         match r.read::<u32>()? {
-            0x00010000 | 0x74727565 => Some(FontKind::TrueType),
-            0x4F54544F => Some(FontKind::Cff),
+            // TrueType
+            0x00010000 | 0x74727565 => Some(FontKind::Single),
+            // CFF
+            0x4F54544F => Some(FontKind::Single),
             0x74746366 => Some(FontKind::Collection),
             _ => None,
         }
     }
 }
 
-impl Writeable for FontKind {
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+/// The flavor of outlines used by the font.
+enum FontFlavor {
+    /// TrueType fonts using the `glyf` table.
+    TrueType,
+    /// CFF fonts using the `CFF` table.
+    Cff,
+    /// CFF2 fonts using the `CFF2` table.
+    Cff2,
+}
+
+impl Writeable for FontFlavor {
     fn write(&self, w: &mut Writer) {
         w.write::<u32>(match self {
-            FontKind::TrueType => 0x00010000,
-            FontKind::Cff => 0x4F54544F,
-            FontKind::Collection => 0x74746366,
+            // Important note: This is the magic for TrueType and not CFF2.
+            // However, CFF2 fonts will be converted to TrueType as part of the subsetting
+            // process, hence we write the same magic.
+            FontFlavor::TrueType | FontFlavor::Cff2 => 0x00010000,
+            FontFlavor::Cff => 0x4F54544F,
         })
     }
 }
 
 /// A 4-byte OpenType tag.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Tag(pub [u8; 4]);
+pub struct Tag([u8; 4]);
+
+impl Tag {
+    /// Create a new tag.
+    pub fn new(tag: &[u8; 4]) -> Self {
+        Self(*tag)
+    }
+
+    /// Try to create a new tag from a string.
+    ///
+    /// Return `None` if the string is not 4 bytes in size.
+    pub fn from_str(s: &str) -> Option<Self> {
+        let tag: [u8; 4] = s.as_bytes().try_into().ok()?;
+
+        Some(Self(tag))
+    }
+
+    /// Return the value of the tag.
+    pub fn get(&self) -> &[u8; 4] {
+        &self.0
+    }
+}
 
 #[allow(unused)]
 impl Tag {

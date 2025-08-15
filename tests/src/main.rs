@@ -5,7 +5,7 @@ use skrifa::MetadataProvider;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use subsetter::{subset, GlyphRemapper};
+use subsetter::{subset, subset_with_variations, GlyphRemapper, Tag};
 use ttf_parser::GlyphId;
 
 #[rustfmt::skip]
@@ -81,7 +81,7 @@ fn test_cff_dump(font_file: &str, gids: &str, num: u16) {
     }
 }
 
-fn test_font_tools(font_file: &str, gids: &str, num: u16) {
+fn test_font_tools(font_file: &str, gids: &str, variations: &str, num: u16) {
     let mut ttx_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     ttx_path.push("tests/ttx");
     let _ = std::fs::create_dir_all(&ttx_path);
@@ -111,25 +111,40 @@ fn test_font_tools(font_file: &str, gids: &str, num: u16) {
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
     let gids_vec: Vec<_> = parse_gids(gids, face.number_of_glyphs());
     let remapper = GlyphRemapper::new_from_glyphs(gids_vec.as_slice());
-    let subset = subset(&data, 0, &remapper).unwrap();
+    let variations = parse_variations(variations);
+    let subset = subset_with_variations(&data, 0, &variations, &remapper).unwrap();
 
     std::fs::write(otf_path.clone(), subset).unwrap();
 
     // Optionally create the subset via fonttools, so that we can compare it to our subset.
     if FONT_TOOLS_REF {
         let font_path = get_font_path(font_file);
+        let mut input_path = font_path.to_str().unwrap();
+        let output_path = otf_ref_path.to_str().unwrap();
+
+        if !variations.is_empty() {
+            let mut args = vec!["varLib.instancer".to_string(), input_path.to_string()];
+
+            args.extend(variations.iter().map(|(name, value)| format!("{name}={value}")));
+            args.extend(["-o".to_string(), output_path.to_string()]);
+
+            Command::new("fonttools").args(args).output().unwrap();
+
+            input_path = output_path;
+        }
+
         Command::new("fonttools")
             .args([
                 "subset",
-                font_path.to_str().unwrap(),
-                "--drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap,MATH",
+                input_path,
+                "--drop-tables=GSUB,GPOS,GDEF,FFTM,vhea,vmtx,DSIG,VORG,hdmx,cmap,MATH,HVAR,MVAR,STAT,avar,fvar,gvar",
                 &format!("--gids={}", gids),
                 "--glyph-names",
                 "--desubroutinize",
                 "--notdef-outline",
                 "--no-prune-unicode-ranges",
                 "--no-prune-codepage-ranges",
-                &format!("--output-file={}", otf_ref_path.to_str().unwrap()),
+                &format!("--output-file={output_path}", ),
             ])
             .output()
             .unwrap();
@@ -194,10 +209,10 @@ fn get_test_context(font_file: &str, gids: &str) -> Result<TestContext> {
     let data = read_file(font_file);
     let face = ttf_parser::Face::parse(&data, 0).unwrap();
     let gids: Vec<_> = parse_gids(gids, face.number_of_glyphs());
-    let glyph_remapepr = GlyphRemapper::new_from_glyphs(gids.as_slice());
-    let subset = subset(&data, 0, &glyph_remapepr)?;
+    let glyph_remapper = GlyphRemapper::new_from_glyphs(gids.as_slice());
+    let subset = subset(&data, 0, &glyph_remapper)?;
 
-    Ok(TestContext { font: data, subset, mapper: glyph_remapepr, gids })
+    Ok(TestContext { font: data, subset, mapper: glyph_remapper, gids })
 }
 
 fn parse_gids(gids: &str, max: u16) -> Vec<u16> {
@@ -221,6 +236,23 @@ fn parse_gids(gids: &str, max: u16) -> Vec<u16> {
     }
 
     gids
+}
+
+fn parse_variations(input: &str) -> Vec<(Tag, f32)> {
+    input
+        .split(',')
+        .filter_map(|pair| {
+            let parts: Vec<&str> = pair.split('=').collect();
+            if parts.len() == 2 {
+                Some((
+                    Tag::from_str(parts[0].trim()).unwrap(),
+                    parts[1].trim().parse().ok()?,
+                ))
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 fn glyph_metrics(font_file: &str, gids: &str) {

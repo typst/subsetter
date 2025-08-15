@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "arrayvec"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
+
+[[package]]
 name = "autocfg"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -79,10 +85,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
+name = "equivalent"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
+
+[[package]]
 name = "font-types"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d868ec188a98bb014c606072edd47e52e7ab7297db943b0b28503121e1d037bd"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
+name = "font-types"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02a596f5713680923a2080d86de50fe472fb290693cf0f701187a1c8b36996b7"
 dependencies = [
  "bytemuck",
 ]
@@ -94,7 +115,7 @@ dependencies = [
  "rand",
  "rand_distr",
  "rayon",
- "skrifa",
+ "skrifa 0.29.2",
  "subsetter",
  "ttf-parser",
  "walkdir",
@@ -113,6 +134,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.15.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
+
+[[package]]
+name = "indexmap"
+version = "2.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
+dependencies = [
+ "equivalent",
+ "hashbrown",
+]
+
+[[package]]
+name = "kurbo"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1077d333efea6170d9ccb96d3c3026f300ca0773da4938cc4c811daa6df68b0c"
+dependencies = [
+ "arrayvec",
+ "smallvec",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.171"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -123,6 +170,12 @@ name = "libm"
 version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8355be11b20d696c8f18f6cc018c4e372165b1fa8126cef092399c9951984ffa"
+
+[[package]]
+name = "log"
+version = "0.4.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
 name = "num-traits"
@@ -234,7 +287,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f14974c88fb4fd0a7203719f98020209248c9dbebaf9d10d860337797a905097"
 dependencies = [
  "bytemuck",
- "font-types",
+ "font-types 0.8.3",
+]
+
+[[package]]
+name = "read-fonts"
+version = "0.31.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb16bffd9221b97a7de1b048520122b3926cf11e778c42c4c7514a4ee9da9455"
+dependencies = [
+ "bytemuck",
+ "font-types 0.9.0",
 ]
 
 [[package]]
@@ -259,16 +322,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c0ca53de9bb9bee1720c727606275148463cd938eb6bde249dcedeec4967747"
 dependencies = [
  "bytemuck",
- "read-fonts",
+ "read-fonts 0.27.5",
 ]
+
+[[package]]
+name = "skrifa"
+version = "0.33.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78cc1f79e5624f166718224ef883095bea315801aca75b62c64f3937755a586d"
+dependencies = [
+ "bytemuck",
+ "read-fonts 0.31.2",
+]
+
+[[package]]
+name = "smallvec"
+version = "1.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "subsetter"
 version = "0.2.2"
 dependencies = [
+ "kurbo",
  "rustc-hash",
- "skrifa",
+ "skrifa 0.33.2",
  "ttf-parser",
+ "write-fonts",
 ]
 
 [[package]]
@@ -402,6 +483,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "write-fonts"
+version = "0.39.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cac89848aeba9b7e1877f1e89e3f9c95adb8771f640e1ef23c605aa734748c2b"
+dependencies = [
+ "font-types 0.9.0",
+ "indexmap",
+ "kurbo",
+ "log",
+ "read-fonts 0.31.2",
 ]
 
 [[package]]

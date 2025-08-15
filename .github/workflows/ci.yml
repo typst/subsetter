@@ -25,6 +25,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo build
         name: Build
+      - run: cargo build --no-default-features
+        name: Build without default features
       - run: cargo test
         name: Run tests
 

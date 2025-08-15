@@ -23,9 +23,16 @@ repository = { workspace = true }
 readme = { workspace = true }
 license = { workspace = true }
 
+[features]
+default = ["variable-fonts"]
+variable-fonts = ["dep:skrifa", "dep:write-fonts", "dep:kurbo"]
+
 [dependencies]
 rustc-hash = "2.1"
+skrifa = { optional = true, version = "0.33" }
+kurbo = { optional = true, version = "0.11" }
+write-fonts = { optional = true, version = "0.39.1"}
 
 [dev-dependencies]
-skrifa = "0.29.0"
+skrifa = "0.33"
 ttf-parser = "0.25.1"

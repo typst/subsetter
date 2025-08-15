@@ -4,12 +4,17 @@
 
 use crate::*;
 
-#[test] fn clicker_script_regular_1() {test_font_tools("ClickerScript-Regular.ttf", "5,8,10,100-104", 1)}
-#[test] fn deja_vu_sans_mono_1() {test_font_tools("DejaVuSansMono.ttf", "140-155,100-105", 1)}
-#[test] fn latin_modern_roman_regular_1() {test_font_tools("LatinModernRoman-Regular.otf", "307,309,314,221", 1)}
-#[test] fn m_p_l_u_s1p_regular_1() {test_font_tools("MPLUS1p-Regular.ttf", "3,45-50", 1)}
-#[test] fn noto_sans_c_j_ksc_regular_1() {test_font_tools("NotoSansCJKsc-Regular.otf", "6543-6550,371-375", 1)}
-#[test] fn noto_sans_regular_1() {test_font_tools("NotoSans-Regular.ttf", "567-570,2345-2350", 1)}
-#[test] fn roboto_regular_1() {test_font_tools("Roboto-Regular.ttf", "456,460-463", 1)}
-#[test] fn new_c_m_math_regular_1() {test_font_tools("NewCMMath-Regular.otf", "803-806,950-952,5600-5602", 1)}
-#[test] fn noto_sans_c_j_ksc_boldsubset1_1() {test_font_tools("NotoSansCJKsc-Bold-subset1.otf", "1", 1)}
+#[test] fn clicker_script_regular_1() {test_font_tools("ClickerScript-Regular.ttf", "5,8,10,100-104", "", 1)}
+#[test] fn deja_vu_sans_mono_1() {test_font_tools("DejaVuSansMono.ttf", "140-155,100-105", "", 1)}
+#[test] fn latin_modern_roman_regular_1() {test_font_tools("LatinModernRoman-Regular.otf", "307,309,314,221", "", 1)}
+#[test] fn m_p_l_u_s1p_regular_1() {test_font_tools("MPLUS1p-Regular.ttf", "3,45-50", "", 1)}
+#[test] fn noto_sans_c_j_ksc_regular_1() {test_font_tools("NotoSansCJKsc-Regular.otf", "6543-6550,371-375", "", 1)}
+#[test] fn noto_sans_regular_1() {test_font_tools("NotoSans-Regular.ttf", "567-570,2345-2350", "", 1)}
+#[test] fn roboto_regular_1() {test_font_tools("Roboto-Regular.ttf", "456,460-463", "", 1)}
+#[test] fn new_c_m_math_regular_1() {test_font_tools("NewCMMath-Regular.otf", "803-806,950-952,5600-5602", "", 1)}
+#[test] fn noto_sans_c_j_ksc_boldsubset1_1() {test_font_tools("NotoSansCJKsc-Bold-subset1.otf", "1", "", 1)}
+#[test] #[cfg(feature = "variable-fonts")] fn noto_sans_regular_var_1() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=400", 1)}
+#[test] #[cfg(feature = "variable-fonts")] fn noto_sans_regular_var_2() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=900", 2)}
+#[test] #[cfg(feature = "variable-fonts")] fn noto_sans_regular_var_3() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=800,wdth=70.0", 3)}
+#[test] #[cfg(feature = "variable-fonts")] fn cantarell_v_f_1() {test_font_tools("Cantarell-VF.otf", "1,15,30-35,40,103-105", "wght=400", 1)}
+#[test] #[cfg(feature = "variable-fonts")] fn cantarell_v_f_2() {test_font_tools("Cantarell-VF.otf", "1,15,30-35,40,103-105", "wght=800", 2)}
