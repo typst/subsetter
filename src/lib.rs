@@ -343,7 +343,7 @@ struct Context<'a> {
     /// However, in case we are subsetting with variation coordinates, we instead rely on skrifa
     /// to apply the variation coordinates and interject that data during the subsetting process
     /// instead of using the data from the old font.
-    pub(crate) interjector: Interjector<'a>,
+    interjector: Interjector<'a>,
     /// Custom data that should be used for writing the `maxp` table. Only needed for CFF2,
     /// where we need to synthesize a V1 table after converting.
     pub(crate) custom_maxp_data: Option<MaxpData>,
