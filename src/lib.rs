@@ -335,6 +335,14 @@ struct Context<'a> {
     flavor: FontFlavor,
     /// Subsetted tables.
     tables: Vec<(Tag, Cow<'a, [u8]>)>,
+    /// An object that can _interject_ data during the subsetting process.
+    /// Normally, when subsetting CFF/TrueType fonts, we will simply read the corresponding
+    /// data from the old font and rewrite it to the new font, for example when writing the
+    /// `hmtx` table.
+    /// 
+    /// However, in case we are subsetting with variation coordinates, we instead rely on skrifa
+    /// to apply the variation coordinates and interject that data during the subsetting process
+    /// instead of using the data from the old font.
     pub(crate) interjector: Interjector<'a>,
     /// Custom data that should be used for writing the `maxp` table. Only needed for CFF2,
     /// where we need to synthesize a V1 table after converting.
