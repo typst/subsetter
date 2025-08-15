@@ -31,7 +31,9 @@ pub fn subset_table<'a>(table: &Table<'a>) -> Option<Table<'a>> {
         .iter()
         .copied()
         .filter(|record| {
-            record.is_unicode() && [0, 1, 2, 3, 4, 5, 6].contains(&record.name_id)
+            record.is_unicode()
+                && [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14]
+                    .contains(&record.name_id)
         })
         .collect::<Vec<_>>();
 
