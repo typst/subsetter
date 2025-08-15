@@ -35,6 +35,7 @@ pub(crate) mod skrifa {
     }
 
     impl<'a> SkrifaInterjector<'a> {
+        /// Return the advance width and left side bearing of the glyph.
         pub(crate) fn horizontal_metrics(&self, glyph: u16) -> Option<(u16, i16)> {
             let metrics = self.font_ref.glyph_metrics(Size::unscaled(), &self.location);
 
@@ -48,6 +49,7 @@ pub(crate) mod skrifa {
             Some((adv.round() as u16, lsb.round() as i16))
         }
 
+        /// Return the glyph description in the `glyf` outline format.
         pub(crate) fn glyph_data<'b>(
             &'b self,
             maxp_data: &'b mut MaxpData,
