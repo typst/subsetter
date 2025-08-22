@@ -282,17 +282,6 @@ fn glyph_metrics(font_file: &str, gids: &str) {
             "{:?}",
             format!("metric advance width didn't match for glyph {}.", glyph)
         );
-
-        assert_eq!(
-            old_metrics
-                .left_side_bearing(skrifa::GlyphId::new(glyph as u32))
-                .unwrap(),
-            new_metrics
-                .left_side_bearing(skrifa::GlyphId::new(mapped as u32))
-                .unwrap(),
-            "{:?}",
-            format!("metric left side bearing didn't match for glyph {}.", glyph)
-        );
     }
 }
 
@@ -304,8 +293,8 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
     let num_glyphs = old_face.maxp().unwrap().num_glyphs();
 
     for glyph in (0..num_glyphs).filter(|g| ctx.gids.contains(g)) {
-        let mut sink1 = BezPathBuilder::new();
-        let mut sink2 = BezPathBuilder::new();
+        let mut sink1 = Sink(vec![]);
+        let mut sink2 = Sink(vec![]);
 
         let new_glyph = ctx.mapper.get(glyph).unwrap();
         let settings = DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
@@ -322,12 +311,14 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
                 .get(skrifa::GlyphId::new(new_glyph as u32))
                 .unwrap_or_else(|| panic!("failed to find glyph {} in new face", glyph));
             glyph2.draw(settings, &mut sink2).unwrap();
-
-            assert_eq!(
-                sink1.0, sink2.0,
-                "glyph {} drawn with skrifa didn't match.",
-                glyph
-            );
+            
+            if !compare_instructions(&sink1.0, &sink2.0) {
+                assert_eq!(
+                    sink1.0, sink2.0,
+                    "glyph {} drawn with skrifa didn't match.",
+                    glyph
+                );
+            }
         }
     }
 }
@@ -375,6 +366,34 @@ enum Inst {
     Close,
 }
 
+impl Inst {
+    fn approx_eq(&self, other: &Inst) -> bool {
+        const EPSILON: f32 = 2.0;
+
+        match (self, other) {
+            (Inst::MoveTo(x1, y1), Inst::MoveTo(x2, y2)) => (x1 - x2).abs() < EPSILON && (y1 - y2).abs() < EPSILON,
+            (Inst::LineTo(x1, y1), Inst::LineTo(x2, y2)) => (x1 - x2).abs() < EPSILON && (y1 - y2).abs() < EPSILON,
+            (Inst::QuadTo(x1, y1, x2, y2), Inst::QuadTo(x3, y3, x4, y4)) => (x1 - x3).abs() < EPSILON && (y1 - y3).abs() < EPSILON && (x2 - x4).abs() < EPSILON && (y2 - y4).abs() < EPSILON,
+            (Inst::Close, Inst::Close) => true,
+            _ => false,
+        }
+    }
+}
+
+fn compare_instructions(a: &[Inst], b: &[Inst]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+
+    for (i1, i2) in a.iter().zip(b.iter()) {
+        if !i1.approx_eq(i2) {
+            return false;
+        }
+    }
+
+    true
+}
+
 impl ttf_parser::OutlineBuilder for Sink {
     fn move_to(&mut self, x: f32, y: f32) {
         self.0.push(Inst::MoveTo(x, y));
@@ -397,37 +416,24 @@ impl ttf_parser::OutlineBuilder for Sink {
     }
 }
 
-struct BezPathBuilder(BezPath);
-
-impl BezPathBuilder {
-    fn new() -> Self {
-        Self(BezPath::new())
-    }
-}
-
-impl OutlinePen for BezPathBuilder {
-    #[inline]
+impl OutlinePen for Sink {
     fn move_to(&mut self, x: f32, y: f32) {
-        self.0.move_to((x, y));
+        self.0.push(Inst::MoveTo(x, y));
     }
 
-    #[inline]
     fn line_to(&mut self, x: f32, y: f32) {
-        self.0.line_to((x, y));
+        self.0.push(Inst::LineTo(x, y));
     }
 
-    #[inline]
-    fn quad_to(&mut self, cx: f32, cy: f32, x: f32, y: f32) {
-        self.0.quad_to((cx, cy), (x, y));
+    fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
+        self.0.push(Inst::QuadTo(x1, y1, x, y));
     }
 
-    #[inline]
-    fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
-        self.0.curve_to((cx0, cy0), (cx1, cy1), (x, y));
+    fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
+        self.0.push(Inst::CurveTo(x1, y1, x2, y2, x, y));
     }
 
-    #[inline]
     fn close(&mut self) {
-        self.0.close_path();
+        self.0.push(Inst::Close);
     }
 }

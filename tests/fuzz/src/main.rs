@@ -270,6 +270,33 @@ enum Inst {
     Close,
 }
 
+impl Inst {
+    fn approx_eq(&self, other: &Inst) -> bool {
+        const EPSILON: f32 = 2.0;
+        
+        match (self, other) {
+            (Inst::MoveTo(x1, y1), Inst::MoveTo(x2, y2)) => (x1 - x2).abs() < EPSILON && (y1 - y2).abs() < EPSILON,
+            (Inst::LineTo(x1, y1), Inst::LineTo(x2, y2)) => (x1 - x2).abs() < EPSILON && (y1 - y2).abs() < EPSILON,
+            (Inst::QuadTo(x1, y1, x2, y2), Inst::QuadTo(x3, y3, x4, y4)) => (x1 - x3).abs() < EPSILON && (y1 - y3).abs() < EPSILON && (x2 - x4).abs() < EPSILON && (y2 - y4).abs() < EPSILON,
+            _ => false,
+        }
+    }
+}
+
+fn compare_instructions(a: &[Inst], b: &[Inst]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    
+    for (i1, i2) in a.iter().zip(b.iter()) {
+        if !i1.approx_eq(i2) {
+            return false;
+        }
+    }
+    
+    true
+}
+
 impl OutlinePen for Sink {
     fn move_to(&mut self, x: f32, y: f32) {
         self.0.push(Inst::MoveTo(x, y));

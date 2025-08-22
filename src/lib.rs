@@ -194,9 +194,6 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
     if ctx.flavor == FontFlavor::TrueType {
         // LOCA will be handled by GLYF
         ctx.process(Tag::GLYF)?;
-        ctx.process(Tag::CVT)?; // won't be subsetted.
-        ctx.process(Tag::FPGM)?; // won't be subsetted.
-        ctx.process(Tag::PREP)?; // won't be subsetted.
     } else if ctx.flavor == FontFlavor::Cff {
         ctx.process(Tag::CFF)?;
     } else if ctx.flavor == FontFlavor::Cff2 {

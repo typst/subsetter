@@ -13,7 +13,7 @@ pub(crate) fn get_font_data(
     font_flavor: FontFlavor,
     remapper: &GlyphRemapper,
 ) -> crate::Result<FontMetrics> {
-    let font_ref: FontRef =
+    let font_ref =
         FontRef::from_index(data, index).map_err(|_| MalformedFont)?;
     let location = font_ref.axes().location(
         variation_coordinates
