@@ -288,6 +288,7 @@ fn glyph_metrics(font_file: &str, gids: &str) {
 fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
     let old_face = skrifa::FontRef::from_index(&ctx.font, 0).unwrap();
+    std::fs::write("out.otf", &ctx.subset);
     let new_face = skrifa::FontRef::from_index(&ctx.subset, 0).unwrap();
 
     let num_glyphs = old_face.maxp().unwrap().num_glyphs();
@@ -311,7 +312,7 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
                 .get(skrifa::GlyphId::new(new_glyph as u32))
                 .unwrap_or_else(|| panic!("failed to find glyph {} in new face", glyph));
             glyph2.draw(settings, &mut sink2).unwrap();
-            
+
             if !compare_instructions(&sink1.0, &sink2.0) {
                 assert_eq!(
                     sink1.0, sink2.0,
@@ -371,9 +372,18 @@ impl Inst {
         const EPSILON: f32 = 2.0;
 
         match (self, other) {
-            (Inst::MoveTo(x1, y1), Inst::MoveTo(x2, y2)) => (x1 - x2).abs() < EPSILON && (y1 - y2).abs() < EPSILON,
-            (Inst::LineTo(x1, y1), Inst::LineTo(x2, y2)) => (x1 - x2).abs() < EPSILON && (y1 - y2).abs() < EPSILON,
-            (Inst::QuadTo(x1, y1, x2, y2), Inst::QuadTo(x3, y3, x4, y4)) => (x1 - x3).abs() < EPSILON && (y1 - y3).abs() < EPSILON && (x2 - x4).abs() < EPSILON && (y2 - y4).abs() < EPSILON,
+            (Inst::MoveTo(x1, y1), Inst::MoveTo(x2, y2)) => {
+                (x1 - x2).abs() < EPSILON && (y1 - y2).abs() < EPSILON
+            }
+            (Inst::LineTo(x1, y1), Inst::LineTo(x2, y2)) => {
+                (x1 - x2).abs() < EPSILON && (y1 - y2).abs() < EPSILON
+            }
+            (Inst::QuadTo(x1, y1, x2, y2), Inst::QuadTo(x3, y3, x4, y4)) => {
+                (x1 - x3).abs() < EPSILON
+                    && (y1 - y3).abs() < EPSILON
+                    && (x2 - x4).abs() < EPSILON
+                    && (y2 - y4).abs() < EPSILON
+            }
             (Inst::Close, Inst::Close) => true,
             _ => false,
         }

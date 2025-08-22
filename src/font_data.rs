@@ -13,8 +13,7 @@ pub(crate) fn get_font_data(
     font_flavor: FontFlavor,
     remapper: &GlyphRemapper,
 ) -> crate::Result<FontMetrics> {
-    let font_ref =
-        FontRef::from_index(data, index).map_err(|_| MalformedFont)?;
+    let font_ref = FontRef::from_index(data, index).map_err(|_| MalformedFont)?;
     let location = font_ref.axes().location(
         variation_coordinates
             .iter()
@@ -55,9 +54,9 @@ pub(crate) fn get_font_data(
 
         let advance_width =
             metrics.advance_width(glyph).ok_or(MalformedFont)?.round() as u16;
-        let lsb = metrics.left_side_bearing(glyph).ok_or(MalformedFont)?.round() as i16;
 
         let bbox = path.bounding_box().expand();
+        let lsb = bbox.x0 as i16;
 
         global_bbox = Some(global_bbox.map(|g| g.union(bbox)).unwrap_or(bbox));
 

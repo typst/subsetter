@@ -73,7 +73,19 @@ fn subset_glyf_entries(ctx: &mut Context) -> Result<Vec<Vec<u8>>> {
             let mut writer = TableWriter::default();
             simple_glyph.write_into(&mut writer);
 
-            dump_table(&simple_glyph).map_err(|_| MalformedFont)?
+            let mut glyf_data = dump_table(&simple_glyph).map_err(|_| MalformedFont)?;
+
+            // TODO: Why can this be empty?
+            if !glyf_data.is_empty() {
+                // Patch up the bbox. `write_fonts` uses the `control_bbox`, but we want
+                // to use our custom bbox that we calculated with `bounding_box`.
+                glyf_data[2..4].copy_from_slice(&glyph_data.bbox.left.to_be_bytes());
+                glyf_data[4..6].copy_from_slice(&glyph_data.bbox.top.to_be_bytes());
+                glyf_data[6..8].copy_from_slice(&glyph_data.bbox.right.to_be_bytes());
+                glyf_data[8..10].copy_from_slice(&glyph_data.bbox.bottom.to_be_bytes());
+            }
+
+            glyf_data
         };
 
         let mut len = written_glyph.len();

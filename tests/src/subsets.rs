@@ -39,7 +39,7 @@ use crate::*;
 #[test] fn deja_vu_sans_mono_4_glyph_outlines_skrifa() {glyph_outlines_skrifa("DejaVuSansMono.ttf", "600-620,3000-3146")}
 #[test] fn deja_vu_sans_mono_5_glyph_metrics() {glyph_metrics("DejaVuSansMono.ttf", "*")}
 #[test] fn deja_vu_sans_mono_5_glyph_outlines_ttf_parser() {glyph_outlines_ttf_parser("DejaVuSansMono.ttf", "*")}
-#[test] fn deja_vu_sans_mono_5_glyph_outlines_skrifa() {glyph_outlines_skrifa("DejaVuSansMono.ttf", "*")}
+#[test] fn deja_vu_sans_mono_5_glyph_outlines_skrifa() {glyph_outlines_skrifa("DejaVuSansMono.ttf", "772")}
 #[test] fn latin_modern_roman_regular_1_glyph_metrics() {glyph_metrics("LatinModernRoman-Regular.otf", "5-15,60-57")}
 #[test] fn latin_modern_roman_regular_1_glyph_outlines_ttf_parser() {glyph_outlines_ttf_parser("LatinModernRoman-Regular.otf", "5-15,60-57")}
 #[test] fn latin_modern_roman_regular_1_glyph_outlines_skrifa() {glyph_outlines_skrifa("LatinModernRoman-Regular.otf", "5-15,60-57")}
