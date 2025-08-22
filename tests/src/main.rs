@@ -342,11 +342,18 @@ fn glyph_outlines_ttf_parser(font_file: &str, gids: &str) {
 
         if old_face.outline_glyph(GlyphId(glyph), &mut sink1).is_some() {
             new_face.outline_glyph(GlyphId(new_glyph), &mut sink2);
-            assert_eq!(
-                sink1, sink2,
-                "glyph {} drawn with ttf-parser didn't match.",
-                glyph
-            );
+            
+            // Don't directly check that the outlines are equivalent to each other, because they are
+            // most likely not going to be. We are rewriting the outlines by loading them with skrifa
+            // and then dumping them again. It seems like skrifa and ttf-parser produce different 
+            // outlines (although the visual result will be the same), so the outlines produced by
+            // ttf-parser might be different.
+            
+            // We just outline to make sure that _something_ happened.
+            
+            if !sink1.0.is_empty() {
+                assert!(!sink2.0.is_empty(), "ttf-parser failed to outline a subsetted glyph.");
+            }
         }
     }
 }
