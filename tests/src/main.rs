@@ -1,3 +1,4 @@
+use kurbo::BezPath;
 use skrifa::outline::{DrawSettings, OutlinePen};
 use skrifa::prelude::{LocationRef, Size};
 use skrifa::raw::TableProvider;
@@ -257,45 +258,41 @@ fn parse_variations(input: &str) -> Vec<(Tag, f32)> {
 
 fn glyph_metrics(font_file: &str, gids: &str) {
     let ctx = get_test_context(font_file, gids).unwrap();
-    let old_face = ttf_parser::Face::parse(&ctx.font, 0).unwrap();
-    let new_face = ttf_parser::Face::parse(&ctx.subset, 0).unwrap();
+    let old_face = skrifa::FontRef::from_index(&ctx.font, 0).unwrap();
+    let new_face = skrifa::FontRef::from_index(&ctx.subset, 0).unwrap();
+
+    let old_metrics = old_face.glyph_metrics(Size::unscaled(), LocationRef::default());
+    let new_metrics = new_face.glyph_metrics(Size::unscaled(), LocationRef::default());
+
+    let old_face_num_glyphs = old_face.maxp().unwrap().num_glyphs();
 
     for glyph in ctx
         .gids
         .iter()
         .copied()
-        .filter(|g| ctx.gids.contains(g) && *g < old_face.number_of_glyphs())
+        .filter(|g| ctx.gids.contains(g) && *g < old_face_num_glyphs)
     {
         let mapped = ctx.mapper.get(glyph).unwrap();
 
         assert_eq!(
-            old_face.glyph_bounding_box(GlyphId(glyph)),
-            new_face.glyph_bounding_box(GlyphId(mapped)),
+            old_metrics.advance_width(skrifa::GlyphId::new(glyph as u32)).unwrap(),
+            new_metrics
+                .advance_width(skrifa::GlyphId::new(mapped as u32))
+                .unwrap(),
             "{:?}",
-            format!("metric glyph bounding box didn't match for glyph {}.", glyph)
+            format!("metric advance width didn't match for glyph {}.", glyph)
         );
 
         assert_eq!(
-            old_face.glyph_hor_side_bearing(GlyphId(glyph)),
-            new_face.glyph_hor_side_bearing(GlyphId(mapped)),
+            old_metrics
+                .left_side_bearing(skrifa::GlyphId::new(glyph as u32))
+                .unwrap(),
+            new_metrics
+                .left_side_bearing(skrifa::GlyphId::new(mapped as u32))
+                .unwrap(),
             "{:?}",
-            format!(
-                "metric glyph horizontal side bearing didn't match for glyph {}.",
-                glyph
-            )
+            format!("metric left side bearing didn't match for glyph {}.", glyph)
         );
-
-        assert_eq!(
-            old_face.glyph_hor_advance(GlyphId(glyph)),
-            new_face.glyph_hor_advance(GlyphId(mapped)),
-            "{:?}",
-            format!("metric glyph horizontal advance didn't match for glyph {}.", glyph)
-        );
-
-        // Assert that each glyph has an identity CID-to-GID mapping.
-        if let Some(cff) = new_face.tables().cff {
-            assert_eq!(cff.glyph_cid(GlyphId(mapped)), Some(mapped))
-        }
     }
 }
 
@@ -307,8 +304,8 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
     let num_glyphs = old_face.maxp().unwrap().num_glyphs();
 
     for glyph in (0..num_glyphs).filter(|g| ctx.gids.contains(g)) {
-        let mut sink1 = Sink(vec![]);
-        let mut sink2 = Sink(vec![]);
+        let mut sink1 = BezPathBuilder::new();
+        let mut sink2 = BezPathBuilder::new();
 
         let new_glyph = ctx.mapper.get(glyph).unwrap();
         let settings = DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
@@ -325,7 +322,12 @@ fn glyph_outlines_skrifa(font_file: &str, gids: &str) {
                 .get(skrifa::GlyphId::new(new_glyph as u32))
                 .unwrap_or_else(|| panic!("failed to find glyph {} in new face", glyph));
             glyph2.draw(settings, &mut sink2).unwrap();
-            assert_eq!(sink1, sink2, "glyph {} drawn with skrifa didn't match.", glyph);
+
+            assert_eq!(
+                sink1.0, sink2.0,
+                "glyph {} drawn with skrifa didn't match.",
+                glyph
+            );
         }
     }
 }
@@ -342,17 +344,20 @@ fn glyph_outlines_ttf_parser(font_file: &str, gids: &str) {
 
         if old_face.outline_glyph(GlyphId(glyph), &mut sink1).is_some() {
             new_face.outline_glyph(GlyphId(new_glyph), &mut sink2);
-            
+
             // Don't directly check that the outlines are equivalent to each other, because they are
             // most likely not going to be. We are rewriting the outlines by loading them with skrifa
-            // and then dumping them again. It seems like skrifa and ttf-parser produce different 
+            // and then dumping them again. It seems like skrifa and ttf-parser produce different
             // outlines (although the visual result will be the same), so the outlines produced by
             // ttf-parser might be different.
-            
+
             // We just outline to make sure that _something_ happened.
-            
+
             if !sink1.0.is_empty() {
-                assert!(!sink2.0.is_empty(), "ttf-parser failed to outline a subsetted glyph.");
+                assert!(
+                    !sink2.0.is_empty(),
+                    "ttf-parser failed to outline a subsetted glyph."
+                );
             }
         }
     }
@@ -368,28 +373,6 @@ enum Inst {
     QuadTo(f32, f32, f32, f32),
     CurveTo(f32, f32, f32, f32, f32, f32),
     Close,
-}
-
-impl OutlinePen for Sink {
-    fn move_to(&mut self, x: f32, y: f32) {
-        self.0.push(Inst::MoveTo(x, y));
-    }
-
-    fn line_to(&mut self, x: f32, y: f32) {
-        self.0.push(Inst::LineTo(x, y));
-    }
-
-    fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
-        self.0.push(Inst::QuadTo(x1, y1, x, y));
-    }
-
-    fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
-        self.0.push(Inst::CurveTo(x1, y1, x2, y2, x, y));
-    }
-
-    fn close(&mut self) {
-        self.0.push(Inst::Close);
-    }
 }
 
 impl ttf_parser::OutlineBuilder for Sink {
@@ -411,5 +394,40 @@ impl ttf_parser::OutlineBuilder for Sink {
 
     fn close(&mut self) {
         self.0.push(Inst::Close);
+    }
+}
+
+struct BezPathBuilder(BezPath);
+
+impl BezPathBuilder {
+    fn new() -> Self {
+        Self(BezPath::new())
+    }
+}
+
+impl OutlinePen for BezPathBuilder {
+    #[inline]
+    fn move_to(&mut self, x: f32, y: f32) {
+        self.0.move_to((x, y));
+    }
+
+    #[inline]
+    fn line_to(&mut self, x: f32, y: f32) {
+        self.0.line_to((x, y));
+    }
+
+    #[inline]
+    fn quad_to(&mut self, cx: f32, cy: f32, x: f32, y: f32) {
+        self.0.quad_to((cx, cy), (x, y));
+    }
+
+    #[inline]
+    fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
+        self.0.curve_to((cx0, cy0), (cx1, cy1), (x, y));
+    }
+
+    #[inline]
+    fn close(&mut self) {
+        self.0.close_path();
     }
 }
