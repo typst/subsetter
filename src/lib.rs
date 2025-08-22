@@ -75,10 +75,10 @@ resulting font is 1 KB.
 mod cff;
 #[cfg(feature = "variable-fonts")]
 mod cff2;
+mod font_data;
 mod glyf;
 mod head;
 mod hmtx;
-mod interjector;
 mod maxp;
 mod name;
 mod post;
@@ -86,12 +86,13 @@ mod read;
 mod remapper;
 mod write;
 
-use crate::interjector::Interjector;
+use crate::font_data::{get_font_data, FontMetrics};
 use crate::maxp::MaxpData;
 use crate::read::{Readable, Reader};
 pub use crate::remapper::GlyphRemapper;
 use crate::write::{Writeable, Writer};
 use crate::Error::{MalformedFont, Unimplemented, UnknownKind};
+use kurbo::BezPath;
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::marker::PhantomData;
@@ -162,42 +163,16 @@ fn prepare_context<'a>(
         return Err(UnknownKind);
     };
 
-    if flavor == FontFlavor::TrueType {
-        glyf::closure(&face, &mut gid_remapper)?;
-    }
+    let font_data =
+        get_font_data(data, index, variation_coordinates, flavor, &gid_remapper)?;
 
     let _ = variation_coordinates;
-
-    #[cfg(not(feature = "variable-fonts"))]
-    let interjector = Interjector::Dummy(PhantomData::default());
-    // For CFF, we _always_ want to do normal subsetting, since CFF cannot have variations.
-    // For TrueType, we prefer normal subsetting in case no variation was requested. If we do have
-    // variations, we use `skrifa` to instance.
-    // For CFF2, we _always_ use `skrifa` to instance.
-    #[cfg(feature = "variable-fonts")]
-    let interjector = if (variation_coordinates.is_empty()
-        && flavor == FontFlavor::TrueType)
-        || flavor == FontFlavor::Cff
-    {
-        // For TrueType and CFF, we are still best off using the normal subsetting logic in case no variation coordinates
-        // have been passed.
-        Interjector::Dummy(PhantomData::default())
-    } else {
-        Interjector::Skrifa(
-            interjector::skrifa::SkrifaInterjector::new(
-                data,
-                index,
-                variation_coordinates,
-            )
-            .ok_or(MalformedFont)?,
-        )
-    };
 
     Ok(Context {
         face,
         mapper: gid_remapper,
-        interjector,
         custom_maxp_data: None,
+        font_data,
         flavor,
         tables: vec![],
         long_loca: false,
@@ -362,15 +337,7 @@ struct Context<'a> {
     flavor: FontFlavor,
     /// Subsetted tables.
     tables: Vec<(Tag, Cow<'a, [u8]>)>,
-    /// An object that can _interject_ data during the subsetting process.
-    /// Normally, when subsetting CFF/TrueType fonts, we will simply read the corresponding
-    /// data from the old font and rewrite it to the new font, for example when writing the
-    /// `hmtx` table.
-    ///
-    /// However, in case we are subsetting with variation coordinates, we instead rely on skrifa
-    /// to apply the variation coordinates and interject that data during the subsetting process
-    /// instead of using the data from the old font.
-    interjector: Interjector<'a>,
+    font_data: FontMetrics,
     /// Custom data that should be used for writing the `maxp` table. Only needed for CFF2,
     /// where we need to synthesize a V1 table after converting.
     pub(crate) custom_maxp_data: Option<MaxpData>,

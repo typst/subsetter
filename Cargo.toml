@@ -25,13 +25,13 @@ license = { workspace = true }
 
 [features]
 default = ["variable-fonts"]
-variable-fonts = ["dep:skrifa", "dep:write-fonts", "dep:kurbo"]
+variable-fonts = []
 
 [dependencies]
 rustc-hash = "2.1"
-skrifa = { optional = true, version = "0.33" }
-kurbo = { optional = true, version = "0.11" }
-write-fonts = { optional = true, version = "0.39.1"}
+skrifa = { version = "0.33" }
+kurbo = { version = "0.11" }
+write-fonts = { version = "0.39.1"}
 
 [dev-dependencies]
 skrifa = "0.33"
