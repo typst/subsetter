@@ -12,18 +12,13 @@
     <GlyphID id="6" name="ccircumflex"/>
     <GlyphID id="7" name="Cdotaccent"/>
     <GlyphID id="8" name="cdotaccent"/>
-    <GlyphID id="9" name="dotaccent"/>
-    <GlyphID id="10" name="c"/>
-    <GlyphID id="11" name="C"/>
-    <GlyphID id="12" name="circumflex"/>
-    <GlyphID id="13" name="acute"/>
   </GlyphOrder>
 
   <head>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.013"/>
-    <checkSumAdjustment value="0xf8bea5c9"/>
+    <checkSumAdjustment value="0x41817383"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -57,17 +52,17 @@
     <reserved2 value="0"/>
     <reserved3 value="0"/>
     <metricDataFormat value="0"/>
-    <numberOfHMetrics value="14"/>
+    <numberOfHMetrics value="9"/>
   </hhea>
 
   <maxp>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="0x10000"/>
-    <numGlyphs value="14"/>
-    <maxPoints value="273"/>
-    <maxContours value="24"/>
-    <maxCompositePoints value="143"/>
-    <maxCompositeContours value="8"/>
+    <numGlyphs value="9"/>
+    <maxPoints value="51"/>
+    <maxContours value="2"/>
+    <maxCompositePoints value="0"/>
+    <maxCompositeContours value="0"/>
     <maxZones value="1"/>
     <maxTwilightPoints value="0"/>
     <maxStorage value="0"/>
@@ -75,24 +70,19 @@
     <maxInstructionDefs value="0"/>
     <maxStackElements value="0"/>
     <maxSizeOfInstructions value="0"/>
-    <maxComponentElements value="4"/>
+    <maxComponentElements value="0"/>
     <maxComponentDepth value="1"/>
   </maxp>
 
   <hmtx>
     <mtx name=".notdef" width="600" lsb="94"/>
-    <mtx name="C" width="632" lsb="61"/>
     <mtx name="Ccircumflex" width="632" lsb="61"/>
     <mtx name="Cdotaccent" width="632" lsb="61"/>
     <mtx name="E" width="556" lsb="97"/>
     <mtx name="W" width="930" lsb="12"/>
-    <mtx name="acute" width="281" lsb="40"/>
-    <mtx name="c" width="480" lsb="55"/>
     <mtx name="cacute" width="480" lsb="55"/>
     <mtx name="ccircumflex" width="480" lsb="55"/>
     <mtx name="cdotaccent" width="480" lsb="55"/>
-    <mtx name="circumflex" width="418" lsb="40"/>
-    <mtx name="dotaccent" width="183" lsb="40"/>
     <mtx name="quotesingle" width="225" lsb="65"/>
   </hmtx>
 
@@ -117,44 +107,6 @@
         <pt x="454" y="51" on="1"/>
         <pt x="454" y="663" on="1"/>
         <pt x="145" y="663" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
-    <TTGlyph name="C" xMin="61" yMin="-10" xMax="601" yMax="724">
-      <contour>
-        <pt x="403" y="645" on="1"/>
-        <pt x="346" y="645" on="0"/>
-        <pt x="254" y="606" on="0"/>
-        <pt x="190" y="531" on="0"/>
-        <pt x="156" y="424" on="0"/>
-        <pt x="156" y="357" on="1"/>
-        <pt x="156" y="269" on="0"/>
-        <pt x="211" y="139" on="0"/>
-        <pt x="320" y="69" on="0"/>
-        <pt x="402" y="69" on="1"/>
-        <pt x="449" y="69" on="0"/>
-        <pt x="533" y="85" on="0"/>
-        <pt x="573" y="97" on="1"/>
-        <pt x="573" y="19" on="1"/>
-        <pt x="533" y="4" on="0"/>
-        <pt x="448" y="-10" on="0"/>
-        <pt x="389" y="-10" on="1"/>
-        <pt x="280" y="-10" on="0"/>
-        <pt x="134" y="80" on="0"/>
-        <pt x="61" y="246" on="0"/>
-        <pt x="61" y="358" on="1"/>
-        <pt x="61" y="439" on="0"/>
-        <pt x="106" y="573" on="0"/>
-        <pt x="193" y="671" on="0"/>
-        <pt x="321" y="724" on="0"/>
-        <pt x="404" y="724" on="1"/>
-        <pt x="459" y="724" on="0"/>
-        <pt x="561" y="702" on="0"/>
-        <pt x="601" y="682" on="1"/>
-        <pt x="565" y="606" on="1"/>
-        <pt x="532" y="621" on="0"/>
-        <pt x="451" y="645" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>
@@ -336,61 +288,6 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="acute" xMin="40" yMin="606" xMax="241" yMax="766">
-      <contour>
-        <pt x="241" y="756" on="1"/>
-        <pt x="232" y="742" on="0"/>
-        <pt x="198" y="702" on="0"/>
-        <pt x="157" y="659" on="0"/>
-        <pt x="116" y="620" on="0"/>
-        <pt x="98" y="606" on="1"/>
-        <pt x="40" y="606" on="1"/>
-        <pt x="40" y="618" on="1"/>
-        <pt x="55" y="637" on="0"/>
-        <pt x="90" y="689" on="0"/>
-        <pt x="124" y="744" on="0"/>
-        <pt x="135" y="766" on="1"/>
-        <pt x="241" y="766" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
-    <TTGlyph name="c" xMin="55" yMin="-10" xMax="447" yMax="546">
-      <contour>
-        <pt x="300" y="-10" on="1"/>
-        <pt x="229" y="-10" on="0"/>
-        <pt x="118" y="48" on="0"/>
-        <pt x="55" y="170" on="0"/>
-        <pt x="55" y="265" on="1"/>
-        <pt x="55" y="364" on="0"/>
-        <pt x="121" y="488" on="0"/>
-        <pt x="234" y="546" on="0"/>
-        <pt x="306" y="546" on="1"/>
-        <pt x="347" y="546" on="0"/>
-        <pt x="423" y="529" on="0"/>
-        <pt x="447" y="517" on="1"/>
-        <pt x="420" y="444" on="1"/>
-        <pt x="396" y="453" on="0"/>
-        <pt x="332" y="469" on="0"/>
-        <pt x="304" y="469" on="1"/>
-        <pt x="250" y="469" on="0"/>
-        <pt x="180" y="423" on="0"/>
-        <pt x="146" y="333" on="0"/>
-        <pt x="146" y="266" on="1"/>
-        <pt x="146" y="202" on="0"/>
-        <pt x="180" y="112" on="0"/>
-        <pt x="248" y="66" on="0"/>
-        <pt x="299" y="66" on="1"/>
-        <pt x="343" y="66" on="0"/>
-        <pt x="410" y="84" on="0"/>
-        <pt x="438" y="97" on="1"/>
-        <pt x="438" y="19" on="1"/>
-        <pt x="411" y="5" on="0"/>
-        <pt x="346" y="-10" on="0"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
     <TTGlyph name="cacute" xMin="55" yMin="-10" xMax="447" yMax="766">
       <contour>
         <pt x="300" y="-10" on="1"/>
@@ -545,49 +442,6 @@
         <pt x="233" y="681" on="1"/>
         <pt x="233" y="710" on="0"/>
         <pt x="263" y="737" on="0"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
-    <TTGlyph name="circumflex" xMin="40" yMin="606" xMax="378" yMax="766">
-      <contour>
-        <pt x="253" y="766" on="1"/>
-        <pt x="265" y="744" on="0"/>
-        <pt x="310" y="689" on="0"/>
-        <pt x="359" y="636" on="0"/>
-        <pt x="378" y="617" on="1"/>
-        <pt x="378" y="606" on="1"/>
-        <pt x="316" y="606" on="1"/>
-        <pt x="290" y="622" on="0"/>
-        <pt x="234" y="669" on="0"/>
-        <pt x="207" y="696" on="1"/>
-        <pt x="180" y="669" on="0"/>
-        <pt x="126" y="623" on="0"/>
-        <pt x="100" y="606" on="1"/>
-        <pt x="40" y="606" on="1"/>
-        <pt x="40" y="617" on="1"/>
-        <pt x="59" y="637" on="0"/>
-        <pt x="106" y="689" on="0"/>
-        <pt x="150" y="744" on="0"/>
-        <pt x="163" y="766" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
-    <TTGlyph name="dotaccent" xMin="40" yMin="625" xMax="143" yMax="737">
-      <contour>
-        <pt x="92" y="737" on="1"/>
-        <pt x="112" y="737" on="0"/>
-        <pt x="143" y="710" on="0"/>
-        <pt x="143" y="681" on="1"/>
-        <pt x="143" y="653" on="0"/>
-        <pt x="112" y="625" on="0"/>
-        <pt x="92" y="625" on="1"/>
-        <pt x="70" y="625" on="0"/>
-        <pt x="40" y="653" on="0"/>
-        <pt x="40" y="681" on="1"/>
-        <pt x="40" y="710" on="0"/>
-        <pt x="70" y="737" on="0"/>
       </contour>
       <instructions/>
     </TTGlyph>

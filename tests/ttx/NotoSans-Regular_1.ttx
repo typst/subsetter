@@ -14,16 +14,13 @@
     <GlyphID id="8" name="uni2E0D"/>
     <GlyphID id="9" name="uni2E03"/>
     <GlyphID id="10" name="uni2E0A"/>
-    <GlyphID id="11" name="quoteright"/>
-    <GlyphID id="12" name="caron"/>
-    <GlyphID id="13" name="uni0237"/>
   </GlyphOrder>
 
   <head>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.007"/>
-    <checkSumAdjustment value="0x32c22e8a"/>
+    <checkSumAdjustment value="0x7b9e3895"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -57,17 +54,17 @@
     <reserved2 value="0"/>
     <reserved3 value="0"/>
     <metricDataFormat value="0"/>
-    <numberOfHMetrics value="14"/>
+    <numberOfHMetrics value="11"/>
   </hhea>
 
   <maxp>
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="0x10000"/>
-    <numGlyphs value="14"/>
-    <maxPoints value="260"/>
-    <maxContours value="24"/>
-    <maxCompositePoints value="121"/>
-    <maxCompositeContours value="6"/>
+    <numGlyphs value="11"/>
+    <maxPoints value="140"/>
+    <maxContours value="22"/>
+    <maxCompositePoints value="0"/>
+    <maxCompositeContours value="0"/>
     <maxZones value="1"/>
     <maxTwilightPoints value="0"/>
     <maxStorage value="0"/>
@@ -75,16 +72,13 @@
     <maxInstructionDefs value="0"/>
     <maxStackElements value="0"/>
     <maxSizeOfInstructions value="0"/>
-    <maxComponentElements value="4"/>
+    <maxComponentElements value="0"/>
     <maxComponentDepth value="1"/>
   </maxp>
 
   <hmtx>
     <mtx name=".notdef" width="600" lsb="94"/>
-    <mtx name="caron" width="418" lsb="40"/>
-    <mtx name="quoteright" width="175" lsb="12"/>
     <mtx name="uni01F0" width="258" lsb="-55"/>
-    <mtx name="uni0237" width="258" lsb="-55"/>
     <mtx name="uni02BC" width="175" lsb="12"/>
     <mtx name="uni2E00" width="500" lsb="120"/>
     <mtx name="uni2E03" width="500" lsb="128"/>
@@ -95,17 +89,6 @@
     <mtx name="uniFFFC" width="1000" lsb="41"/>
     <mtx name="uniFFFD" width="1000" lsb="41"/>
   </hmtx>
-
-  <prep>
-    <assembly>
-      PUSHW[ ]	/* 1 value pushed */
-      511
-      SCANCTRL[ ]	/* ScanConversionControl */
-      PUSHB[ ]	/* 1 value pushed */
-      4
-      SCANTYPE[ ]	/* ScanType */
-    </assembly>
-  </prep>
 
   <loca>
     <!-- The 'loca' table will be calculated by the compiler -->
@@ -132,53 +115,7 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="caron" xMin="40" yMin="606" xMax="378" yMax="766">
-      <contour>
-        <pt x="163" y="606" on="1"/>
-        <pt x="150" y="629" on="0"/>
-        <pt x="106" y="682" on="0"/>
-        <pt x="58" y="734" on="0"/>
-        <pt x="40" y="753" on="1"/>
-        <pt x="40" y="766" on="1"/>
-        <pt x="100" y="766" on="1"/>
-        <pt x="126" y="749" on="0"/>
-        <pt x="182" y="701" on="0"/>
-        <pt x="207" y="674" on="1"/>
-        <pt x="234" y="701" on="0"/>
-        <pt x="290" y="749" on="0"/>
-        <pt x="316" y="766" on="1"/>
-        <pt x="378" y="766" on="1"/>
-        <pt x="378" y="753" on="1"/>
-        <pt x="359" y="734" on="0"/>
-        <pt x="310" y="682" on="0"/>
-        <pt x="265" y="629" on="0"/>
-        <pt x="253" y="606" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
-    <TTGlyph name="quoteright" xMin="12" yMin="469" xMax="163" yMax="714">
-      <contour>
-        <pt x="163" y="703" on="1"/>
-        <pt x="150" y="651" on="0"/>
-        <pt x="101" y="522" on="0"/>
-        <pt x="77" y="469" on="1"/>
-        <pt x="12" y="469" on="1"/>
-        <pt x="22" y="507" on="0"/>
-        <pt x="41" y="594" on="0"/>
-        <pt x="57" y="679" on="0"/>
-        <pt x="62" y="714" on="1"/>
-        <pt x="156" y="714" on="1"/>
-      </contour>
-      <instructions/>
-    </TTGlyph>
-
     <TTGlyph name="uni01F0" xMin="-55" yMin="-240" xMax="298" yMax="766">
-      <component glyphName="uni0237" x="0" y="0" flags="0x204"/>
-      <component glyphName="caron" x="-80" y="0" flags="0x4"/>
-    </TTGlyph>
-
-    <TTGlyph name="uni0237" xMin="-55" yMin="-240" xMax="173" yMax="536">
       <contour>
         <pt x="22" y="-240" on="1"/>
         <pt x="-3" y="-240" on="0"/>
@@ -197,11 +134,44 @@
         <pt x="173" y="-155" on="0"/>
         <pt x="101" y="-240" on="0"/>
       </contour>
+      <contour>
+        <pt x="83" y="606" on="1"/>
+        <pt x="70" y="629" on="0"/>
+        <pt x="26" y="682" on="0"/>
+        <pt x="-22" y="734" on="0"/>
+        <pt x="-40" y="753" on="1"/>
+        <pt x="-40" y="766" on="1"/>
+        <pt x="20" y="766" on="1"/>
+        <pt x="46" y="749" on="0"/>
+        <pt x="102" y="701" on="0"/>
+        <pt x="127" y="674" on="1"/>
+        <pt x="154" y="701" on="0"/>
+        <pt x="210" y="749" on="0"/>
+        <pt x="236" y="766" on="1"/>
+        <pt x="298" y="766" on="1"/>
+        <pt x="298" y="753" on="1"/>
+        <pt x="279" y="734" on="0"/>
+        <pt x="230" y="682" on="0"/>
+        <pt x="185" y="629" on="0"/>
+        <pt x="173" y="606" on="1"/>
+      </contour>
       <instructions/>
     </TTGlyph>
 
     <TTGlyph name="uni02BC" xMin="12" yMin="469" xMax="163" yMax="714">
-      <component glyphName="quoteright" x="0" y="0" flags="0x204"/>
+      <contour>
+        <pt x="163" y="703" on="1"/>
+        <pt x="150" y="651" on="0"/>
+        <pt x="101" y="522" on="0"/>
+        <pt x="77" y="469" on="1"/>
+        <pt x="12" y="469" on="1"/>
+        <pt x="22" y="507" on="0"/>
+        <pt x="41" y="594" on="0"/>
+        <pt x="57" y="679" on="0"/>
+        <pt x="62" y="714" on="1"/>
+        <pt x="156" y="714" on="1"/>
+      </contour>
+      <instructions/>
     </TTGlyph>
 
     <TTGlyph name="uni2E00" xMin="120" yMin="276" xMax="380" yMax="714">
@@ -238,16 +208,12 @@
         <pt x="376" y="276" on="1"/>
       </contour>
       <contour>
-        <pt x="193" y="409" on="1"/>
         <pt x="173" y="409" on="0"/>
         <pt x="149" y="435" on="0"/>
-        <pt x="149" y="461" on="1"/>
         <pt x="149" y="487" on="0"/>
         <pt x="173" y="512" on="0"/>
-        <pt x="193" y="512" on="1"/>
         <pt x="213" y="512" on="0"/>
         <pt x="238" y="487" on="0"/>
-        <pt x="238" y="461" on="1"/>
         <pt x="238" y="435" on="0"/>
         <pt x="213" y="409" on="0"/>
       </contour>
@@ -302,7 +268,6 @@
         <pt x="420" y="383" on="1"/>
         <pt x="433" y="383" on="0"/>
         <pt x="448" y="366" on="0"/>
-        <pt x="448" y="354" on="1"/>
         <pt x="448" y="342" on="0"/>
         <pt x="419" y="308" on="0"/>
         <pt x="362" y="282" on="0"/>
@@ -381,13 +346,11 @@
         <pt x="422" y="307" on="1"/>
         <pt x="422" y="241" on="0"/>
         <pt x="360" y="160" on="0"/>
-        <pt x="294" y="160" on="1"/>
         <pt x="228" y="160" on="0"/>
         <pt x="166" y="241" on="0"/>
         <pt x="166" y="307" on="1"/>
         <pt x="166" y="374" on="0"/>
         <pt x="228" y="454" on="0"/>
-        <pt x="294" y="454" on="1"/>
         <pt x="360" y="454" on="0"/>
         <pt x="422" y="374" on="0"/>
       </contour>
@@ -427,13 +390,11 @@
         <pt x="771" y="161" on="0"/>
       </contour>
       <contour>
-        <pt x="228" y="307" on="1"/>
         <pt x="228" y="262" on="0"/>
         <pt x="260" y="211" on="0"/>
         <pt x="294" y="211" on="1"/>
         <pt x="329" y="211" on="0"/>
         <pt x="360" y="262" on="0"/>
-        <pt x="360" y="307" on="1"/>
         <pt x="360" y="352" on="0"/>
         <pt x="329" y="403" on="0"/>
         <pt x="294" y="403" on="1"/>
@@ -654,7 +615,6 @@
       <psName name="uni2E0D"/>
       <psName name="uni2E03"/>
       <psName name="uni2E0A"/>
-      <psName name="uni0237"/>
     </extraNames>
   </post>
 

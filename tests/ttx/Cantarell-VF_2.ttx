@@ -22,7 +22,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="0.303"/>
-    <checkSumAdjustment value="0xa3d604f1"/>
+    <checkSumAdjustment value="0xa3d00691"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -80,18 +80,18 @@
 
   <hmtx>
     <mtx name=".notdef" width="500" lsb="50"/>
-    <mtx name="A" width="691" lsb="7"/>
-    <mtx name="C" width="636" lsb="54"/>
-    <mtx name="Cacute" width="636" lsb="54"/>
-    <mtx name="Ccaron" width="636" lsb="54"/>
-    <mtx name="Ccedilla" width="636" lsb="54"/>
-    <mtx name="Ccircumflex" width="636" lsb="54"/>
-    <mtx name="Dcaron" width="750" lsb="92"/>
-    <mtx name="L" width="558" lsb="92"/>
-    <mtx name="Lacute" width="558" lsb="87"/>
-    <mtx name="uni01C7" width="1012" lsb="92"/>
-    <mtx name="uni1E08" width="636" lsb="54"/>
-    <mtx name="uni1EAA" width="691" lsb="7"/>
+    <mtx name="A" width="691" lsb="-7"/>
+    <mtx name="C" width="636" lsb="37"/>
+    <mtx name="Cacute" width="636" lsb="37"/>
+    <mtx name="Ccaron" width="636" lsb="37"/>
+    <mtx name="Ccedilla" width="636" lsb="37"/>
+    <mtx name="Ccircumflex" width="636" lsb="37"/>
+    <mtx name="Dcaron" width="750" lsb="71"/>
+    <mtx name="L" width="558" lsb="71"/>
+    <mtx name="Lacute" width="558" lsb="71"/>
+    <mtx name="uni01C7" width="1012" lsb="71"/>
+    <mtx name="uni1E08" width="636" lsb="37"/>
+    <mtx name="uni1EAA" width="691" lsb="-7"/>
   </hmtx>
 
   <loca>
@@ -125,7 +125,7 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="C" xMin="37" yMin="-10" xMax="617" yMax="704">
+    <TTGlyph name="C" xMin="37" yMin="-10" xMax="617" yMax="705">
       <contour>
         <pt x="394" y="-10" on="1"/>
         <pt x="417" y="-10" on="0"/>
@@ -359,7 +359,7 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="Ccedilla" xMin="37" yMin="-258" xMax="617" yMax="704">
+    <TTGlyph name="Ccedilla" xMin="37" yMin="-258" xMax="617" yMax="705">
       <contour>
         <pt x="394" y="-10" on="1"/>
         <pt x="417" y="-10" on="0"/>

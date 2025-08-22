@@ -56,7 +56,11 @@ pub(crate) fn get_font_data(
             metrics.advance_width(glyph).ok_or(MalformedFont)?.round() as u16;
 
         let bbox = path.bounding_box().expand();
-        let lsb = bbox.x0 as i16;
+        let lsb = if !path.is_empty() {
+            bbox.x0 as i16
+        }   else {
+            metrics.left_side_bearing(glyph).ok_or(MalformedFont)?.round() as i16
+        };
 
         global_bbox = Some(global_bbox.map(|g| g.union(bbox)).unwrap_or(bbox));
 

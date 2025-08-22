@@ -20,7 +20,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.0"/>
-    <checkSumAdjustment value="0x6aa040c"/>
+    <checkSumAdjustment value="0xedf603fa"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00001011"/>
     <unitsPerEm value="1000"/>
@@ -54,7 +54,7 @@
     <reserved2 value="0"/>
     <reserved3 value="0"/>
     <metricDataFormat value="0"/>
-    <numberOfHMetrics value="9"/>
+    <numberOfHMetrics value="11"/>
   </hhea>
 
   <maxp>
@@ -344,7 +344,7 @@ This work is released under the GUST Font License -- see http://tug.org/fonts/li
     <mtx name="cid00001" width="1000" lsb="58"/>
     <mtx name="cid00002" width="684" lsb="82"/>
     <mtx name="cid00003" width="1000" lsb="58"/>
-    <mtx name="cid00004" width="684" lsb="82"/>
+    <mtx name="cid00004" width="684" lsb="81"/>
     <mtx name="cid00005" width="776" lsb="55"/>
     <mtx name="cid00006" width="776" lsb="55"/>
     <mtx name="cid00007" width="776" lsb="55"/>

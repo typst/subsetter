@@ -22,7 +22,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="0.303"/>
-    <checkSumAdjustment value="0xae97bd7b"/>
+    <checkSumAdjustment value="0xae99bd7b"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -598,7 +598,7 @@
       <instructions/>
     </TTGlyph>
 
-    <TTGlyph name="uni01C7" xMin="92" yMin="-10" xMax="824" yMax="694">
+    <TTGlyph name="uni01C7" xMin="92" yMin="-11" xMax="824" yMax="694">
       <contour>
         <pt x="92" y="0" on="1"/>
         <pt x="486" y="0" on="1"/>
