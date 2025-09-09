@@ -5,6 +5,7 @@ use skrifa::MetadataProvider;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::str::FromStr;
 use subsetter::{subset, subset_with_variations, GlyphRemapper, Tag};
 use ttf_parser::GlyphId;
 

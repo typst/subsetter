@@ -14,7 +14,7 @@ impl<'a> SubroutineCollection<'a> {
         }
     }
 
-    pub fn get_handler(&self, fd_index: u8) -> Option<SubroutineHandler> {
+    pub fn get_handler(&self, fd_index: u8) -> Option<SubroutineHandler<'_>> {
         self.subroutines.get(fd_index as usize).map(|s| s.get_handler())
     }
 }
@@ -29,7 +29,7 @@ impl<'a> SubroutineContainer<'a> {
         Self { subroutines }
     }
 
-    pub fn get_handler(&self) -> SubroutineHandler {
+    pub fn get_handler(&self) -> SubroutineHandler<'_> {
         SubroutineHandler::new(self.subroutines.as_ref())
     }
 }
