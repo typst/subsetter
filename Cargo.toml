@@ -3,7 +3,7 @@ members = ["tests/cli", "tests/fuzz"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.2"
+version = "0.2.3"
 rust-version = "1.82" # also change in ci.yml
 authors = ["Laurenz Mädje <laurmaedje@gmail.com>", "Laurenz Stampfl <laurenz.stampfl@gmail.com>"]
 edition = "2021"

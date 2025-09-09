@@ -48,7 +48,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "cli"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "subsetter",
 ]
@@ -110,7 +110,7 @@ dependencies = [
 
 [[package]]
 name = "fuzz"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "rand",
  "rand_distr",
@@ -324,7 +324,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "subsetter"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "kurbo",
  "rustc-hash",
