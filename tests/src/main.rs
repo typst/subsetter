@@ -53,12 +53,12 @@ fn test_cff_dump(font_file: &str, gids: &str, num: u16) {
 
     std::fs::write(otf_path.clone(), subset).unwrap();
 
-    let cff_dump_util = env!("CFF_DUMP_BIN");
+    let cff_dump_util = std::env::var("CFF_DUMP_BIN").unwrap();
 
     let output = Command::new("java")
         .args([
             "-jar",
-            cff_dump_util,
+            &cff_dump_util,
             "-otf",
             "-c",
             "-long",
