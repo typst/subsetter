@@ -29,10 +29,10 @@ variable-fonts = ["dep:skrifa", "dep:write-fonts", "dep:kurbo"]
 
 [dependencies]
 rustc-hash = "2.1"
-skrifa = { optional = true, version = "0.33" }
-kurbo = { optional = true, version = "0.11" }
-write-fonts = { optional = true, version = "0.39.1"}
+skrifa = { optional = true, version = "0.37" }
+kurbo = { optional = true, version = "0.12" }
+write-fonts = { optional = true, version = "0.43.0" }
 
 [dev-dependencies]
-skrifa = "0.33"
+skrifa = "0.37"
 ttf-parser = "0.25.1"

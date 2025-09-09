@@ -9,6 +9,6 @@ subsetter = { path = "../.." }
 rand = "0.9.0"
 rand_distr = "0.5.1"
 rayon = "1.10.0"
-skrifa = "0.29.0"
+skrifa = "0.37.0"
 ttf-parser = "0.25.1"
 walkdir = "2.5.0"
