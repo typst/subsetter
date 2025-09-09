@@ -92,9 +92,11 @@ use crate::read::{Readable, Reader};
 pub use crate::remapper::GlyphRemapper;
 use crate::write::{Writeable, Writer};
 use crate::Error::{MalformedFont, Unimplemented, UnknownKind};
+use std::array::TryFromSliceError;
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::marker::PhantomData;
+use std::str::FromStr;
 
 /// Subset the font face to include only the necessary glyphs and tables.
 ///
@@ -169,7 +171,7 @@ fn prepare_context<'a>(
     let _ = variation_coordinates;
 
     #[cfg(not(feature = "variable-fonts"))]
-    let interjector = Interjector::Dummy(PhantomData::default());
+    let interjector = Interjector::Dummy(PhantomData);
     // For CFF, we _always_ want to do normal subsetting, since CFF cannot have variations.
     // For TrueType, we prefer normal subsetting in case no variation was requested. If we do have
     // variations, we use `skrifa` to instance.
@@ -181,7 +183,7 @@ fn prepare_context<'a>(
     {
         // For TrueType and CFF, we are still best off using the normal subsetting logic in case no variation coordinates
         // have been passed.
-        Interjector::Dummy(PhantomData::default())
+        Interjector::Dummy(PhantomData)
     } else {
         Interjector::Skrifa(
             interjector::skrifa::SkrifaInterjector::new(
@@ -494,18 +496,20 @@ impl Tag {
         Self(*tag)
     }
 
-    /// Try to create a new tag from a string.
-    ///
-    /// Return `None` if the string is not 4 bytes in size.
-    pub fn from_str(s: &str) -> Option<Self> {
-        let tag: [u8; 4] = s.as_bytes().try_into().ok()?;
-
-        Some(Self(tag))
-    }
-
     /// Return the value of the tag.
     pub fn get(&self) -> &[u8; 4] {
         &self.0
+    }
+}
+
+impl FromStr for Tag {
+    type Err = TryFromSliceError;
+
+    /// Tries to create a new tag from a string.
+    ///
+    /// Return `Err(_)` if the string is not 4 bytes in size.
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        s.as_bytes().try_into().map(Self)
     }
 }
 
