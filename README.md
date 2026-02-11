@@ -14,7 +14,7 @@ scope of this crate to become a general purpose subsetter, as this is a massive 
 will make the already complex codebase even more complex.
 
 In the future,
-[klippa](https://github.com/googlefonts/fontations/tree/main/klippa) will hopefully fill this gap.
+[skera](https://github.com/googlefonts/fontations/tree/main/skera) will hopefully fill this gap.
 
 For an example on how to use this crate, have a look at the 
 [documentation](https://docs.rs/subsetter/latest/subsetter/).
