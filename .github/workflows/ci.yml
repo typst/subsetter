@@ -1,23 +1,30 @@
 name: Continuous integration
 on: [push, pull_request]
 
+env:
+  RUSTFLAGS: "-Dwarnings"
+  RUSTDOCFLAGS: "-Dwarnings"
+
+permissions:
+  contents: read
+
 jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62 # v3
         with:
           distribution: 'temurin'
           java-version: '17'
       - run: wget https://github.com/janpe2/CFFDump/releases/download/v1.3.0/CFFDump_bin_cli_1.3.0.jar -O CFFDump_bin_cli_1.3.0.jar
       - run: echo "CFF_DUMP_BIN=$PWD/CFFDump_bin_cli_1.3.0.jar" >> $GITHUB_ENV
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
       - run: pip install fonttools==4.50
-      - uses: dtolnay/rust-toolchain@1.89.0
+      - uses: dtolnay/rust-toolchain@78c2cd7546db85145bb10485288dd4e5063c5093 # 1.89.0
       - run: cargo build
       - run: cargo build --no-default-features
       - run: cargo test
@@ -26,11 +33,11 @@ jobs:
     name: Check clippy, formatting, and documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.89.0
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dtolnay/rust-toolchain@78c2cd7546db85145bb10485288dd4e5063c5093 # 1.89.0
         with:
           components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
       - run: cargo clippy --workspace --all-targets --all-features
       - run: cargo fmt --check --all
       - run: cargo doc --workspace --no-deps
@@ -39,7 +46,7 @@ jobs:
     name: Check minimum Rust version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.82.0
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dtolnay/rust-toolchain@c76de90492975e26e0f8299a832a5600f23f8ae1 # 1.82.0
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
       - run: cargo check --workspace
