@@ -11,7 +11,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0x366a9512"/>
+    <checkSumAdjustment value="0x59e8be78"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -74,9 +74,6 @@
     </namerecord>
     <namerecord nameID="6" platformID="3" platEncID="1" langID="0x409">
       LMRoman10-Regular
-    </namerecord>
-    <namerecord nameID="7" platformID="3" platEncID="1" langID="0x409">
-      Please refer to the Copyright section for the font trademark attribution notices.
     </namerecord>
   </name>
 
