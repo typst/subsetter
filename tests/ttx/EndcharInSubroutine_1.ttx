@@ -11,7 +11,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.004"/>
-    <checkSumAdjustment value="0x348c62f3"/>
+    <checkSumAdjustment value="0x366a9512"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -140,8 +140,6 @@
         </CharString>
         <CharString name="cid00001" fdSelectIndex="0">
           333 endchar
-          100 hmoveto
-          endchar
         </CharString>
       </CharStrings>
     </CFFFont>
