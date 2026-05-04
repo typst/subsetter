@@ -21,6 +21,11 @@ pub struct Decompiler<'a> {
     hint_mask_bytes: u16,
 }
 
+enum CharStringEnd {
+    Return,
+    EndChar,
+}
+
 impl<'a> Decompiler<'a> {
     /// Create a new charstring decompiler.
     pub fn new(
@@ -48,7 +53,7 @@ impl<'a> Decompiler<'a> {
         charstring: CharString<'a>,
         program: &mut Program<'a>,
         depth: u8,
-    ) -> Result<()> {
+    ) -> Result<CharStringEnd> {
         if depth > 64 {
             return Err(CFFError);
         }
@@ -94,9 +99,7 @@ impl<'a> Decompiler<'a> {
                     self.stack.pop_all();
                     program.push(Instruction::Operator(operator));
                 }
-                RETURN => {
-                    // Don't do anything for return, since we desubroutinize.
-                }
+                RETURN => return Ok(CharStringEnd::Return),
                 CALL_GLOBAL_SUBROUTINE => {
                     // Pop the subroutine index from the program.
                     program.0.pop();
@@ -107,7 +110,12 @@ impl<'a> Decompiler<'a> {
                         .gsubr_handler
                         .get_with_biased(biased_index)
                         .ok_or(CFFError)?;
-                    self.decompile_inner(gsubr, program, depth + 1)?;
+                    if matches!(
+                        self.decompile_inner(gsubr, program, depth + 1)?,
+                        CharStringEnd::EndChar
+                    ) {
+                        return Ok(CharStringEnd::EndChar);
+                    }
                 }
                 CALL_LOCAL_SUBROUTINE => {
                     // Pop the subroutine index from the program.
@@ -119,7 +127,12 @@ impl<'a> Decompiler<'a> {
                         .lsubr_handler
                         .get_with_biased(biased_index)
                         .ok_or(CFFError)?;
-                    self.decompile_inner(lsubr, program, depth + 1)?;
+                    if matches!(
+                        self.decompile_inner(lsubr, program, depth + 1)?,
+                        CharStringEnd::EndChar
+                    ) {
+                        return Ok(CharStringEnd::EndChar);
+                    }
                 }
                 HINT_MASK | COUNTER_MASK => {
                     program.push(Instruction::Operator(operator));
@@ -141,6 +154,8 @@ impl<'a> Decompiler<'a> {
                     }
 
                     program.push(Instruction::Operator(operator));
+
+                    return Ok(CharStringEnd::EndChar);
                 }
                 _ => {
                     return Err(CFFError);
@@ -148,7 +163,7 @@ impl<'a> Decompiler<'a> {
             }
         }
 
-        Ok(())
+        Ok(CharStringEnd::Return)
     }
 
     fn count_hints(&mut self) {
