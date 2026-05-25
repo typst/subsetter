@@ -124,7 +124,7 @@ impl Offsets {
 }
 
 pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
-    let table = Table::parse(ctx).unwrap();
+    let table = Table::parse(ctx)?;
 
     // Note: The charstrings are already in the new order that they need be written in.
     let (char_strings, fd_remapper) = subset_charstrings(&table, &ctx.mapper)?;
