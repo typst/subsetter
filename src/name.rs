@@ -106,7 +106,7 @@ impl<'a> Table<'a> {
         }
 
         let count = r.read::<u16>()?;
-        r.read::<u16>()?; // storage offset
+        let storage_offset = r.read::<u16>()?;
 
         let mut names = Vec::with_capacity(count as usize);
 
@@ -114,7 +114,7 @@ impl<'a> Table<'a> {
             names.push(r.read::<NameRecord>()?);
         }
 
-        let storage = Cow::Borrowed(r.tail()?);
+        let storage = Cow::Borrowed(data.get(storage_offset as usize..)?);
 
         Some(Self { names, storage })
     }
@@ -168,7 +168,7 @@ mod tests {
         let mut data = Vec::new();
         data.extend(0u16.to_be_bytes()); // version
         data.extend(1u16.to_be_bytes()); // count
-        data.extend(24u16.to_be_bytes()); // storageOffset
+        data.extend(22u16.to_be_bytes()); // storageOffset
         data.extend(3u16.to_be_bytes()); // nameRecord[0].platformID
         data.extend(1u16.to_be_bytes()); // nameRecord[0].encodingID
         data.extend(0x0409u16.to_be_bytes()); // nameRecord[0].languageID
