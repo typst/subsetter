@@ -50,8 +50,9 @@ impl<'a> Reader<'a> {
     /// Read a certain number of bytes.
     #[inline]
     pub fn read_bytes(&mut self, len: usize) -> Option<&'a [u8]> {
-        let v = self.data.get(self.offset..self.offset + len)?;
-        self.offset += len;
+        let end = self.offset.checked_add(len)?;
+        let v = self.data.get(self.offset..end)?;
+        self.offset = end;
         Some(v)
     }
 

@@ -434,7 +434,7 @@ impl<'a> Face<'a> {
         let i = self.records.binary_search_by(|record| record.tag.cmp(&tag)).ok()?;
         let record = self.records.get(i)?;
         let start = record.offset as usize;
-        let end = start + (record.length as usize);
+        let end = start.checked_add(record.length as usize)?;
         self.data.get(start..end)
     }
 }
@@ -683,5 +683,20 @@ mod tests {
         let result = subset(&font, 0, &GlyphRemapper::new());
 
         assert_eq!(result, Err(Error::CFFError));
+    }
+
+    #[test]
+    fn table_record_with_invalid_bounds_returns_none() {
+        let face = Face {
+            data: &[],
+            records: vec![TableRecord {
+                tag: Tag::HEAD,
+                checksum: 0,
+                offset: u32::MAX,
+                length: u32::MAX,
+            }],
+        };
+
+        assert_eq!(face.table(Tag::HEAD), None);
     }
 }
