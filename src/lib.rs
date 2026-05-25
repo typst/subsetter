@@ -661,3 +661,27 @@ impl Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn malformed_cff_returns_error() {
+        let mut font = Vec::new();
+        font.extend(0x4F54544Fu32.to_be_bytes());
+        font.extend(1u16.to_be_bytes());
+        font.extend(0u16.to_be_bytes());
+        font.extend(0u16.to_be_bytes());
+        font.extend(0u16.to_be_bytes());
+        font.extend(*b"CFF ");
+        font.extend(0u32.to_be_bytes());
+        font.extend(28u32.to_be_bytes());
+        font.extend(4u32.to_be_bytes());
+        font.extend([2, 0, 4, 4]);
+
+        let result = subset(&font, 0, &GlyphRemapper::new());
+
+        assert_eq!(result, Err(Error::CFFError));
+    }
+}
