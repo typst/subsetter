@@ -158,3 +158,29 @@ impl NameRecord {
             || (self.platform_id == 3 && [0, 1, 10].contains(&self.encoding_id))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_respects_storage_offset() {
+        let mut data = Vec::new();
+        data.extend(0u16.to_be_bytes()); // version
+        data.extend(1u16.to_be_bytes()); // count
+        data.extend(24u16.to_be_bytes()); // storageOffset
+        data.extend(3u16.to_be_bytes()); // nameRecord[0].platformID
+        data.extend(1u16.to_be_bytes()); // nameRecord[0].encodingID
+        data.extend(0x0409u16.to_be_bytes()); // nameRecord[0].languageID
+        data.extend(0u16.to_be_bytes()); // nameRecord[0].nameID
+        data.extend(4u16.to_be_bytes()); // nameRecord[0].length
+        data.extend(0u16.to_be_bytes()); // nameRecord[0].stringOffset
+        data.extend(*b"BAD!"); // padding before storageOffset
+        data.extend([0, b'O', 0, b'K']); // storage
+
+        let table = Table::parse(&data).unwrap();
+        let subset = subset_table(&table).unwrap();
+
+        assert_eq!(subset.storage.as_ref(), &[0, b'O', 0, b'K']);
+    }
+}
