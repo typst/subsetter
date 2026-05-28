@@ -7,7 +7,7 @@ use std::borrow::Cow;
 pub fn subset(ctx: &mut Context) -> crate::Result<()> {
     let mut maxp_data = MaxpData::default();
 
-    let result = glyf::subset_with(ctx, |old_gid, ctx| {
+    glyf::subset_with(ctx, |old_gid, ctx| {
         let data = match &ctx.interjector {
             // We reject CFF2 fonts earlier if `variable-fonts` feature is not enabled.
             Interjector::Dummy(_) => unreachable!(),
@@ -18,8 +18,8 @@ pub fn subset(ctx: &mut Context) -> crate::Result<()> {
         };
 
         Ok(data)
-    });
+    })?;
 
     ctx.custom_maxp_data = Some(maxp_data);
-    result
+    Ok(())
 }

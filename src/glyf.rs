@@ -47,7 +47,9 @@ pub fn closure(face: &Face, glyph_remapper: &mut GlyphRemapper) -> Result<()> {
 
 pub fn subset(ctx: &mut Context) -> Result<()> {
     let table = Table::new(&ctx.face).ok_or(MalformedFont)?;
-    let mut _maxp = MaxpData::default();
+
+    #[allow(unused_mut)]
+    let mut maxp_data = MaxpData::default();
 
     subset_with(ctx, |old_gid, ctx| {
         let data = match &ctx.interjector {
@@ -56,12 +58,18 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
             }
             #[cfg(feature = "variable-fonts")]
             Interjector::Skrifa(s) => {
-                Cow::Owned(s.glyph_data(&mut _maxp, old_gid).ok_or(MalformedFont)?)
+                Cow::Owned(s.glyph_data(&mut maxp_data, old_gid).ok_or(MalformedFont)?)
             }
         };
 
         Ok(data)
-    })
+    })?;
+
+    if ctx.interjector.is_skrifa() {
+        ctx.custom_maxp_data = Some(maxp_data);
+    }
+
+    Ok(())
 }
 
 pub(crate) fn subset_with<'a>(

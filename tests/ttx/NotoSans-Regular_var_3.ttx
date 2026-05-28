@@ -23,7 +23,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.013"/>
-    <checkSumAdjustment value="0xec15e09b"/>
+    <checkSumAdjustment value="0xec59e375"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -64,10 +64,10 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="0x10000"/>
     <numGlyphs value="14"/>
-    <maxPoints value="273"/>
-    <maxContours value="24"/>
-    <maxCompositePoints value="143"/>
-    <maxCompositeContours value="8"/>
+    <maxPoints value="51"/>
+    <maxContours value="2"/>
+    <maxCompositePoints value="0"/>
+    <maxCompositeContours value="0"/>
     <maxZones value="1"/>
     <maxTwilightPoints value="0"/>
     <maxStorage value="0"/>
@@ -75,7 +75,7 @@
     <maxInstructionDefs value="0"/>
     <maxStackElements value="0"/>
     <maxSizeOfInstructions value="0"/>
-    <maxComponentElements value="4"/>
+    <maxComponentElements value="0"/>
     <maxComponentDepth value="1"/>
   </maxp>
 
