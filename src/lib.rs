@@ -551,7 +551,7 @@ impl Tag {
 }
 
 impl Readable<'_> for Tag {
-    const SIZE: usize = u8::SIZE * 4;
+    const SIZE: usize = 4;
 
     fn read(r: &mut Reader) -> Option<Self> {
         r.read::<[u8; 4]>().map(Self)

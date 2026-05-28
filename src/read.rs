@@ -99,7 +99,7 @@ pub trait Readable<'a>: Sized {
 }
 
 impl<const N: usize> Readable<'_> for [u8; N] {
-    const SIZE: usize = u8::SIZE * N;
+    const SIZE: usize = N;
 
     fn read(r: &mut Reader) -> Option<Self> {
         Some(r.read_bytes(N)?.try_into().unwrap_or([0; N]))
