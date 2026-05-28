@@ -6,6 +6,16 @@ pub(crate) enum Interjector<'a> {
     Skrifa(skrifa::SkrifaInterjector<'a>),
 }
 
+impl Interjector<'_> {
+    pub fn is_skrifa(&self) -> bool {
+        match self {
+            Self::Dummy(_) => false,
+            #[cfg(feature = "variable-fonts")]
+            Self::Skrifa(_) => true,
+        }
+    }
+}
+
 #[cfg(feature = "variable-fonts")]
 pub(crate) mod skrifa {
     use crate::{MaxpData, Tag};
