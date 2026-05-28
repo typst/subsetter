@@ -309,7 +309,8 @@ fn construct(mut ctx: Context) -> Vec<u8> {
     let mut offset = 12 + ctx.tables.len() * 16;
     for (tag, data) in &mut ctx.tables {
         if *tag == Tag::HEAD {
-            // Zero out checksum field in head table.
+            // Zero out checksum field in head table. The head table has already
+            // been subset and is guaranteed to have the necessary minimum size.
             data.to_mut()[8..12].fill(0);
             checksum_adjustment_offset = Some(offset + 8);
         }
