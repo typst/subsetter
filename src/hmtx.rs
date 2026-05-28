@@ -60,7 +60,7 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
 
     let hhea = ctx.expect_table(Tag::HHEA).ok_or(MalformedFont)?;
     let mut sub_hhea = Writer::new();
-    sub_hhea.extend(&hhea[0..hhea.len() - 2]);
+    sub_hhea.extend(hhea.get(..hhea.len() - 2).ok_or(MalformedFont)?);
     sub_hhea.write::<u16>(last_advance_width_index + 1);
 
     ctx.push(Tag::HHEA, sub_hhea.finish());
