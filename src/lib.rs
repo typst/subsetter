@@ -221,9 +221,15 @@ fn _subset(mut ctx: Context) -> Result<Vec<u8>> {
     if ctx.flavor == FontFlavor::TrueType {
         // LOCA will be handled by GLYF
         ctx.process(Tag::GLYF)?;
-        ctx.process(Tag::CVT)?; // won't be subsetted.
-        ctx.process(Tag::FPGM)?; // won't be subsetted.
-        ctx.process(Tag::PREP)?; // won't be subsetted.
+
+        // Only copy hinting tables if we don't interject because skrifa will
+        // discard hinting information.
+        // TODO: Add a test for this.
+        if !ctx.interjector.is_skrifa() {
+            ctx.process(Tag::CVT)?; // won't be subsetted.
+            ctx.process(Tag::FPGM)?; // won't be subsetted.
+            ctx.process(Tag::PREP)?; // won't be subsetted.
+        }
     } else if ctx.flavor == FontFlavor::Cff {
         ctx.process(Tag::CFF)?;
     } else if ctx.flavor == FontFlavor::Cff2 {
