@@ -50,6 +50,8 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
 
     #[allow(unused_mut)]
     let mut maxp_data = MaxpData::default();
+    #[allow(unused_mut)]
+    let mut hmtx_data = Vec::new();
 
     subset_with(ctx, |old_gid, ctx| {
         let data = match &ctx.interjector {
@@ -58,7 +60,10 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
             }
             #[cfg(feature = "variable-fonts")]
             Interjector::Skrifa(s) => {
-                Cow::Owned(s.glyph_data(&mut maxp_data, old_gid).ok_or(MalformedFont)?)
+                let (advance, lsb, data) =
+                    s.interject(&mut maxp_data, old_gid).ok_or(MalformedFont)?;
+                hmtx_data.push((advance, lsb));
+                Cow::Owned(data)
             }
         };
 
@@ -67,6 +72,7 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
 
     if ctx.interjector.is_skrifa() {
         ctx.custom_maxp_data = Some(maxp_data);
+        ctx.custom_hmtx_data = Some(hmtx_data);
     }
 
     Ok(())

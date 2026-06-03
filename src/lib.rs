@@ -200,6 +200,7 @@ fn prepare_context<'a>(
         mapper: gid_remapper,
         interjector,
         custom_maxp_data: None,
+        custom_hmtx_data: None,
         flavor,
         tables: vec![],
         long_loca: false,
@@ -383,6 +384,7 @@ struct Context<'a> {
     /// Custom data that should be used for writing the `maxp` table. Only needed for CFF2,
     /// where we need to synthesize a V1 table after converting.
     pub(crate) custom_maxp_data: Option<MaxpData>,
+    pub(crate) custom_hmtx_data: Option<Vec<(u16, i16)>>,
     /// Whether the long loca format was chosen.
     long_loca: bool,
 }
