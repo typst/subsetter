@@ -22,7 +22,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="0.303"/>
-    <checkSumAdjustment value="0xae97bd7b"/>
+    <checkSumAdjustment value="0xae97bddf"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -79,7 +79,7 @@
   </maxp>
 
   <hmtx>
-    <mtx name=".notdef" width="500" lsb="50"/>
+    <mtx name=".notdef" width="500" lsb="0"/>
     <mtx name="A" width="626" lsb="7"/>
     <mtx name="C" width="645" lsb="54"/>
     <mtx name="Cacute" width="645" lsb="54"/>

@@ -48,32 +48,19 @@ pub(crate) mod skrifa {
     }
 
     impl<'a> SkrifaInterjector<'a> {
-        /// Return the advance width and left side bearing of the glyph.
-        pub(crate) fn horizontal_metrics(&self, glyph: u16) -> Option<(u16, i16)> {
-            let metrics = self.font_ref.glyph_metrics(Size::unscaled(), &self.location);
-
-            let adv = metrics.advance_width(GlyphId::new(glyph as u32))?;
-            // Note that for variable fonts, our left side bearing points don't seem to
-            // match the ones from fonttools (they use some different technique for deriving
-            // it which isn't reflected in skrifa's API), but I _think_ that this shouldn't
-            // really be relevant in the context of PDF.
-            let lsb = metrics.left_side_bearing(GlyphId::new(glyph as u32))?;
-
-            Some((adv.round() as u16, lsb.round() as i16))
-        }
-
         /// Return the glyph description in the `glyf` outline format.
-        pub(crate) fn glyph_data<'b>(
+        pub(crate) fn interject<'b>(
             &'b self,
             maxp_data: &'b mut MaxpData,
             glyph: u16,
-        ) -> Option<Vec<u8>> {
+        ) -> Option<(u16, i16, Vec<u8>)> {
             let outlines = self.font_ref.outline_glyphs();
+            let metrics = self.font_ref.glyph_metrics(Size::unscaled(), &self.location);
 
             let mut outline_builder = OutlinePath::new();
-            let glyph = GlyphId::new(glyph as u32);
+            let glyph_id = GlyphId::new(glyph as u32);
 
-            if let Some(outline_glyph) = outlines.get(glyph) {
+            if let Some(outline_glyph) = outlines.get(glyph_id) {
                 outline_glyph
                     .draw(
                         DrawSettings::unhinted(Size::unscaled(), &self.location),
@@ -84,11 +71,24 @@ pub(crate) mod skrifa {
 
             let path = outline_builder.path;
 
-            if path.is_empty() {
-                return Some(vec![]);
-            }
-
             let simple_glyph = SimpleGlyph::from_bezpath(&path).ok()?;
+            let advance = metrics.advance_width(glyph_id)?.round() as u16;
+
+            // We derive the LSB from the resulting bounding box rather than
+            // from the font's metrics, because the latter does not always agree
+            // with the `xMin` of the fresh outline we've generated.
+            //
+            // The OpenType spec heavily advises xMin and LSB to match (it
+            // actually requires it for variable fonts or when `head.flags` bit
+            // 1 is set).
+            //
+            // If `LSB != xMin`, glyphs get repositioned by PDF readers and the
+            // kerning gets very wonky.
+            let lsb = simple_glyph.bbox.x_min;
+
+            if path.is_empty() {
+                return Some((advance, lsb, vec![]));
+            }
 
             maxp_data.max_points = maxp_data
                 .max_points
@@ -98,8 +98,9 @@ pub(crate) mod skrifa {
 
             let mut writer = TableWriter::default();
             simple_glyph.write_into(&mut writer);
+            let data = dump_table(&simple_glyph).ok()?;
 
-            dump_table(&simple_glyph).ok()
+            Some((advance, lsb, data))
         }
     }
 

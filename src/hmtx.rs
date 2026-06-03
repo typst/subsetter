@@ -22,10 +22,8 @@ pub fn subset(ctx: &mut Context) -> Result<()> {
         match &ctx.interjector {
             Interjector::Dummy(_) => extract_metrics(hmtx, &mut new_metrics, ctx)?,
             #[cfg(feature = "variable-fonts")]
-            Interjector::Skrifa(s) => {
-                for old_gid in ctx.mapper.remapped_gids() {
-                    new_metrics.push(s.horizontal_metrics(old_gid).ok_or(MalformedFont)?);
-                }
+            Interjector::Skrifa(_) => {
+                new_metrics = ctx.custom_hmtx_data.take().ok_or(Error::SubsetError)?
             }
         }
 

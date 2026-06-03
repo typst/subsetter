@@ -23,7 +23,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.013"/>
-    <checkSumAdjustment value="0xe2047845"/>
+    <checkSumAdjustment value="0xe2047929"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -80,20 +80,20 @@
   </maxp>
 
   <hmtx>
-    <mtx name=".notdef" width="582" lsb="94"/>
-    <mtx name="C" width="649" lsb="61"/>
-    <mtx name="Ccircumflex" width="649" lsb="61"/>
-    <mtx name="Cdotaccent" width="649" lsb="61"/>
-    <mtx name="E" width="549" lsb="97"/>
-    <mtx name="W" width="1039" lsb="12"/>
+    <mtx name=".notdef" width="582" lsb="85"/>
+    <mtx name="C" width="649" lsb="51"/>
+    <mtx name="Ccircumflex" width="649" lsb="51"/>
+    <mtx name="Cdotaccent" width="649" lsb="51"/>
+    <mtx name="E" width="549" lsb="77"/>
+    <mtx name="W" width="1039" lsb="15"/>
     <mtx name="acute" width="418" lsb="40"/>
-    <mtx name="c" width="539" lsb="55"/>
-    <mtx name="cacute" width="539" lsb="55"/>
-    <mtx name="ccircumflex" width="539" lsb="55"/>
-    <mtx name="cdotaccent" width="539" lsb="55"/>
+    <mtx name="c" width="539" lsb="42"/>
+    <mtx name="cacute" width="539" lsb="42"/>
+    <mtx name="ccircumflex" width="539" lsb="42"/>
+    <mtx name="cdotaccent" width="539" lsb="42"/>
     <mtx name="circumflex" width="523" lsb="40"/>
     <mtx name="dotaccent" width="283" lsb="40"/>
-    <mtx name="quotesingle" width="292" lsb="65"/>
+    <mtx name="quotesingle" width="292" lsb="59"/>
   </hmtx>
 
   <loca>
