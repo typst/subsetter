@@ -20,7 +20,7 @@ impl Interjector<'_> {
 pub(crate) mod skrifa {
     use crate::{MaxpData, Tag};
     use kurbo::{BezPath, CubicBez};
-    use skrifa::instance::Location;
+    use skrifa::instance::{Location, LocationRef};
     use skrifa::outline::{DrawSettings, OutlinePen};
     use skrifa::prelude::Size;
     use skrifa::{FontRef, GlyphId, MetadataProvider};
@@ -44,6 +44,10 @@ pub(crate) mod skrifa {
                 .location(location.iter().map(|i| (skrifa::Tag::new(i.0.get()), i.1)));
 
             Some(Self { font_ref, location })
+        }
+
+        pub(crate) fn is_default_location(&self) -> bool {
+            LocationRef::from(&self.location).is_default()
         }
     }
 

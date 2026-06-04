@@ -23,7 +23,7 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="2.013"/>
-    <checkSumAdjustment value="0xf902a8a3"/>
+    <checkSumAdjustment value="0x99fde9d7"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
@@ -64,10 +64,10 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="0x10000"/>
     <numGlyphs value="14"/>
-    <maxPoints value="51"/>
-    <maxContours value="2"/>
-    <maxCompositePoints value="0"/>
-    <maxCompositeContours value="0"/>
+    <maxPoints value="273"/>
+    <maxContours value="24"/>
+    <maxCompositePoints value="143"/>
+    <maxCompositeContours value="8"/>
     <maxZones value="1"/>
     <maxTwilightPoints value="0"/>
     <maxStorage value="0"/>
@@ -75,7 +75,7 @@
     <maxInstructionDefs value="0"/>
     <maxStackElements value="0"/>
     <maxSizeOfInstructions value="0"/>
-    <maxComponentElements value="0"/>
+    <maxComponentElements value="4"/>
     <maxComponentDepth value="1"/>
   </maxp>
 
@@ -160,114 +160,13 @@
     </TTGlyph>
 
     <TTGlyph name="Ccircumflex" xMin="61" yMin="-10" xMax="601" yMax="944">
-      <contour>
-        <pt x="403" y="645" on="1"/>
-        <pt x="346" y="645" on="0"/>
-        <pt x="254" y="606" on="0"/>
-        <pt x="190" y="531" on="0"/>
-        <pt x="156" y="424" on="0"/>
-        <pt x="156" y="357" on="1"/>
-        <pt x="156" y="269" on="0"/>
-        <pt x="211" y="139" on="0"/>
-        <pt x="320" y="69" on="0"/>
-        <pt x="402" y="69" on="1"/>
-        <pt x="449" y="69" on="0"/>
-        <pt x="533" y="85" on="0"/>
-        <pt x="573" y="97" on="1"/>
-        <pt x="573" y="19" on="1"/>
-        <pt x="533" y="4" on="0"/>
-        <pt x="448" y="-10" on="0"/>
-        <pt x="389" y="-10" on="1"/>
-        <pt x="280" y="-10" on="0"/>
-        <pt x="134" y="80" on="0"/>
-        <pt x="61" y="246" on="0"/>
-        <pt x="61" y="358" on="1"/>
-        <pt x="61" y="439" on="0"/>
-        <pt x="106" y="573" on="0"/>
-        <pt x="193" y="671" on="0"/>
-        <pt x="321" y="724" on="0"/>
-        <pt x="404" y="724" on="1"/>
-        <pt x="459" y="724" on="0"/>
-        <pt x="561" y="702" on="0"/>
-        <pt x="601" y="682" on="1"/>
-        <pt x="565" y="606" on="1"/>
-        <pt x="532" y="621" on="0"/>
-        <pt x="451" y="645" on="0"/>
-      </contour>
-      <contour>
-        <pt x="424" y="944" on="1"/>
-        <pt x="436" y="922" on="0"/>
-        <pt x="481" y="867" on="0"/>
-        <pt x="530" y="814" on="0"/>
-        <pt x="549" y="795" on="1"/>
-        <pt x="549" y="784" on="1"/>
-        <pt x="487" y="784" on="1"/>
-        <pt x="461" y="800" on="0"/>
-        <pt x="405" y="847" on="0"/>
-        <pt x="378" y="874" on="1"/>
-        <pt x="351" y="847" on="0"/>
-        <pt x="297" y="801" on="0"/>
-        <pt x="271" y="784" on="1"/>
-        <pt x="211" y="784" on="1"/>
-        <pt x="211" y="795" on="1"/>
-        <pt x="230" y="815" on="0"/>
-        <pt x="277" y="867" on="0"/>
-        <pt x="321" y="922" on="0"/>
-        <pt x="334" y="944" on="1"/>
-      </contour>
-      <instructions/>
+      <component glyphName="C" x="0" y="0" flags="0x204"/>
+      <component glyphName="circumflex" x="171" y="178" flags="0x4"/>
     </TTGlyph>
 
     <TTGlyph name="Cdotaccent" xMin="61" yMin="-10" xMax="601" yMax="915">
-      <contour>
-        <pt x="403" y="645" on="1"/>
-        <pt x="346" y="645" on="0"/>
-        <pt x="254" y="606" on="0"/>
-        <pt x="190" y="531" on="0"/>
-        <pt x="156" y="424" on="0"/>
-        <pt x="156" y="357" on="1"/>
-        <pt x="156" y="269" on="0"/>
-        <pt x="211" y="139" on="0"/>
-        <pt x="320" y="69" on="0"/>
-        <pt x="402" y="69" on="1"/>
-        <pt x="449" y="69" on="0"/>
-        <pt x="533" y="85" on="0"/>
-        <pt x="573" y="97" on="1"/>
-        <pt x="573" y="19" on="1"/>
-        <pt x="533" y="4" on="0"/>
-        <pt x="448" y="-10" on="0"/>
-        <pt x="389" y="-10" on="1"/>
-        <pt x="280" y="-10" on="0"/>
-        <pt x="134" y="80" on="0"/>
-        <pt x="61" y="246" on="0"/>
-        <pt x="61" y="358" on="1"/>
-        <pt x="61" y="439" on="0"/>
-        <pt x="106" y="573" on="0"/>
-        <pt x="193" y="671" on="0"/>
-        <pt x="321" y="724" on="0"/>
-        <pt x="404" y="724" on="1"/>
-        <pt x="459" y="724" on="0"/>
-        <pt x="561" y="702" on="0"/>
-        <pt x="601" y="682" on="1"/>
-        <pt x="565" y="606" on="1"/>
-        <pt x="532" y="621" on="0"/>
-        <pt x="451" y="645" on="0"/>
-      </contour>
-      <contour>
-        <pt x="381" y="915" on="1"/>
-        <pt x="401" y="915" on="0"/>
-        <pt x="432" y="888" on="0"/>
-        <pt x="432" y="859" on="1"/>
-        <pt x="432" y="831" on="0"/>
-        <pt x="401" y="803" on="0"/>
-        <pt x="381" y="803" on="1"/>
-        <pt x="359" y="803" on="0"/>
-        <pt x="329" y="831" on="0"/>
-        <pt x="329" y="859" on="1"/>
-        <pt x="329" y="888" on="0"/>
-        <pt x="359" y="915" on="0"/>
-      </contour>
-      <instructions/>
+      <component glyphName="C" x="0" y="0" flags="0x204"/>
+      <component glyphName="dotaccent" x="289" y="178" flags="0x4"/>
     </TTGlyph>
 
     <TTGlyph name="E" xMin="97" yMin="0" xMax="496" yMax="714">
@@ -392,161 +291,18 @@
     </TTGlyph>
 
     <TTGlyph name="cacute" xMin="55" yMin="-10" xMax="447" yMax="766">
-      <contour>
-        <pt x="300" y="-10" on="1"/>
-        <pt x="229" y="-10" on="0"/>
-        <pt x="118" y="48" on="0"/>
-        <pt x="55" y="170" on="0"/>
-        <pt x="55" y="265" on="1"/>
-        <pt x="55" y="364" on="0"/>
-        <pt x="121" y="488" on="0"/>
-        <pt x="234" y="546" on="0"/>
-        <pt x="306" y="546" on="1"/>
-        <pt x="347" y="546" on="0"/>
-        <pt x="423" y="529" on="0"/>
-        <pt x="447" y="517" on="1"/>
-        <pt x="420" y="444" on="1"/>
-        <pt x="396" y="453" on="0"/>
-        <pt x="332" y="469" on="0"/>
-        <pt x="304" y="469" on="1"/>
-        <pt x="250" y="469" on="0"/>
-        <pt x="180" y="423" on="0"/>
-        <pt x="146" y="333" on="0"/>
-        <pt x="146" y="266" on="1"/>
-        <pt x="146" y="202" on="0"/>
-        <pt x="180" y="112" on="0"/>
-        <pt x="248" y="66" on="0"/>
-        <pt x="299" y="66" on="1"/>
-        <pt x="343" y="66" on="0"/>
-        <pt x="410" y="84" on="0"/>
-        <pt x="438" y="97" on="1"/>
-        <pt x="438" y="19" on="1"/>
-        <pt x="411" y="5" on="0"/>
-        <pt x="346" y="-10" on="0"/>
-      </contour>
-      <contour>
-        <pt x="432" y="756" on="1"/>
-        <pt x="423" y="742" on="0"/>
-        <pt x="389" y="702" on="0"/>
-        <pt x="348" y="659" on="0"/>
-        <pt x="307" y="620" on="0"/>
-        <pt x="289" y="606" on="1"/>
-        <pt x="231" y="606" on="1"/>
-        <pt x="231" y="618" on="1"/>
-        <pt x="246" y="637" on="0"/>
-        <pt x="281" y="689" on="0"/>
-        <pt x="315" y="744" on="0"/>
-        <pt x="326" y="766" on="1"/>
-        <pt x="432" y="766" on="1"/>
-      </contour>
-      <instructions/>
+      <component glyphName="c" x="0" y="0" flags="0x204"/>
+      <component glyphName="acute" x="191" y="0" flags="0x4"/>
     </TTGlyph>
 
     <TTGlyph name="ccircumflex" xMin="55" yMin="-10" xMax="453" yMax="766">
-      <contour>
-        <pt x="300" y="-10" on="1"/>
-        <pt x="229" y="-10" on="0"/>
-        <pt x="118" y="48" on="0"/>
-        <pt x="55" y="170" on="0"/>
-        <pt x="55" y="265" on="1"/>
-        <pt x="55" y="364" on="0"/>
-        <pt x="121" y="488" on="0"/>
-        <pt x="234" y="546" on="0"/>
-        <pt x="306" y="546" on="1"/>
-        <pt x="347" y="546" on="0"/>
-        <pt x="423" y="529" on="0"/>
-        <pt x="447" y="517" on="1"/>
-        <pt x="420" y="444" on="1"/>
-        <pt x="396" y="453" on="0"/>
-        <pt x="332" y="469" on="0"/>
-        <pt x="304" y="469" on="1"/>
-        <pt x="250" y="469" on="0"/>
-        <pt x="180" y="423" on="0"/>
-        <pt x="146" y="333" on="0"/>
-        <pt x="146" y="266" on="1"/>
-        <pt x="146" y="202" on="0"/>
-        <pt x="180" y="112" on="0"/>
-        <pt x="248" y="66" on="0"/>
-        <pt x="299" y="66" on="1"/>
-        <pt x="343" y="66" on="0"/>
-        <pt x="410" y="84" on="0"/>
-        <pt x="438" y="97" on="1"/>
-        <pt x="438" y="19" on="1"/>
-        <pt x="411" y="5" on="0"/>
-        <pt x="346" y="-10" on="0"/>
-      </contour>
-      <contour>
-        <pt x="328" y="766" on="1"/>
-        <pt x="340" y="744" on="0"/>
-        <pt x="385" y="689" on="0"/>
-        <pt x="434" y="636" on="0"/>
-        <pt x="453" y="617" on="1"/>
-        <pt x="453" y="606" on="1"/>
-        <pt x="391" y="606" on="1"/>
-        <pt x="365" y="622" on="0"/>
-        <pt x="309" y="669" on="0"/>
-        <pt x="282" y="696" on="1"/>
-        <pt x="255" y="669" on="0"/>
-        <pt x="201" y="623" on="0"/>
-        <pt x="175" y="606" on="1"/>
-        <pt x="115" y="606" on="1"/>
-        <pt x="115" y="617" on="1"/>
-        <pt x="134" y="637" on="0"/>
-        <pt x="181" y="689" on="0"/>
-        <pt x="225" y="744" on="0"/>
-        <pt x="238" y="766" on="1"/>
-      </contour>
-      <instructions/>
+      <component glyphName="c" x="0" y="0" flags="0x204"/>
+      <component glyphName="circumflex" x="75" y="0" flags="0x4"/>
     </TTGlyph>
 
     <TTGlyph name="cdotaccent" xMin="55" yMin="-10" xMax="447" yMax="737">
-      <contour>
-        <pt x="300" y="-10" on="1"/>
-        <pt x="229" y="-10" on="0"/>
-        <pt x="118" y="48" on="0"/>
-        <pt x="55" y="170" on="0"/>
-        <pt x="55" y="265" on="1"/>
-        <pt x="55" y="364" on="0"/>
-        <pt x="121" y="488" on="0"/>
-        <pt x="234" y="546" on="0"/>
-        <pt x="306" y="546" on="1"/>
-        <pt x="347" y="546" on="0"/>
-        <pt x="423" y="529" on="0"/>
-        <pt x="447" y="517" on="1"/>
-        <pt x="420" y="444" on="1"/>
-        <pt x="396" y="453" on="0"/>
-        <pt x="332" y="469" on="0"/>
-        <pt x="304" y="469" on="1"/>
-        <pt x="250" y="469" on="0"/>
-        <pt x="180" y="423" on="0"/>
-        <pt x="146" y="333" on="0"/>
-        <pt x="146" y="266" on="1"/>
-        <pt x="146" y="202" on="0"/>
-        <pt x="180" y="112" on="0"/>
-        <pt x="248" y="66" on="0"/>
-        <pt x="299" y="66" on="1"/>
-        <pt x="343" y="66" on="0"/>
-        <pt x="410" y="84" on="0"/>
-        <pt x="438" y="97" on="1"/>
-        <pt x="438" y="19" on="1"/>
-        <pt x="411" y="5" on="0"/>
-        <pt x="346" y="-10" on="0"/>
-      </contour>
-      <contour>
-        <pt x="285" y="737" on="1"/>
-        <pt x="305" y="737" on="0"/>
-        <pt x="336" y="710" on="0"/>
-        <pt x="336" y="681" on="1"/>
-        <pt x="336" y="653" on="0"/>
-        <pt x="305" y="625" on="0"/>
-        <pt x="285" y="625" on="1"/>
-        <pt x="263" y="625" on="0"/>
-        <pt x="233" y="653" on="0"/>
-        <pt x="233" y="681" on="1"/>
-        <pt x="233" y="710" on="0"/>
-        <pt x="263" y="737" on="0"/>
-      </contour>
-      <instructions/>
+      <component glyphName="c" x="0" y="0" flags="0x204"/>
+      <component glyphName="dotaccent" x="193" y="0" flags="0x4"/>
     </TTGlyph>
 
     <TTGlyph name="circumflex" xMin="40" yMin="606" xMax="378" yMax="766">
