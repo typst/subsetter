@@ -173,26 +173,25 @@ fn prepare_context<'a>(
     #[cfg(not(feature = "variable-fonts"))]
     let interjector = Interjector::Dummy(PhantomData);
     // For CFF, we _always_ want to do normal subsetting, since CFF cannot have variations.
-    // For TrueType, we prefer normal subsetting in case no variation was requested. If we do have
-    // variations, we use `skrifa` to instance.
+    // For TrueType, we prefer normal subsetting in case the requested variation coordinates
+    // resolve to the default location. If we do have variations, we use `skrifa` to instance.
     // For CFF2, we _always_ use `skrifa` to instance.
     #[cfg(feature = "variable-fonts")]
-    let interjector = if (variation_coordinates.is_empty()
-        && flavor == FontFlavor::TrueType)
-        || flavor == FontFlavor::Cff
-    {
-        // For TrueType and CFF, we are still best off using the normal subsetting logic in case no variation coordinates
-        // have been passed.
+    let interjector = if flavor == FontFlavor::Cff {
         Interjector::Dummy(PhantomData)
     } else {
-        Interjector::Skrifa(
-            interjector::skrifa::SkrifaInterjector::new(
-                data,
-                index,
-                variation_coordinates,
-            )
-            .ok_or(MalformedFont)?,
+        let interjector = interjector::skrifa::SkrifaInterjector::new(
+            data,
+            index,
+            variation_coordinates,
         )
+        .ok_or(MalformedFont)?;
+
+        if flavor == FontFlavor::TrueType && interjector.is_default_location() {
+            Interjector::Dummy(PhantomData)
+        } else {
+            Interjector::Skrifa(interjector)
+        }
     };
 
     Ok(Context {
