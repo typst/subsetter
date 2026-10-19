@@ -26,6 +26,11 @@ A couple of important notes if you want to use this crate in combination with yo
   mapping from GID to CID for all fonts, regardless of the previous mapping. Because of this, you can
   always use the remapped GID as the CID for a glyph, and do not need to worry about the type of font
   you are embedding.
+- If you need to address glyphs before the subset is known (for example to write pages on
+  several threads and subset the fonts once at the end), [`subset_with_options`] with
+  [`CidMapping::OriginalGlyphId`] makes the CID of each glyph in a CFF subset its glyph ID in
+  the original font. TrueType subsets carry no charset, so for them write a `CIDToGIDMap`
+  from the remapper instead.
 
 # Example
 In the example below, we remove all glyphs except the ones with IDs 68, 69, 70 from Noto Sans.
@@ -106,7 +111,7 @@ use std::str::FromStr;
 ///
 /// CFF2 fonts are not supported.
 pub fn subset(data: &[u8], index: u32, mapper: &GlyphRemapper) -> Result<Vec<u8>> {
-    subset_inner(data, index, &[], false, mapper)
+    subset_inner(data, index, &[], false, CidMapping::default(), mapper)
 }
 
 /// Subset the font face to include only the necessary glyphs and tables, instantiated
@@ -123,7 +128,58 @@ pub fn subset_with_variations(
     variation_coordinates: &[(Tag, f32)],
     mapper: &GlyphRemapper,
 ) -> Result<Vec<u8>> {
-    subset_inner(data, index, variation_coordinates, true, mapper)
+    subset_inner(data, index, variation_coordinates, true, CidMapping::default(), mapper)
+}
+
+/// Subset the font face with [`Options`].
+///
+/// This does the same as [`subset`] or, with the `variable-fonts` feature,
+/// [`subset_with_variations`], and in addition lets you choose how the glyphs of a
+/// CFF subset are addressed as CIDs.
+pub fn subset_with_options(
+    data: &[u8],
+    index: u32,
+    mapper: &GlyphRemapper,
+    options: &Options,
+) -> Result<Vec<u8>> {
+    if !cfg!(feature = "variable-fonts") && !options.variation_coordinates.is_empty() {
+        return Err(Unimplemented);
+    }
+    subset_inner(
+        data,
+        index,
+        options.variation_coordinates,
+        cfg!(feature = "variable-fonts"),
+        options.cid_mapping,
+        mapper,
+    )
+}
+
+/// How the glyphs of a CFF subset are addressed as CIDs, through its charset.
+///
+/// TrueType subsets have no charset: their CIDs are always the glyph IDs in the subset, and
+/// a `CIDToGIDMap` in the PDF can map other CIDs onto them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CidMapping {
+    /// The CID of each glyph is its glyph ID in the subset, which [`GlyphRemapper::get`]
+    /// gives. This is the default.
+    #[default]
+    SubsetGlyphId,
+    /// The CID of each glyph is its glyph ID in the original font, so that content can
+    /// address glyphs before the subset is known. The charset grows by a few bytes for each
+    /// run of consecutive glyph IDs in the subset.
+    OriginalGlyphId,
+}
+
+/// Options for [`subset_with_options`].
+#[derive(Debug, Clone, Default)]
+pub struct Options<'a> {
+    /// How the glyphs of a CFF subset are addressed as CIDs.
+    pub cid_mapping: CidMapping,
+    /// The variation coordinates to instantiate the font at, as for
+    /// `subset_with_variations`. Without the `variable-fonts` feature, subsetting
+    /// fails with [`Error::Unimplemented`] unless this is empty.
+    pub variation_coordinates: &'a [(Tag, f32)],
 }
 
 fn subset_inner(
@@ -131,11 +187,13 @@ fn subset_inner(
     index: u32,
     variation_coordinates: &[(Tag, f32)],
     allow_cff2: bool,
+    cid_mapping: CidMapping,
     mapper: &GlyphRemapper,
 ) -> Result<Vec<u8>> {
     let mapper = mapper.clone();
-    let context =
+    let mut context =
         prepare_context(data, index, variation_coordinates, allow_cff2, mapper)?;
+    context.cid_mapping = cid_mapping;
     _subset(context)
 }
 
@@ -198,6 +256,7 @@ fn prepare_context<'a>(
         face,
         mapper: gid_remapper,
         interjector,
+        cid_mapping: CidMapping::default(),
         custom_maxp_data: None,
         custom_hmtx_data: None,
         flavor,
@@ -371,6 +430,8 @@ struct Context<'a> {
     face: Face<'a>,
     /// A map from old gids to new gids, and the reverse
     mapper: GlyphRemapper,
+    /// How the glyphs of a CFF subset are addressed as CIDs.
+    cid_mapping: CidMapping,
     /// The font flavor.
     flavor: FontFlavor,
     /// Subsetted tables.

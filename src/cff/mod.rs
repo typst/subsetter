@@ -164,7 +164,7 @@ pub fn subset(ctx: &mut Context<'_>) -> Result<()> {
 
         // Charsets
         offsets.charset_offset.update_value(w.len())?;
-        rewrite_charset(&ctx.mapper, &mut w)?;
+        rewrite_charset(&ctx.mapper, ctx.cid_mapping, &mut w)?;
 
         // Private dicts.
         match &table.font_kind {
