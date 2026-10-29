@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ttFont sfntVersion="\x00\x01\x00\x00" ttLibVersion="4.62">
+
+  <GlyphOrder>
+    <!-- The 'id' attribute is only for humans; it is ignored when parsed. -->
+    <GlyphID id="0" name=".notdef"/>
+    <GlyphID id="1" name="dal-ar.isol"/>
+  </GlyphOrder>
+
+  <head>
+    <!-- Most of this table will be recalculated by the compiler -->
+    <tableVersion value="1.0"/>
+    <fontRevision value="1.0"/>
+    <checkSumAdjustment value="0xf943b2c3"/>
+    <magicNumber value="0x5f0f3cf5"/>
+    <flags value="00000000 00000011"/>
+    <unitsPerEm value="750"/>
+    <created value="Thu Mar 21 17:45:22 2024"/>
+    <modified value="Sat Nov 22 12:26:50 2025"/>
+    <xMin value="0"/>
+    <yMin value="0"/>
+    <xMax value="4657"/>
+    <yMax value="314"/>
+    <macStyle value="00000000 00000000"/>
+    <lowestRecPPEM value="6"/>
+    <fontDirectionHint value="2"/>
+    <indexToLocFormat value="0"/>
+    <glyphDataFormat value="0"/>
+  </head>
+
+  <hhea>
+    <tableVersion value="0x00010000"/>
+    <ascent value="800"/>
+    <descent value="-350"/>
+    <lineGap value="0"/>
+    <advanceWidthMax value="600"/>
+    <minLeftSideBearing value="0"/>
+    <minRightSideBearing value="43"/>
+    <xMaxExtent value="557"/>
+    <caretSlopeRise value="750"/>
+    <caretSlopeRun value="0"/>
+    <caretOffset value="0"/>
+    <reserved0 value="0"/>
+    <reserved1 value="0"/>
+    <reserved2 value="0"/>
+    <reserved3 value="0"/>
+    <metricDataFormat value="0"/>
+    <numberOfHMetrics value="2"/>
+  </hhea>
+
+  <maxp>
+    <!-- Most of this table will be recalculated by the compiler -->
+    <tableVersion value="0x10000"/>
+    <numGlyphs value="2"/>
+    <maxPoints value="36"/>
+    <maxContours value="5"/>
+    <maxCompositePoints value="0"/>
+    <maxCompositeContours value="0"/>
+    <maxZones value="1"/>
+    <maxTwilightPoints value="0"/>
+    <maxStorage value="0"/>
+    <maxFunctionDefs value="0"/>
+    <maxInstructionDefs value="0"/>
+    <maxStackElements value="0"/>
+    <maxSizeOfInstructions value="0"/>
+    <maxComponentElements value="0"/>
+    <maxComponentDepth value="1"/>
+  </maxp>
+
+  <hmtx>
+    <mtx name=".notdef" width="375" lsb="0"/>
+    <mtx name="dal-ar.isol" width="4700" lsb="0"/>
+  </hmtx>
+
+  <loca>
+    <!-- The 'loca' table will be calculated by the compiler -->
+  </loca>
+
+  <glyf>
+
+    <!-- The xMin, yMin, xMax and yMax values
+         will be recalculated by the compiler. -->
+
+    <TTGlyph name=".notdef"/><!-- contains no outline data -->
+
+    <TTGlyph name="dal-ar.isol" xMin="0" yMin="0" xMax="4657" yMax="314">
+      <contour>
+        <pt x="4600" y="0" on="1"/>
+        <pt x="4600" y="50" on="1"/>
+        <pt x="4608" y="50" on="1"/>
+        <pt x="4657" y="0" on="1"/>
+      </contour>
+      <contour>
+        <pt x="110" y="100" on="1"/>
+        <pt x="135" y="314" on="1"/>
+        <pt x="144" y="313" on="1"/>
+        <pt x="158" y="286" on="0"/>
+        <pt x="194" y="261" on="0"/>
+        <pt x="228" y="252" on="1"/>
+        <pt x="228" y="244" on="1"/>
+        <pt x="206" y="239" on="0"/>
+        <pt x="180" y="206" on="0"/>
+        <pt x="168" y="170" on="0"/>
+        <pt x="166" y="159" on="1"/>
+        <pt x="161" y="108" on="1"/>
+      </contour>
+      <contour>
+        <pt x="110" y="100" on="1"/>
+        <pt x="140" y="150" on="1"/>
+        <pt x="4637" y="150" on="1"/>
+        <pt x="4608" y="100" on="1"/>
+      </contour>
+      <contour>
+        <pt x="4657" y="0" on="1"/>
+        <pt x="4599" y="50" on="1"/>
+        <pt x="4592" y="100" on="1"/>
+        <pt x="4637" y="150" on="1"/>
+      </contour>
+      <contour>
+        <pt x="0" y="0" on="1"/>
+        <pt x="0" y="8" on="1"/>
+        <pt x="25" y="25" on="0"/>
+        <pt x="46" y="64" on="0"/>
+        <pt x="50" y="100" on="1"/>
+        <pt x="58" y="100" on="1"/>
+        <pt x="66" y="80" on="0"/>
+        <pt x="102" y="58" on="0"/>
+        <pt x="139" y="50" on="0"/>
+        <pt x="150" y="50" on="1"/>
+        <pt x="4600" y="50" on="1"/>
+        <pt x="4650" y="0" on="1"/>
+      </contour>
+      <instructions/>
+    </TTGlyph>
+
+  </glyf>
+
+  <name>
+    <namerecord nameID="0" platformID="3" platEncID="1" langID="0x409">
+      Copyright 2024 The Astrolabe Project Authors (github.com/aliftype/astrolabe)
+    </namerecord>
+    <namerecord nameID="1" platformID="3" platEncID="1" langID="0x409">
+      Astrolabe
+    </namerecord>
+    <namerecord nameID="2" platformID="3" platEncID="1" langID="0x409">
+      Regular
+    </namerecord>
+    <namerecord nameID="3" platformID="3" platEncID="1" langID="0x409">
+      1.000;ALIF;Astrolabe-Regular
+    </namerecord>
+    <namerecord nameID="4" platformID="3" platEncID="1" langID="0x409">
+      Astrolabe Regular
+    </namerecord>
+    <namerecord nameID="5" platformID="3" platEncID="1" langID="0x409">
+      Version 1.000
+    </namerecord>
+    <namerecord nameID="6" platformID="3" platEncID="1" langID="0x409">
+      Astrolabe-Regular
+    </namerecord>
+  </name>
+
+  <post>
+    <formatType value="2.0"/>
+    <italicAngle value="0.0"/>
+    <underlinePosition value="-100"/>
+    <underlineThickness value="50"/>
+    <isFixedPitch value="0"/>
+    <minMemType42 value="0"/>
+    <maxMemType42 value="0"/>
+    <minMemType1 value="0"/>
+    <maxMemType1 value="0"/>
+    <psNames>
+      <!-- This file uses unique glyph names based on the information
+           found in the 'post' table. Since these names might not be unique,
+           we have to invent artificial names in case of clashes. In order to
+           be able to retain the original information, we need a name to
+           ps name mapping for those cases where they differ. That's what
+           you see below.
+            -->
+    </psNames>
+    <extraNames>
+      <!-- following are the name that are not taken from the standard Mac glyph order -->
+      <psName name="dal-ar.isol"/>
+    </extraNames>
+  </post>
+
+</ttFont>

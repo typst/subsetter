@@ -22,16 +22,16 @@
     <!-- Most of this table will be recalculated by the compiler -->
     <tableVersion value="1.0"/>
     <fontRevision value="0.303"/>
-    <checkSumAdjustment value="0xa3d206f7"/>
+    <checkSumAdjustment value="0xa3f406f1"/>
     <magicNumber value="0x5f0f3cf5"/>
     <flags value="00000000 00000011"/>
     <unitsPerEm value="1000"/>
     <created value="Fri Mar 13 21:44:13 2009"/>
     <modified value="Thu Jan  6 10:43:08 2022"/>
-    <xMin value="-346"/>
-    <yMin value="-256"/>
-    <xMax value="1309"/>
-    <yMax value="1099"/>
+    <xMin value="-7"/>
+    <yMin value="-258"/>
+    <xMax value="953"/>
+    <yMax value="1104"/>
     <macStyle value="00000000 00000000"/>
     <lowestRecPPEM value="6"/>
     <fontDirectionHint value="2"/>
