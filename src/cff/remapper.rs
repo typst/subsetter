@@ -3,7 +3,8 @@ use crate::remapper::Remapper;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 
-pub type FontDictRemapper = Remapper<u8, u8>;
+// FDSelect stores an 8-bit index, so the count can reach 256.
+pub type FontDictRemapper = Remapper<u16, u8>;
 
 /// Remap old SIDs to new SIDs, and also allow the insertion of
 /// new strings.
@@ -73,8 +74,22 @@ impl<'a> SidRemapper<'a> {
 #[cfg(test)]
 mod tests {
     use crate::cff::number::StringId;
-    use crate::cff::remapper::SidRemapper;
+    use crate::cff::remapper::{FontDictRemapper, SidRemapper};
+    use crate::cff::subroutines::SubroutineCollection;
     use std::borrow::Cow;
+
+    #[test]
+    fn all_font_dict_indices_are_addressable() {
+        let subrs = SubroutineCollection::new(vec![vec![]; 256]);
+        assert!(subrs.get_handler(u8::MAX).is_some());
+
+        let mut map = FontDictRemapper::new();
+        for fd in 0..=u8::MAX {
+            assert_eq!(map.try_remap(fd), Ok(fd));
+        }
+        assert_eq!(map.len(), 256);
+        assert_eq!(map.get(u8::MAX), Some(u8::MAX));
+    }
 
     #[test]
     fn test_remap_1() {
