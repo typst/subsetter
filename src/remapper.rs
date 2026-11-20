@@ -1,4 +1,5 @@
-use std::collections::BTreeSet;
+use crate::{Error, Result};
+use std::collections::{hash_map::Entry, BTreeSet};
 use std::hash::{Hash, Hasher};
 use std::ops::Add;
 
@@ -58,7 +59,7 @@ impl CheckedAdd for u32 {
 impl<C, T> Remapper<C, T>
 where
     C: CheckedAdd + Copy + From<u8>,
-    T: From<C> + Copy + From<u8> + Eq + Hash,
+    T: TryFrom<C> + Copy + Eq + Hash,
 {
     /// Create a new instance of a remapper.
     pub fn new() -> Self
@@ -81,16 +82,18 @@ where
     /// Remap a new value, either returning the previously assigned number
     /// if it already has been remapped, and assigning a new number if it
     /// has not been remapped.
-    pub fn remap(&mut self, old: T) -> T {
-        *self.forward.entry(old).or_insert_with(|| {
-            let value = self.counter;
-            self.backward.push(old);
-            self.counter = self
-                .counter
-                .checked_add(&C::from(1))
-                .expect("remapper was overflowed");
-            value.into()
-        })
+    pub fn try_remap(&mut self, old: T) -> Result<T> {
+        match self.forward.entry(old) {
+            Entry::Occupied(entry) => Ok(*entry.get()),
+            Entry::Vacant(entry) => {
+                let value =
+                    T::try_from(self.counter).map_err(|_| Error::OverflowError)?;
+                self.counter =
+                    self.counter.checked_add(&C::from(1)).ok_or(Error::OverflowError)?;
+                self.backward.push(old);
+                Ok(*entry.insert(value))
+            }
+        }
     }
 
     /// Get the number of elements that have been remapped. Assumes that
@@ -124,10 +127,10 @@ pub struct GlyphRemapper(Remapper<u16, u16>);
 
 impl Default for GlyphRemapper {
     fn default() -> Self {
-        let mut remapper = Remapper::new();
+        let mut remapper = Self(Remapper::new());
         // .notdef is always a part of a subset.
         remapper.remap(0);
-        Self(remapper)
+        remapper
     }
 }
 
@@ -165,9 +168,19 @@ impl GlyphRemapper {
 
     /// Remap a glyph ID, or return the existing mapping if the
     /// glyph ID has already been remapped before.
+    ///
+    /// # Panics
+    /// Panics if the subset would contain more than 65,535 glyphs.
     #[inline]
     pub fn remap(&mut self, old: u16) -> u16 {
-        self.0.remap(old)
+        self.try_remap(old).expect("remapper was overflowed")
+    }
+
+    /// Remap a glyph ID, returning [`Error::OverflowError`] if the new glyph
+    /// count would exceed the OpenType limit. Existing mappings remain valid.
+    #[inline]
+    pub fn try_remap(&mut self, old: u16) -> Result<u16> {
+        self.0.try_remap(old)
     }
 
     /// Get the mapping of a glyph ID, if it has been remapped before.
@@ -186,5 +199,23 @@ impl GlyphRemapper {
     /// 0 (0), 3 (1), 39 (2), 8 (3), 10 (4), 2 (5)
     pub fn remapped_gids(&self) -> impl Iterator<Item = u16> + '_ {
         self.0.backward.iter().copied()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn full_glyph_remapper_keeps_existing_mappings() {
+        let mut map = GlyphRemapper::new();
+        for glyph in 1..u16::MAX {
+            assert_eq!(map.try_remap(glyph), Ok(glyph));
+        }
+        assert_eq!(map.try_remap(u16::MAX), Err(Error::OverflowError));
+        assert_eq!(map.get(u16::MAX), None);
+        assert_eq!(map.num_gids(), u16::MAX);
+        assert_eq!(map.remapped_gids().count(), usize::from(u16::MAX));
+        assert_eq!(map.try_remap(0), Ok(0));
     }
 }

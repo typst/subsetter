@@ -18,7 +18,7 @@ pub fn closure(face: &Face, glyph_remapper: &mut GlyphRemapper) -> Result<()> {
     let mut process_glyphs = glyph_remapper.remapped_gids().collect::<Vec<_>>();
 
     while let Some(glyph) = process_glyphs.pop() {
-        glyph_remapper.remap(glyph);
+        glyph_remapper.try_remap(glyph)?;
 
         let glyph_data = match table.glyph_data(glyph) {
             Some(glph_data) => glph_data,
