@@ -203,6 +203,7 @@ fn prepare_context<'a>(
         flavor,
         tables: vec![],
         long_loca: false,
+        font_bbox: None,
     })
 }
 
@@ -390,6 +391,9 @@ struct Context<'a> {
     pub(crate) custom_hmtx_data: Option<Vec<(u16, i16)>>,
     /// Whether the long loca format was chosen.
     long_loca: bool,
+    /// The font bounding box (xMin, yMin, xMax, yMax), or `None` if there are
+    /// no glyphs with outlines.
+    font_bbox: Option<[i16; 4]>,
 }
 
 impl<'a> Context<'a> {

@@ -83,6 +83,10 @@ pub(crate) fn subset_with<'a>(
     glyph_data_fn: impl FnMut(u16, &Context<'a>) -> Result<Cow<'a, [u8]>>,
 ) -> Result<()> {
     let subsetted_entries = subset_glyf_entries(ctx, glyph_data_fn)?;
+    ctx.font_bbox = subsetted_entries
+        .iter()
+        .filter_map(|entry| glyph_bbox(entry))
+        .reduce(|a, b| [a[0].min(b[0]), a[1].min(b[1]), a[2].max(b[2]), a[3].max(b[3])]);
 
     let mut sub_glyf = Writer::new();
     let mut sub_loca = Writer::new();
@@ -185,6 +189,11 @@ fn subset_glyf_entries<'a>(
     ctx.long_loca = size > 2 * (u16::MAX as usize);
 
     Ok(glyf_entries)
+}
+
+fn glyph_bbox(glyph_data: &[u8]) -> Option<[i16; 4]> {
+    let mut r = Reader::new_at(glyph_data, 2);
+    Some([r.read()?, r.read()?, r.read()?, r.read()?])
 }
 
 fn remap_component_glyph(mapper: &GlyphRemapper, data: &[u8]) -> Result<Vec<u8>> {

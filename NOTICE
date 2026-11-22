@@ -98,6 +98,14 @@ OFL-1.1 --- This license applies to:
           (https://gitlab.com/bonjour-monde/fonderie/syne-typeface)
   Not included when used as a library
 
+* Font "Astrolabe"
+
+  Path: `fonts/Astrolabe_subset.ttf`
+  Source: https://github.com/aliftype/astrolabe
+  Notice: Copyright 2024 The Astrolabe Project Authors
+          (github.com/aliftype/astrolabe)
+  Not included when used as a library
+
 -----------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
 -----------------------------------------------------------

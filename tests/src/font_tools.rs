@@ -19,3 +19,4 @@ use crate::*;
 #[test] #[cfg(feature = "variable-fonts")] fn noto_sans_regular_var_3() {test_font_tools("NotoSans-Regular_var.ttf", "10,40,58,201-205", "wght=800,wdth=70.0", 3)}
 #[test] #[cfg(feature = "variable-fonts")] fn cantarell_v_f_1() {test_font_tools("Cantarell-VF.otf", "1,15,30-35,40,103-105", "wght=400", 1)}
 #[test] #[cfg(feature = "variable-fonts")] fn cantarell_v_f_2() {test_font_tools("Cantarell-VF.otf", "1,15,30-35,40,103-105", "wght=800", 2)}
+#[test] #[cfg(feature = "variable-fonts")] fn astrolabe_subset_1() {test_font_tools("Astrolabe_subset.ttf", "1", "MSHQ=200", 1)}
