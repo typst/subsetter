@@ -17,4 +17,6 @@ NotoSans-Regular_var.ttf;10,40,58,201-205;wght=800,wdth=70.0
 // Note that the lsb values currently doesn't match fonttools
 Cantarell-VF.otf;1,15,30-35,40,103-105;wght=400
 Cantarell-VF.otf;1,15,30-35,40,103-105;wght=800
+// Glyph 1 at MSHQ=200 is outside the head bounds of the font.
+Astrolabe_subset.ttf;1;MSHQ=200
 
