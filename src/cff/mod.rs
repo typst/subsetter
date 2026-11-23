@@ -107,7 +107,7 @@ struct Offsets {
 }
 
 impl Offsets {
-    pub fn new_cid(num_font_dicts: u8) -> Self {
+    pub fn new_cid(num_font_dicts: u16) -> Self {
         Self {
             char_strings_offset: DUMMY_OFFSET,
             charset_offset: DUMMY_OFFSET,
@@ -291,7 +291,7 @@ fn subset_charstrings(
     let mut fd_remapper = FontDictRemapper::new();
 
     for fd in used_fds {
-        fd_remapper.remap(fd);
+        fd_remapper.try_remap(fd)?;
     }
 
     Ok((char_strings.iter().map(|p| p.compile()).collect(), fd_remapper))
